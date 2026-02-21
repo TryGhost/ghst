@@ -20,7 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "lint": "eslint .",
+    "lint": "eslint . && prettier --check .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "prepack": "pnpm build"

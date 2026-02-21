@@ -8,12 +8,7 @@ import {
   normalizeError,
   printError,
 } from '../src/lib/errors.js';
-import {
-  isJsonMode,
-  printJson,
-  printPostHuman,
-  printPostListHuman,
-} from '../src/lib/output.js';
+import { isJsonMode, printJson, printPostHuman, printPostListHuman } from '../src/lib/output.js';
 
 describe('context helper', () => {
   test('extracts global options from commander-like object', () => {

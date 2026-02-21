@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { setPromptForTests } from '../src/commands/auth.js';
+import { setOpenUrlForTests, setPromptForTests } from '../src/commands/auth.js';
 import { ExitCode } from '../src/lib/errors.js';
 import { run } from '../src/index.js';
 
@@ -81,6 +81,7 @@ describe('run + commands', () => {
 
   afterEach(async () => {
     setPromptForTests(null);
+    setOpenUrlForTests(null);
     vi.restoreAllMocks();
     process.chdir(previousCwd);
 
@@ -115,15 +116,35 @@ describe('run + commands', () => {
   });
 
   test('covers auth flows including interactive switch branch', async () => {
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+
     await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
 
     process.env.MY_GHOST_KEY = KEY;
+    await expect(run(['node', 'ghst', 'auth', 'login', '--json'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
     await expect(
       run([
         'node',
         'ghst',
         'auth',
         'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
         '--key-env',
@@ -133,6 +154,7 @@ describe('run + commands', () => {
         '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual([]);
 
     await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
@@ -142,7 +164,10 @@ describe('run + commands', () => {
       await fs.readFile(path.join(configDir, 'config.json'), 'utf8'),
     ) as Record<string, unknown>;
     delete storedConfig.active;
-    await fs.writeFile(path.join(configDir, 'config.json'), `${JSON.stringify(storedConfig, null, 2)}\n`);
+    await fs.writeFile(
+      path.join(configDir, 'config.json'),
+      `${JSON.stringify(storedConfig, null, 2)}\n`,
+    );
     await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
     delete process.env.GHOST_API_VERSION;
     await expect(
@@ -151,6 +176,7 @@ describe('run + commands', () => {
         'ghst',
         'auth',
         'login',
+        '--non-interactive',
         '--url',
         'https://secondary.ghost.io',
         '--key',
@@ -159,10 +185,13 @@ describe('run + commands', () => {
         'secondary',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual([]);
     process.env.GHOST_API_VERSION = 'v6.0';
     await expect(run(['node', 'ghst', 'auth', 'switch', 'myblog'])).resolves.toBe(ExitCode.SUCCESS);
 
-    await expect(run(['node', 'ghst', 'auth', 'switch', 'missing'])).resolves.toBe(ExitCode.NOT_FOUND);
+    await expect(run(['node', 'ghst', 'auth', 'switch', 'missing'])).resolves.toBe(
+      ExitCode.NOT_FOUND,
+    );
 
     const ttyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
@@ -195,9 +224,25 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'auth', 'link'])).resolves.toBe(ExitCode.AUTH_ERROR);
     await expect(run(['node', 'ghst', 'auth', 'switch'])).resolves.toBe(ExitCode.AUTH_ERROR);
 
-    const promptAnswers = ['https://prompted.ghost.io', KEY];
+    const keyOnlyPromptAnswers = ['', 'https://key-only.ghost.io'];
+    setPromptForTests(async () => keyOnlyPromptAnswers.shift() ?? '');
+    await expect(
+      run(['node', 'ghst', 'auth', 'login', '--key', KEY, '--site', 'key-only']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    const promptAnswers = ['', 'https://prompted.ghost.io', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    const noColorPromptAnswers = ['', 'https://nocolor.ghost.io', KEY];
+    setPromptForTests(async () => noColorPromptAnswers.shift() ?? '');
+    await expect(run(['node', 'ghst', 'auth', 'login', '--no-color'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(openedUrls).toEqual([
+      'https://account.ghost.org/?r=settings/integrations/new',
+      'https://account.ghost.org/?r=settings/integrations/new',
+      'https://account.ghost.org/?r=settings/integrations/new',
+    ]);
 
     delete process.env.MY_GHOST_KEY;
   });
@@ -210,6 +255,7 @@ describe('run + commands', () => {
         'ghst',
         'auth',
         'login',
+        '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
         '--key',
@@ -220,7 +266,9 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'post', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'post', 'list', '--page', '2'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'post', 'list', '--page', '2'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
     await expect(run(['node', 'ghst', 'post', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'post', 'list', '--json', '--jq', '.posts[].title']),

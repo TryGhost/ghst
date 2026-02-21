@@ -1,4 +1,6 @@
+import { spawn } from 'node:child_process';
 import readline from 'node:readline/promises';
+import chalk from 'chalk';
 import type { Command } from 'commander';
 import { GhostClient } from '../lib/client.js';
 import { getGlobalOptions } from '../lib/context.js';
@@ -13,6 +15,13 @@ import { generateAdminToken, parseAdminApiKey } from '../lib/auth.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 
 type PromptFn = (question: string) => Promise<string>;
+type OpenUrlFn = (url: string) => Promise<void>;
+
+const NEW_INTEGRATION_URL = 'https://account.ghost.org/?r=settings/integrations/new';
+const LOGIN_GUIDANCE_BORDER = '------------------------------------------------------------';
+const LOGIN_GUIDANCE_TITLE = 'Authenticate with Ghost';
+const LOGIN_GUIDANCE_LINE_ONE =
+  'You will now be taken to your Ghost Admin panel, where you will create a new integration';
 
 /* c8 ignore start */
 async function prompt(question: string): Promise<string> {
@@ -27,12 +36,59 @@ async function prompt(question: string): Promise<string> {
     rl.close();
   }
 }
+
+function getBrowserOpenCommand(url: string): { command: string; args: string[] } {
+  if (process.platform === 'darwin') {
+    return { command: 'open', args: [url] };
+  }
+
+  if (process.platform === 'win32') {
+    return { command: 'cmd', args: ['/c', 'start', '', url] };
+  }
+
+  return { command: 'xdg-open', args: [url] };
+}
+
+async function openExternalUrl(url: string): Promise<void> {
+  const { command, args } = getBrowserOpenCommand(url);
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, { stdio: 'ignore' });
+    child.once('error', reject);
+    child.once('close', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`Failed to open browser (exit ${code ?? 'unknown'})`));
+    });
+  });
+}
 /* c8 ignore stop */
 
 let promptFn: PromptFn = prompt;
+let openUrlFn: OpenUrlFn = openExternalUrl;
 
 export function setPromptForTests(nextPrompt: PromptFn | null): void {
   promptFn = nextPrompt ?? prompt;
+}
+
+export function setOpenUrlForTests(nextOpenUrl: OpenUrlFn | null): void {
+  openUrlFn = nextOpenUrl ?? openExternalUrl;
+}
+
+function printLoginGuidance(useColor: boolean): void {
+  const apiUrlText = useColor ? chalk.cyan('API URL') : 'API URL';
+  const adminApiKeyText = useColor ? chalk.yellow('Admin API Key') : 'Admin API Key';
+  const lineTwo = `You will need to copy the ${apiUrlText} and ${adminApiKeyText} and paste them here to authenticate.`;
+
+  console.log('');
+  console.log(LOGIN_GUIDANCE_BORDER);
+  console.log(LOGIN_GUIDANCE_TITLE);
+  console.log(LOGIN_GUIDANCE_BORDER);
+  console.log(LOGIN_GUIDANCE_LINE_ONE);
+  console.log(lineTwo);
+  console.log('');
 }
 
 export function registerAuthCommands(program: Command): void {
@@ -44,17 +100,41 @@ export function registerAuthCommands(program: Command): void {
     .option('--url <url>', 'Ghost site URL')
     .option('--key <key>', 'Admin API key in {id}:{secret} format')
     .option('--key-env <name>', 'Read key from env var name')
+    .option('--non-interactive', 'Disable prompts and require explicit credentials')
     .option('--site <alias>', 'Optional site alias')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
-      const urlInput = options.url || global.url || (await promptFn('Ghost site URL: '));
+      const nonInteractive = Boolean(options.nonInteractive);
 
-      let keyInput = options.key || global.key;
-      if (!keyInput && options.keyEnv) {
-        keyInput = process.env[options.keyEnv];
+      if (global.json && !nonInteractive) {
+        throw new GhstError('Use --non-interactive when combining auth login with --json.', {
+          exitCode: ExitCode.USAGE_ERROR,
+          code: 'USAGE_ERROR',
+        });
       }
-      if (!keyInput) {
-        keyInput = await promptFn('Admin API key ({id}:{secret}): ');
+
+      const envKeyInput = options.keyEnv ? process.env[options.keyEnv] : undefined;
+      let urlInput = options.url || global.url;
+      let keyInput = options.key || global.key || envKeyInput;
+
+      if (nonInteractive) {
+        if (!urlInput || !keyInput) {
+          throw new GhstError(
+            'Non-interactive login requires both --url and --key (or --key-env).',
+            {
+              exitCode: ExitCode.USAGE_ERROR,
+              code: 'USAGE_ERROR',
+            },
+          );
+        }
+      } else {
+        printLoginGuidance(global.color !== false);
+        await promptFn('Press Enter to Continue...');
+        await openUrlFn(NEW_INTEGRATION_URL);
+        urlInput = urlInput || (await promptFn('Ghost API URL: '));
+        if (!keyInput) {
+          keyInput = await promptFn('Ghost Admin API Key: ');
+        }
       }
 
       parseAdminApiKey(keyInput);
@@ -94,8 +174,8 @@ export function registerAuthCommands(program: Command): void {
         return;
       }
 
-      console.log(`Authenticated ${urlInput} as '${alias}'.`);
-      console.log(`Config saved to ~/.config/ghst/config.json`);
+      const successMessage = 'Successfully authenticated with Ghost';
+      console.log(global.color === false ? successMessage : chalk.green(successMessage));
     });
 
   auth

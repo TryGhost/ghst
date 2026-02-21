@@ -35,7 +35,7 @@ pnpm build
 - Build: `pnpm build`
 - Typecheck: `pnpm typecheck`
 - Test: `pnpm test`
-- Lint: `pnpm lint`
+- Lint: `pnpm lint` (includes Prettier check)
 
 ## Repository Layout
 

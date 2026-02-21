@@ -35,9 +35,15 @@ ghst --help
 ## First Authentication Flow
 
 1. Run `ghst auth login`.
-2. Enter your Ghost URL.
-3. Create a Custom Integration in Ghost Admin and copy the Admin API key.
-4. Paste the key in `{id}:{secret}` format.
+2. Press Enter when prompted to open Ghost Admin integration setup.
+3. Create a Custom Integration in Ghost Admin.
+4. Paste the `Ghost API URL` and `Ghost Admin API Key` when prompted.
+
+For CI/scripts, use non-interactive mode:
+
+```bash
+ghst auth login --non-interactive --url https://myblog.ghost.io --key "{id}:{secret}" --json
+```
 
 Credentials are stored in `~/.config/ghst/config.json`.
 
