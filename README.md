@@ -52,14 +52,17 @@ Credentials are stored in `~/.config/ghst/config.json`.
 ```bash
 ghst post list --limit 5
 ghst post get --slug welcome
+ghst page create --title "About" --html-file ./about.html
+ghst tag create --name "News" --accent-color "#ff0000"
+ghst api /settings/ --method GET --query limit=1
 ```
 
-## Commands Included in Phase 1 Skeleton
+## Commands Included in Phase 1
 
 - `ghst auth login|logout|status|switch|list|link|token`
 - `ghst post list|get|create|update|delete|publish`
-- `ghst page list|get|create|update|delete` (stubbed)
-- `ghst tag list|get|create|update|delete` (stubbed)
-- `ghst config show`
-- `ghst api`
-- `ghst completion`
+- `ghst page list|get|create|update|delete`
+- `ghst tag list|get|create|update|delete`
+- `ghst config show|path|list|get|set`
+- `ghst api` (`--method|-X`, `--body`, `--input`, `--query`, `--content-api`)
+- `ghst completion <bash|zsh|fish|powershell>`

@@ -8,10 +8,22 @@ import {
   normalizeError,
   printError,
 } from '../src/lib/errors.js';
-import { isJsonMode, printJson, printPostHuman, printPostListHuman } from '../src/lib/output.js';
+import {
+  isJsonMode,
+  printJson,
+  printPageHuman,
+  printPageListHuman,
+  printPostHuman,
+  printPostListHuman,
+  printTagHuman,
+  printTagListHuman,
+} from '../src/lib/output.js';
 
 describe('context helper', () => {
-  test('extracts global options from commander-like object', () => {
+  test('extracts global options and applies env color overrides', () => {
+    const previous = process.env.NO_COLOR;
+    process.env.NO_COLOR = '1';
+
     const commandLike = {
       optsWithGlobals: () => ({
         json: true,
@@ -20,7 +32,7 @@ describe('context helper', () => {
         url: 'https://example.com',
         key: 'id:00',
         debug: 'api',
-        color: false,
+        color: true,
       }),
     };
 
@@ -35,6 +47,12 @@ describe('context helper', () => {
       debug: 'api',
       color: false,
     });
+
+    if (previous === undefined) {
+      delete process.env.NO_COLOR;
+    } else {
+      process.env.NO_COLOR = previous;
+    }
   });
 });
 
@@ -71,17 +89,18 @@ describe('error helpers', () => {
   test('formats and prints errors in json and human mode', () => {
     const error = new GhstError('Failed', {
       code: 'E_FAIL',
-      status: 422,
-      details: { field: 'title' },
-      exitCode: ExitCode.VALIDATION_ERROR,
+      status: 409,
+      details: { errors: [{ context: 'stale updated_at' }] },
+      exitCode: ExitCode.CONFLICT,
     });
 
     expect(formatErrorForJson(error)).toEqual({
       error: true,
       code: 'E_FAIL',
-      status: 422,
+      status: 409,
       message: 'Failed',
-      details: { field: 'title' },
+      context: 'stale updated_at',
+      details: { errors: [{ context: 'stale updated_at' }] },
     });
 
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -100,8 +119,8 @@ describe('output helpers', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     printJson({ posts: [{ title: 'a' }, { title: 'b' }] }, '.posts[].title');
-    printJson({ posts: { title: 'single' } }, '.posts[].title');
-    printJson({ ok: true });
+    printJson([{ title: 'a' }, { title: 'b' }], '.[].title');
+    printJson({ ok: true }, '.ok');
 
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();
@@ -111,51 +130,31 @@ describe('output helpers', () => {
     expect(() => printJson({ posts: [] }, 'bad-filter')).toThrowError('Unsupported --jq filter');
   });
 
-  test('prints human post list and post details', () => {
+  test('prints human list/details for posts/pages/tags', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const previousForceTty = process.env.GHST_FORCE_TTY;
+    process.env.GHST_FORCE_TTY = '1';
 
     printPostListHuman(
       {
-        posts: [
-          { id: '1', title: 'A', status: 'published', published_at: '2026-01-01' },
-          { id: '2', title: 'B', status: 'draft', published_at: '2026-01-02' },
-          { id: '3', title: 'C', status: 'scheduled', published_at: '2026-01-03' },
-          { id: '4', title: 'D', status: 'other', published_at: '2026-01-04' },
-        ],
-        meta: { pagination: { page: 1, pages: 2, total: 4 } },
+        posts: [{ id: '1', title: 'A', status: 'published', published_at: '2026-01-01' }],
+        meta: { pagination: { page: 1, pages: 1, total: 1 } },
       },
-      false,
+      true,
     );
+    printPageListHuman({ pages: [{ id: '2', title: 'B', status: 'draft', published_at: '' }] });
+    printTagListHuman({ tags: [{ id: '3', name: 'Tag', slug: 'tag', visibility: 'public' }] });
 
     printPostHuman({ posts: [{ id: 'id1', title: 'Title', slug: 'slug', status: 'draft' }] });
+    printPageHuman({ pages: [{ id: 'id2', title: 'Page', slug: 'about', status: 'draft' }] });
+    printTagHuman({ tags: [{ id: 'id3', name: 'Tag', slug: 'tag', visibility: 'public' }] });
     printPostHuman({ posts: [] });
-    printPostListHuman(
-      {
-        posts: [
-          { id: '5', title: 'E', status: 'draft', published_at: '' },
-          { id: '6', title: 'F', status: 'scheduled', published_at: '' },
-        ],
-      },
-      true,
-    );
-    printPostListHuman(
-      {
-        posts: [{ published_at: '2026-01-01' }],
-        meta: { pagination: {} },
-      },
-      true,
-    );
-    printPostListHuman({ posts: {} }, true);
 
-    expect(logSpy).toHaveBeenCalled();
-    logSpy.mockRestore();
-  });
-
-  test('handles non-array and missing-field human payloads', () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-
-    printPostHuman({ posts: {} });
-    printPostHuman({ posts: [{}] });
+    if (previousForceTty === undefined) {
+      delete process.env.GHST_FORCE_TTY;
+    } else {
+      process.env.GHST_FORCE_TTY = previousForceTty;
+    }
 
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();

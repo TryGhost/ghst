@@ -20,6 +20,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
+    "fixtures:ghost:update": "tsx scripts/update-ghost-fixtures.ts",
+    "fixtures:ghost:check": "tsx scripts/update-ghost-fixtures.ts --check",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format:check": "biome format .",
