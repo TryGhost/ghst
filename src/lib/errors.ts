@@ -45,6 +45,17 @@ export function mapHttpStatusToExitCode(status: number): ExitCode {
   return ExitCode.GENERAL_ERROR;
 }
 
+function getErrorContext(error: GhstError): string | undefined {
+  const details = error.details as Record<string, unknown> | undefined;
+  const errors = details?.errors;
+  if (!Array.isArray(errors)) {
+    return undefined;
+  }
+
+  const context = (errors[0] as Record<string, unknown> | undefined)?.context;
+  return typeof context === 'string' ? context : undefined;
+}
+
 export function normalizeError(error: unknown): GhstError {
   if (error instanceof GhstError) return error;
   if (error instanceof Error) {
@@ -67,6 +78,7 @@ export function formatErrorForJson(error: GhstError): Record<string, unknown> {
     code: error.code,
     status: error.status,
     message: error.message,
+    context: getErrorContext(error),
     details: error.details,
   };
 }
@@ -81,5 +93,16 @@ export function printError(error: GhstError, global: GlobalOptions): void {
     console.error(`Error: ${error.message} (HTTP ${error.status})`);
   } else {
     console.error(`Error: ${error.message}`);
+  }
+
+  const context = getErrorContext(error);
+  if (context) {
+    console.error('');
+    console.error(`  ${context}`);
+  }
+
+  if (error.status === 409) {
+    console.error('');
+    console.error('  Hint: Fetch the resource again and retry the update.');
   }
 }

@@ -4,7 +4,7 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: Phase 1 skeleton with working vertical slice for `auth` and `post` read paths.
+- Status: Phase 1 command surface implemented (`auth`, `post`, `page`, `tag`, `config`, `api`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 
 ## Runtime And Tooling
@@ -36,6 +36,8 @@ pnpm build
 - Typecheck: `pnpm typecheck`
 - Test: `pnpm test`
 - Lint: `pnpm lint` (Biome check: lint + formatting)
+- Refresh Ghost Admin fixtures: `pnpm fixtures:ghost:update`
+- Check Ghost Admin fixture drift: `pnpm fixtures:ghost:check`
 
 ## Repository Layout
 
@@ -49,16 +51,12 @@ pnpm build
 ## Implemented Commands
 
 - `ghst auth login|status|list|switch|logout|link|token`
-- `ghst post list|get`
-- `ghst config show`
-- `ghst api <endpointPath>`
-- `ghst completion`
-
-## Stubbed Commands (Intentional)
-
-- `ghst post create|update|delete|publish`
+- `ghst post list|get|create|update|delete|publish`
 - `ghst page list|get|create|update|delete`
 - `ghst tag list|get|create|update|delete`
+- `ghst config show|path|list|get|set`
+- `ghst api [endpointPath]`
+- `ghst completion <bash|zsh|fish|powershell>`
 
 ## Config Resolution Order
 
@@ -90,7 +88,14 @@ After any non-trivial change, run:
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 
+When changing Ghost API fixtures or fixture-backed mocks, also run:
+
+```bash
+pnpm fixtures:ghost:check
+```
+
 ## Notes
 
 - Ghost Admin API version defaults to `v6.0`.
 - JWT auth uses `{id}:{secret}` Admin key with `aud: /admin/` and 5-minute expiry.
+- Fixture capture/check scripts target Ghost Admin API responses only.

@@ -19,7 +19,7 @@ function withSingleContentSource<T extends z.ZodTypeAny>(schema: T): T {
   }) as T;
 }
 
-export const PostListInputSchema = z.object({
+export const PageListInputSchema = z.object({
   limit: z.union([z.number().int().positive().max(100), z.literal('all')]).optional(),
   page: z.number().int().positive().optional(),
   filter: z.string().optional(),
@@ -31,7 +31,7 @@ export const PostListInputSchema = z.object({
   formats: z.string().optional(),
 });
 
-export const PostGetInputSchema = z.object({
+export const PageGetInputSchema = z.object({
   id: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
   include: z.string().optional(),
@@ -39,7 +39,7 @@ export const PostGetInputSchema = z.object({
   formats: z.string().optional(),
 });
 
-export const PostCreateInputSchema = withSingleContentSource(
+export const PageCreateInputSchema = withSingleContentSource(
   z
     .object({
       title: z.string().min(1),
@@ -48,8 +48,6 @@ export const PostCreateInputSchema = withSingleContentSource(
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
-      tags: z.string().optional(),
-      authors: z.string().optional(),
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
     })
@@ -59,7 +57,7 @@ export const PostCreateInputSchema = withSingleContentSource(
     }),
 );
 
-export const PostUpdateInputSchema = withSingleContentSource(
+export const PageUpdateInputSchema = withSingleContentSource(
   z
     .object({
       id: z.string().min(1).optional(),
@@ -70,8 +68,6 @@ export const PostUpdateInputSchema = withSingleContentSource(
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
-      tags: z.string().optional(),
-      authors: z.string().optional(),
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
     })
@@ -88,8 +84,6 @@ export const PostUpdateInputSchema = withSingleContentSource(
             data.html ||
             data.htmlFile ||
             data.lexicalFile ||
-            data.tags ||
-            data.authors ||
             data.featured !== undefined ||
             data.visibility,
         ),
@@ -103,11 +97,7 @@ export const PostUpdateInputSchema = withSingleContentSource(
     }),
 );
 
-export const PostDeleteInputSchema = z.object({
+export const PageDeleteInputSchema = z.object({
   id: z.string().min(1),
   yes: z.boolean().optional(),
-});
-
-export const PostPublishInputSchema = z.object({
-  id: z.string().min(1),
 });

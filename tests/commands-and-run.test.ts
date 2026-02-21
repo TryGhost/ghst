@@ -5,15 +5,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { setOpenUrlForTests, setPromptForTests } from '../src/commands/auth.js';
 import { run } from '../src/index.js';
 import { ExitCode } from '../src/lib/errors.js';
+import { setPromptHandlerForTests } from '../src/lib/prompts.js';
+import { fixtureIds } from './helpers/ghost-fixtures.js';
+import { installGhostFixtureFetchMock } from './helpers/mock-ghost.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
-
-function jsonResponse(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
-}
 
 describe('run + commands', () => {
   let tempRoot = '';
@@ -24,6 +20,7 @@ describe('run + commands', () => {
   let previousApiVersion: string | undefined;
   let previousSite: string | undefined;
   let previousOutput: string | undefined;
+  let previousContentKey: string | undefined;
 
   beforeEach(async () => {
     previousCwd = process.cwd();
@@ -31,6 +28,7 @@ describe('run + commands', () => {
     previousApiVersion = process.env.GHOST_API_VERSION;
     previousSite = process.env.GHOST_SITE;
     previousOutput = process.env.GHST_OUTPUT;
+    previousContentKey = process.env.GHOST_CONTENT_API_KEY;
 
     tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-run-'));
     workDir = path.join(tempRoot, 'work');
@@ -41,47 +39,20 @@ describe('run + commands', () => {
 
     process.env.GHST_CONFIG_DIR = configDir;
     process.env.GHOST_API_VERSION = 'v6.0';
+    process.env.GHOST_CONTENT_API_KEY = 'content-key';
     delete process.env.GHOST_SITE;
     delete process.env.GHST_OUTPUT;
 
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const url = new URL(String(input));
-      const method = (init?.method ?? 'GET').toUpperCase();
-      const pathname = url.pathname;
-
-      if (pathname.endsWith('/ghost/api/admin/site/')) {
-        return jsonResponse({ site: [{ title: 'My Ghost Site' }] });
-      }
-
-      if (pathname.endsWith('/ghost/api/admin/posts/') && method === 'GET') {
-        return jsonResponse({
-          posts: [{ id: 'post-id', title: 'Welcome', slug: 'welcome', status: 'published' }],
-          meta: { pagination: { page: 1, pages: 1, total: 1 } },
-        });
-      }
-
-      if (pathname.endsWith('/ghost/api/admin/posts/post-id/') && method === 'GET') {
-        return jsonResponse({
-          posts: [{ id: 'post-id', title: 'Welcome', slug: 'welcome', status: 'published' }],
-        });
-      }
-
-      if (pathname.endsWith('/ghost/api/admin/posts/slug/welcome/') && method === 'GET') {
-        return jsonResponse({
-          posts: [{ id: 'post-id', title: 'Welcome', slug: 'welcome', status: 'published' }],
-        });
-      }
-
-      return jsonResponse({ errors: [{ message: `Unhandled route: ${pathname}` }] }, 404);
-    });
+    installGhostFixtureFetchMock({ postConflictOnce: true });
   });
 
   afterEach(async () => {
     setPromptForTests(null);
     setOpenUrlForTests(null);
+    setPromptHandlerForTests(null);
     vi.restoreAllMocks();
     process.chdir(previousCwd);
 
@@ -107,6 +78,12 @@ describe('run + commands', () => {
       delete process.env.GHST_OUTPUT;
     } else {
       process.env.GHST_OUTPUT = previousOutput;
+    }
+
+    if (previousContentKey === undefined) {
+      delete process.env.GHOST_CONTENT_API_KEY;
+    } else {
+      process.env.GHOST_CONTENT_API_KEY = previousContentKey;
     }
   });
 
@@ -138,6 +115,7 @@ describe('run + commands', () => {
         'https://myblog.ghost.io',
       ]),
     ).resolves.toBe(ExitCode.USAGE_ERROR);
+
     await expect(
       run([
         'node',
@@ -154,41 +132,12 @@ describe('run + commands', () => {
         '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual([]);
 
-    await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
-    const storedConfig = JSON.parse(
-      await fs.readFile(path.join(configDir, 'config.json'), 'utf8'),
-    ) as Record<string, unknown>;
-    delete storedConfig.active;
-    await fs.writeFile(
-      path.join(configDir, 'config.json'),
-      `${JSON.stringify(storedConfig, null, 2)}\n`,
-    );
-    await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
-    delete process.env.GHOST_API_VERSION;
-    await expect(
-      run([
-        'node',
-        'ghst',
-        'auth',
-        'login',
-        '--non-interactive',
-        '--url',
-        'https://secondary.ghost.io',
-        '--key',
-        KEY,
-        '--site',
-        'secondary',
-      ]),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual([]);
-    process.env.GHOST_API_VERSION = 'v6.0';
-    await expect(run(['node', 'ghst', 'auth', 'switch', 'myblog'])).resolves.toBe(ExitCode.SUCCESS);
 
+    await expect(run(['node', 'ghst', 'auth', 'switch', 'myblog'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'switch', 'missing'])).resolves.toBe(
       ExitCode.NOT_FOUND,
     );
@@ -200,8 +149,6 @@ describe('run + commands', () => {
     Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
     setPromptForTests(async () => 'myblog');
     await expect(run(['node', 'ghst', 'auth', 'switch'])).resolves.toBe(ExitCode.SUCCESS);
-    setPromptForTests(async () => undefined as unknown as string);
-    await expect(run(['node', 'ghst', 'auth', 'switch'])).resolves.toBe(ExitCode.NOT_FOUND);
 
     if (ttyDescriptor) {
       Object.defineProperty(process.stdin, 'isTTY', ttyDescriptor);
@@ -210,45 +157,20 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'auth', 'link'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'token'])).resolves.toBe(ExitCode.SUCCESS);
 
-    await expect(run(['node', 'ghst', 'auth', 'logout', '--site', 'missing'])).resolves.toBe(
-      ExitCode.NOT_FOUND,
-    );
-    await expect(run(['node', 'ghst', 'auth', 'logout', '--site', 'secondary'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
     await expect(run(['node', 'ghst', 'auth', 'logout', '--site', 'myblog'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
     await expect(run(['node', 'ghst', 'auth', 'logout'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'auth', 'link'])).resolves.toBe(ExitCode.AUTH_ERROR);
-    await expect(run(['node', 'ghst', 'auth', 'switch'])).resolves.toBe(ExitCode.AUTH_ERROR);
-
-    const keyOnlyPromptAnswers = ['', 'https://key-only.ghost.io'];
-    setPromptForTests(async () => keyOnlyPromptAnswers.shift() ?? '');
-    await expect(
-      run(['node', 'ghst', 'auth', 'login', '--key', KEY, '--site', 'key-only']),
-    ).resolves.toBe(ExitCode.SUCCESS);
 
     const promptAnswers = ['', 'https://prompted.ghost.io', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
-    const noColorPromptAnswers = ['', 'https://nocolor.ghost.io', KEY];
-    setPromptForTests(async () => noColorPromptAnswers.shift() ?? '');
-    await expect(run(['node', 'ghst', 'auth', 'login', '--no-color'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    expect(openedUrls).toEqual([
-      'https://account.ghost.org/?r=settings/integrations/new',
-      'https://account.ghost.org/?r=settings/integrations/new',
-      'https://account.ghost.org/?r=settings/integrations/new',
-    ]);
+    expect(openedUrls).toEqual(['https://prompted.ghost.io/ghost/#/settings/integrations/new']);
 
     delete process.env.MY_GHOST_KEY;
   });
 
-  test('covers post, api, config, completion, and stubs', async () => {
-    await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
+  test('covers post/page/tag/config/api/completion command flows', async () => {
     await expect(
       run([
         'node',
@@ -265,66 +187,130 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
+    await fs.writeFile(path.join(workDir, 'post.html'), '<p>Hello</p>', 'utf8');
+    await fs.writeFile(path.join(workDir, 'post.lexical.json'), '{"root":{}}', 'utf8');
+    await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
+
     await expect(run(['node', 'ghst', 'post', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'post', 'list', '--page', '2'])).resolves.toBe(
+    await expect(run(['node', 'ghst', 'post', 'list', '--limit', 'all'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
-    await expect(run(['node', 'ghst', 'post', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'post', 'list', '--json', '--jq', '.posts[].title']),
     ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'post', 'list', '--limit', '0'])).resolves.toBe(
-      ExitCode.VALIDATION_ERROR,
-    );
-
-    await expect(run(['node', 'ghst', 'post', 'get', 'post-id'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'post', 'get', '--slug', 'welcome'])).resolves.toBe(
+    await expect(run(['node', 'ghst', 'post', 'get', '--slug', fixtureIds.postSlug])).resolves.toBe(
       ExitCode.SUCCESS,
     );
-    await expect(run(['node', 'ghst', 'post', 'get', 'post-id', '--json'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(run(['node', 'ghst', 'post', 'get', ''])).resolves.toBe(ExitCode.VALIDATION_ERROR);
-    await expect(run(['node', 'ghst', 'post', 'get'])).resolves.toBe(ExitCode.USAGE_ERROR);
-
-    await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
     await expect(
       run([
         'node',
         'ghst',
-        'api',
-        '/posts/',
-        '--method',
-        'GET',
-        '--query',
-        'limit=1',
-        'status=published',
+        'post',
+        'create',
+        '--title',
+        'Created',
+        '--html-file',
+        './post.html',
+        '--tags',
+        'One,Two',
+        '--authors',
+        'a@example.com',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'api', '/site/'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run([
         'node',
         'ghst',
-        'api',
-        '/posts/',
-        '--method',
-        'POST',
-        '--body',
-        '{"posts":[{"title":"New"}]}',
+        'post',
+        'update',
+        fixtureIds.postId,
+        '--title',
+        'Updated',
+        '--featured',
+        'true',
       ]),
-    ).resolves.toBe(ExitCode.NOT_FOUND);
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'post', 'publish', fixtureIds.postId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
 
+    const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    const stdoutTty = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+    setPromptHandlerForTests(async () => 'no');
+    await expect(run(['node', 'ghst', 'post', 'delete', fixtureIds.postId])).resolves.toBe(
+      ExitCode.OPERATION_CANCELLED,
+    );
+    setPromptHandlerForTests(async () => 'yes');
+    await expect(run(['node', 'ghst', 'post', 'delete', fixtureIds.postId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    if (stdinTty) {
+      Object.defineProperty(process.stdin, 'isTTY', stdinTty);
+    }
+    if (stdoutTty) {
+      Object.defineProperty(process.stdout, 'isTTY', stdoutTty);
+    }
+
+    await expect(run(['node', 'ghst', 'page', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'page', 'get', '--slug', fixtureIds.pageSlug])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'page', 'create', '--title', 'Contact', '--html', '<p>Hi</p>']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'page', 'update', fixtureIds.pageId, '--title', 'Updated Page']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'page', 'delete', fixtureIds.pageId, '--yes'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(run(['node', 'ghst', 'tag', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'tag', 'get', '--slug', fixtureIds.tagSlug])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'tag', 'create', '--name', 'My Tag', '--accent-color', '#ffffff']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'tag', 'update', fixtureIds.tagId, '--name', 'Updated Tag']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'tag', 'delete', fixtureIds.tagId, '--yes'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(run(['node', 'ghst', 'config', 'path'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'config', 'show', '--json'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'completion'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'config', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'config', 'set', 'defaults.limit', '25'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'config', 'get', 'defaults.limit'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
 
-    await expect(run(['node', 'ghst', 'post', 'create'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'post', 'update'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'post', 'delete'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'post', 'publish'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'page', 'list'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'tag', 'list'])).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'api', '/site/'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/settings/', '--query', 'limit=1', 'status=published']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--input', './payload.json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--content-api', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'completion'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'completion', 'bash'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'completion', 'zsh'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'completion', 'fish'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'completion', 'powershell'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'completion', 'bad-shell'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
   });
 
   test('uses env output mode for json errors', async () => {

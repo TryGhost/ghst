@@ -91,6 +91,15 @@ function printLoginGuidance(useColor: boolean): void {
   console.log('');
 }
 
+function getIntegrationSetupUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}/ghost/#/settings/integrations/new`;
+  } catch {
+    return NEW_INTEGRATION_URL;
+  }
+}
+
 export function registerAuthCommands(program: Command): void {
   const auth = program.command('auth').description('Authentication management');
 
@@ -130,8 +139,8 @@ export function registerAuthCommands(program: Command): void {
       } else {
         printLoginGuidance(global.color !== false);
         await promptFn('Press Enter to Continue...');
-        await openUrlFn(NEW_INTEGRATION_URL);
         urlInput = urlInput || (await promptFn('Ghost API URL: '));
+        await openUrlFn(getIntegrationSetupUrl(urlInput));
         if (!keyInput) {
           keyInput = await promptFn('Ghost Admin API Key: ');
         }

@@ -3,7 +3,8 @@ import { ExitCode, GhstError, mapHttpStatusToExitCode } from './errors.js';
 
 export interface GhostClientConfig {
   url: string;
-  key: string;
+  key?: string;
+  contentKey?: string;
   version?: string;
 }
 
@@ -11,6 +12,12 @@ export interface GhostApiErrorPayload {
   errors?: Array<{ message?: string; context?: string; type?: string }>;
   [key: string]: unknown;
 }
+
+export interface GhostPaginatedResponse extends Record<string, unknown> {
+  meta?: Record<string, unknown>;
+}
+
+type RequestApi = 'admin' | 'content';
 
 export class GhostApiError extends GhstError {
   readonly payload: GhostApiErrorPayload | null;
@@ -26,15 +33,50 @@ export class GhostApiError extends GhstError {
   }
 }
 
+function isReadMethod(method: string): boolean {
+  const normalized = method.toUpperCase();
+  return normalized === 'GET' || normalized === 'HEAD';
+}
+
+function getRetryDelay(attempt: number): number {
+  if (process.env.VITEST) {
+    return 0;
+  }
+
+  return 1000 * 2 ** attempt;
+}
+
+async function wait(ms: number): Promise<void> {
+  if (ms <= 0) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export class GhostClient {
   private readonly url: string;
-  private readonly key: string;
+  private readonly key?: string;
+  private readonly contentKey?: string;
   private readonly version: string;
 
   constructor(config: GhostClientConfig) {
-    parseAdminApiKey(config.key);
+    if (!config.key && !config.contentKey) {
+      throw new GhstError('Ghost client requires an admin key or content key.', {
+        exitCode: ExitCode.USAGE_ERROR,
+        code: 'USAGE_ERROR',
+      });
+    }
+
+    if (config.key) {
+      parseAdminApiKey(config.key);
+    }
+
     this.url = config.url.replace(/\/$/, '');
     this.key = config.key;
+    this.contentKey = config.contentKey;
     this.version = config.version ?? 'v6.0';
   }
 
@@ -45,59 +87,101 @@ export class GhostClient {
       params?: Record<string, string | number | boolean | undefined>;
       body?: unknown;
       source?: 'html';
+      api?: RequestApi;
     } = {},
   ): Promise<T> {
-    const token = await generateAdminToken(this.key);
-    const url = new URL(`/ghost/api/admin${endpointPath}`, this.url);
+    const api = options.api ?? 'admin';
+    const upperMethod = method.toUpperCase();
+    const maxNetworkRetries = isReadMethod(upperMethod) ? 1 : 0;
+    let networkRetryCount = 0;
+    let rateRetryCount = 0;
 
-    if (options.params) {
-      for (const [key, value] of Object.entries(options.params)) {
-        if (value !== undefined) {
-          url.searchParams.set(key, String(value));
+    while (true) {
+      const url = new URL(`/ghost/api/${api}${endpointPath}`, this.url);
+
+      if (options.params) {
+        for (const [key, value] of Object.entries(options.params)) {
+          if (value !== undefined) {
+            url.searchParams.set(key, String(value));
+          }
         }
       }
-    }
 
-    if (options.source) {
-      url.searchParams.set('source', options.source);
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(url.toString(), {
-        method,
-        headers: {
-          Authorization: `Ghost ${token}`,
-          'Accept-Version': this.version,
-          'Content-Type': 'application/json',
-        },
-        body: options.body ? JSON.stringify(options.body) : undefined,
-      });
-    } catch (error) {
-      throw new GhstError(`Network request failed: ${(error as Error).message}`, {
-        code: 'NETWORK_ERROR',
-        exitCode: ExitCode.GENERAL_ERROR,
-      });
-    }
-
-    if (!response.ok) {
-      let payload: GhostApiErrorPayload | null = null;
-      try {
-        payload = (await response.json()) as GhostApiErrorPayload;
-      } catch {
-        payload = null;
+      if (options.source) {
+        url.searchParams.set('source', options.source);
       }
 
-      const ghostMessage =
-        payload?.errors?.[0]?.message ?? `Ghost API request failed (${response.status})`;
-      throw new GhostApiError(response.status, ghostMessage, payload);
-    }
+      const headers: Record<string, string> = {
+        'Accept-Version': this.version,
+        'Content-Type': 'application/json',
+      };
 
-    if (response.status === 204) {
-      return {} as T;
-    }
+      if (api === 'admin') {
+        if (!this.key) {
+          throw new GhstError('Admin API key is required for this request.', {
+            code: 'AUTH_REQUIRED',
+            exitCode: ExitCode.AUTH_ERROR,
+          });
+        }
 
-    return (await response.json()) as T;
+        const token = await generateAdminToken(this.key);
+        headers.Authorization = `Ghost ${token}`;
+      } else {
+        if (!this.contentKey) {
+          throw new GhstError('GHOST_CONTENT_API_KEY is required for --content-api requests.', {
+            code: 'AUTH_REQUIRED',
+            exitCode: ExitCode.AUTH_ERROR,
+          });
+        }
+
+        url.searchParams.set('key', this.contentKey);
+      }
+
+      let response: Response;
+      try {
+        response = await fetch(url.toString(), {
+          method: upperMethod,
+          headers,
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
+      } catch (error) {
+        if (networkRetryCount < maxNetworkRetries) {
+          networkRetryCount += 1;
+          continue;
+        }
+
+        throw new GhstError(`Network request failed: ${(error as Error).message}`, {
+          code: 'NETWORK_ERROR',
+          exitCode: ExitCode.GENERAL_ERROR,
+        });
+      }
+
+      if (response.status === 429 && rateRetryCount < 3) {
+        const delay = getRetryDelay(rateRetryCount);
+        rateRetryCount += 1;
+        await wait(delay);
+        continue;
+      }
+
+      if (!response.ok) {
+        let payload: GhostApiErrorPayload | null = null;
+        try {
+          payload = (await response.json()) as GhostApiErrorPayload;
+        } catch {
+          payload = null;
+        }
+
+        const ghostMessage =
+          payload?.errors?.[0]?.message ?? `Ghost API request failed (${response.status})`;
+        throw new GhostApiError(response.status, ghostMessage, payload);
+      }
+
+      if (response.status === 204) {
+        return {} as T;
+      }
+
+      return (await response.json()) as T;
+    }
   }
 
   async siteInfo(): Promise<Record<string, unknown>> {
@@ -109,17 +193,19 @@ export class GhostClient {
     method = 'GET',
     body?: unknown,
     params?: Record<string, string | number | boolean | undefined>,
+    options: { api?: RequestApi } = {},
   ): Promise<T> {
     const normalized = path.startsWith('/') ? path : `/${path}`;
     return this.request<T>(method.toUpperCase(), normalized, {
       body,
       params,
+      api: options.api,
     });
   }
 
   posts = {
     browse: (params?: Record<string, string | number | boolean | undefined>) =>
-      this.request<Record<string, unknown>>('GET', '/posts/', { params }),
+      this.request<GhostPaginatedResponse>('GET', '/posts/', { params }),
 
     read: (
       idOrSlug: string,
@@ -155,12 +241,74 @@ export class GhostClient {
   };
 
   pages = {
-    browse: () => this.request<Record<string, unknown>>('GET', '/pages/'),
-    read: (id: string) => this.request<Record<string, unknown>>('GET', `/pages/${id}/`),
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/pages/', { params }),
+
+    read: (
+      idOrSlug: string,
+      options: {
+        bySlug?: boolean;
+        params?: Record<string, string | number | boolean | undefined>;
+      } = {},
+    ) => {
+      if (options.bySlug) {
+        return this.request<Record<string, unknown>>('GET', `/pages/slug/${idOrSlug}/`, {
+          params: options.params,
+        });
+      }
+
+      return this.request<Record<string, unknown>>('GET', `/pages/${idOrSlug}/`, {
+        params: options.params,
+      });
+    },
+
+    add: (page: Record<string, unknown>, source?: 'html') =>
+      this.request<Record<string, unknown>>('POST', '/pages/', {
+        body: { pages: [page] },
+        source,
+      }),
+
+    edit: (id: string, page: Record<string, unknown>, source?: 'html') =>
+      this.request<Record<string, unknown>>('PUT', `/pages/${id}/`, {
+        body: { pages: [page] },
+        source,
+      }),
+
+    delete: (id: string) => this.request<Record<string, never>>('DELETE', `/pages/${id}/`),
   };
 
   tags = {
-    browse: () => this.request<Record<string, unknown>>('GET', '/tags/'),
-    read: (id: string) => this.request<Record<string, unknown>>('GET', `/tags/${id}/`),
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/tags/', { params }),
+
+    read: (
+      idOrSlug: string,
+      options: {
+        bySlug?: boolean;
+        params?: Record<string, string | number | boolean | undefined>;
+      } = {},
+    ) => {
+      if (options.bySlug) {
+        return this.request<Record<string, unknown>>('GET', `/tags/slug/${idOrSlug}/`, {
+          params: options.params,
+        });
+      }
+
+      return this.request<Record<string, unknown>>('GET', `/tags/${idOrSlug}/`, {
+        params: options.params,
+      });
+    },
+
+    add: (tag: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('POST', '/tags/', {
+        body: { tags: [tag] },
+      }),
+
+    edit: (id: string, tag: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('PUT', `/tags/${id}/`, {
+        body: { tags: [tag] },
+      }),
+
+    delete: (id: string) => this.request<Record<string, never>>('DELETE', `/tags/${id}/`),
   };
 }
