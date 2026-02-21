@@ -2,8 +2,8 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline/promises';
 import chalk from 'chalk';
 import type { Command } from 'commander';
+import { generateAdminToken, parseAdminApiKey } from '../lib/auth.js';
 import { GhostClient } from '../lib/client.js';
-import { getGlobalOptions } from '../lib/context.js';
 import {
   deriveSiteAlias,
   readUserConfig,
@@ -11,7 +11,7 @@ import {
   writeProjectConfig,
   writeUserConfig,
 } from '../lib/config.js';
-import { generateAdminToken, parseAdminApiKey } from '../lib/auth.js';
+import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 
 type PromptFn = (question: string) => Promise<string>;

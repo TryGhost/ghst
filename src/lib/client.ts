@@ -1,4 +1,4 @@
-import { parseAdminApiKey, generateAdminToken } from './auth.js';
+import { generateAdminToken, parseAdminApiKey } from './auth.js';
 import { ExitCode, GhstError, mapHttpStatusToExitCode } from './errors.js';
 
 export interface GhostClientConfig {

@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { GhostClient } from '../lib/client.js';
-import { getGlobalOptions } from '../lib/context.js';
 import { resolveConnectionConfig } from '../lib/config.js';
+import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { isJsonMode, printJson, printPostHuman, printPostListHuman } from '../lib/output.js';
 import { PostGetInputSchema, PostListInputSchema } from '../schemas/post.js';
@@ -95,6 +95,7 @@ export function registerPostCommands(program: Command): void {
         version: connection.apiVersion,
       });
 
+      // biome-ignore lint/style/noNonNullAssertion: validated by the guard above.
       const payload = await client.posts.read(parsed.data.slug ?? parsed.data.id!, {
         bySlug: Boolean(parsed.data.slug),
         params: {

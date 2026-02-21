@@ -2,8 +2,8 @@ import { describe, expect, test, vi } from 'vitest';
 import { getGlobalOptions } from '../src/lib/context.js';
 import {
   ExitCode,
-  GhstError,
   formatErrorForJson,
+  GhstError,
   mapHttpStatusToExitCode,
   normalizeError,
   printError,

@@ -1,7 +1,7 @@
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
 function runCli(args: string[], env?: NodeJS.ProcessEnv) {

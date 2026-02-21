@@ -1,5 +1,5 @@
-import { Command, CommanderError } from 'commander';
 import { pathToFileURL } from 'node:url';
+import { Command, CommanderError } from 'commander';
 import { registerApiCommands } from './commands/api.js';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerCompletionCommands } from './commands/completion.js';

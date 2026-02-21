@@ -14,7 +14,7 @@
 - Language: TypeScript (ESM)
 - Build: `tsup`
 - Test: `vitest`
-- Lint: ESLint + TypeScript ESLint
+- Lint/format: Biome
 
 ## Quick Start
 
@@ -35,7 +35,7 @@ pnpm build
 - Build: `pnpm build`
 - Typecheck: `pnpm typecheck`
 - Test: `pnpm test`
-- Lint: `pnpm lint` (includes Prettier check)
+- Lint: `pnpm lint` (Biome check: lint + formatting)
 
 ## Repository Layout
 

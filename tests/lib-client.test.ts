@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { ExitCode, GhstError } from '../src/lib/errors.js';
-import { GhostApiError, GhostClient } from '../src/lib/client.js';
+import { type GhostApiError, GhostClient } from '../src/lib/client.js';
+import { ExitCode, type GhstError } from '../src/lib/errors.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
 

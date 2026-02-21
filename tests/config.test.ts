@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import type { GlobalOptions } from '../src/lib/types.js';
-import { ExitCode } from '../src/lib/errors.js';
 import { resolveConnectionConfig } from '../src/lib/config.js';
+import { ExitCode } from '../src/lib/errors.js';
+import type { GlobalOptions } from '../src/lib/types.js';
 
 const baseConfig = {
   version: 1,

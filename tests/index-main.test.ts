@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { ExitCode } from '../src/lib/errors.js';
 import { main } from '../src/index.js';
+import { ExitCode } from '../src/lib/errors.js';
 
 describe('main entrypoint', () => {
   afterEach(() => {

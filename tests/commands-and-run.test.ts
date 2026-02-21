@@ -3,8 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { setOpenUrlForTests, setPromptForTests } from '../src/commands/auth.js';
-import { ExitCode } from '../src/lib/errors.js';
 import { run } from '../src/index.js';
+import { ExitCode } from '../src/lib/errors.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
 

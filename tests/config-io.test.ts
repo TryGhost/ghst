@@ -12,7 +12,7 @@ import {
   writeProjectConfig,
   writeUserConfig,
 } from '../src/lib/config.js';
-import { GhstError } from '../src/lib/errors.js';
+import type { GhstError } from '../src/lib/errors.js';
 
 describe('config io helpers', () => {
   afterEach(() => {

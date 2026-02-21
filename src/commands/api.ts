@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { GhostClient } from '../lib/client.js';
-import { getGlobalOptions } from '../lib/context.js';
 import { resolveConnectionConfig } from '../lib/config.js';
+import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson } from '../lib/output.js';
 
