@@ -314,6 +314,12 @@ async function buildFixtures(): Promise<FixtureDocument> {
       title: postUpdatedTitle,
       updated_at: String(createdPost.updated_at ?? ''),
     });
+    let postCopy: Record<string, unknown> = {};
+    try {
+      postCopy = await client.posts.copy(createdIds.postId);
+    } catch (error) {
+      postCopy = extractGhostError(error);
+    }
 
     let postConflict: Record<string, unknown> = {};
     try {
@@ -372,6 +378,12 @@ async function buildFixtures(): Promise<FixtureDocument> {
       title: pageUpdatedTitle,
       updated_at: String(createdPage.updated_at ?? ''),
     });
+    let pageCopy: Record<string, unknown> = {};
+    try {
+      pageCopy = await client.pages.copy(createdIds.pageId);
+    } catch (error) {
+      pageCopy = extractGhostError(error);
+    }
 
     const tagCreate = await client.tags.add({
       name: tagName,
@@ -759,6 +771,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
       read: sanitizeValue(postRead, replacements),
       create: sanitizeValue(postCreate, replacements),
       update: sanitizeValue(postUpdate, replacements),
+      copy: sanitizeValue(postCopy, replacements),
       conflict409: sanitizeValue(postConflict, replacements),
       notFound404: sanitizeValue(postNotFound, replacements),
       validation422: sanitizeValue(postValidation, replacements),
@@ -769,6 +782,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
       read: sanitizeValue(pageRead, replacements),
       create: sanitizeValue(pageCreate, replacements),
       update: sanitizeValue(pageUpdate, replacements),
+      copy: sanitizeValue(pageCopy, replacements),
     };
 
     fixtures.tags = {

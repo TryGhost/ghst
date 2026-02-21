@@ -3,11 +3,21 @@ import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printPageHuman, printPageListHuman } from '../lib/output.js';
-import { createPage, deletePage, getPage, listPages, updatePage } from '../lib/pages.js';
+import {
+  bulkPages,
+  copyPage,
+  createPage,
+  deletePage,
+  getPage,
+  listPages,
+  updatePage,
+} from '../lib/pages.js';
 import { parseBooleanFlag, parseInteger } from '../lib/parse.js';
 import { confirm } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
+  PageBulkInputSchema,
+  PageCopyInputSchema,
   PageCreateInputSchema,
   PageDeleteInputSchema,
   PageGetInputSchema,
@@ -291,5 +301,63 @@ export function registerPageCommands(program: Command): void {
       }
 
       console.log(`Deleted page '${parsed.data.id}'.`);
+    });
+
+  page
+    .command('copy <id>')
+    .description('Copy a page')
+    .action(async (id: string, _, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = PageCopyInputSchema.safeParse({ id });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await copyPage(global, parsed.data.id);
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+      printPageHuman(payload);
+    });
+
+  page
+    .command('bulk')
+    .description('Run bulk page operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select pages')
+    .requiredOption('--action <action>', 'update|delete')
+    .option('--status <status>', 'Status to set for bulk update')
+    .option('--yes', 'Confirm bulk delete')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = PageBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        status: options.status,
+        yes: options.yes,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkPages(global, {
+        filter: parsed.data.filter,
+        delete: parsed.data.action === 'delete',
+        status: parsed.data.status,
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      const stats = (
+        (payload.bulk as Record<string, unknown> | undefined)?.meta as Record<string, unknown>
+      )?.stats as Record<string, unknown> | undefined;
+      console.log(
+        `Bulk operation complete: ${String(stats?.successful ?? 0)} successful, ${String(stats?.unsuccessful ?? 0)} unsuccessful`,
+      );
     });
 }

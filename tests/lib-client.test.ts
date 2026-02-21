@@ -58,12 +58,14 @@ describe('GhostClient', () => {
     await client.posts.read('welcome', { bySlug: true, params: { include: 'tags,authors' } });
     await client.posts.add({ title: 'hello' }, 'html');
     await client.posts.edit('post-id', { title: 'edit' }, 'html');
+    await client.posts.copy('post-id');
     await client.posts.delete('post-id');
 
     await client.pages.browse({ limit: 2 });
     await client.pages.read('about', { bySlug: true });
     await client.pages.add({ title: 'page' }, 'html');
     await client.pages.edit('page-id', { title: 'page edit' }, 'html');
+    await client.pages.copy('page-id');
     await client.pages.delete('page-id');
 
     await client.tags.browse({ limit: 2 });
@@ -112,6 +114,7 @@ describe('GhostClient', () => {
     await client.labels.delete('label-id');
 
     await client.rawRequest('site/', 'get', { ok: true }, { a: 1 });
+    await client.rawRequestWithMeta('site/', 'get', undefined, { b: 2 });
 
     expect(urls).toContain(
       'https://myblog.ghost.io/ghost/api/admin/posts/?limit=5&filter=status%3Adraft',
@@ -119,7 +122,9 @@ describe('GhostClient', () => {
     expect(urls).toContain(
       'https://myblog.ghost.io/ghost/api/admin/posts/slug/welcome/?include=tags%2Cauthors',
     );
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/posts/post-id/copy/');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/pages/?limit=2');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/pages/page-id/copy/');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/tags/?limit=2');
     expect(urls).toContain(
       'https://myblog.ghost.io/ghost/api/admin/members/?limit=1&filter=email%3A%27x%40example.com%27',
@@ -130,6 +135,7 @@ describe('GhostClient', () => {
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/offers/?limit=1');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/labels/?limit=1');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/site/?a=1');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/site/?b=2');
   });
 
   test('supports content API raw requests with content key', async () => {

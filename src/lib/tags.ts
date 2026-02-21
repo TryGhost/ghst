@@ -102,3 +102,81 @@ export async function deleteTag(global: GlobalOptions, id: string): Promise<Reco
   const client = await getClient(global);
   return client.tags.delete(id);
 }
+
+function extractTagIds(payload: GhostPaginatedResponse): string[] {
+  const tags = Array.isArray(payload.tags) ? payload.tags : [];
+  return tags
+    .map((entry) => String((entry as Record<string, unknown>)?.id ?? '').trim())
+    .filter(Boolean);
+}
+
+export async function bulkTags(
+  global: GlobalOptions,
+  options: {
+    filter: string;
+    delete?: boolean;
+    visibility?: 'public' | 'internal';
+  },
+): Promise<Record<string, unknown>> {
+  const list = await listTags(
+    global,
+    {
+      filter: options.filter,
+      limit: 100,
+    },
+    true,
+  );
+  const ids = extractTagIds(list);
+
+  if (ids.length === 0) {
+    return {
+      bulk: {
+        meta: {
+          stats: {
+            successful: 0,
+            unsuccessful: 0,
+          },
+        },
+        errors: [],
+      },
+    };
+  }
+
+  let successful = 0;
+  let unsuccessful = 0;
+  const errors: Array<Record<string, string>> = [];
+
+  for (const id of ids) {
+    try {
+      if (options.delete) {
+        await deleteTag(global, id);
+      } else {
+        await updateTag(global, {
+          id,
+          patch: {
+            visibility: options.visibility,
+          },
+        });
+      }
+      successful += 1;
+    } catch (error) {
+      unsuccessful += 1;
+      errors.push({
+        id,
+        message: (error as Error).message,
+      });
+    }
+  }
+
+  return {
+    bulk: {
+      meta: {
+        stats: {
+          successful,
+          unsuccessful,
+        },
+      },
+      errors,
+    },
+  };
+}

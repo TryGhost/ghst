@@ -5,8 +5,8 @@ const RAW_FIXTURE_PATH = path.resolve(process.cwd(), 'tests/fixtures/ghost-admin
 
 interface FixtureDoc {
   fixtures: {
-    posts: Record<string, unknown>;
-    pages: Record<string, unknown>;
+    posts: Record<string, unknown> & { copy?: Record<string, unknown> };
+    pages: Record<string, unknown> & { copy?: Record<string, unknown> };
     tags: Record<string, unknown>;
     members: Record<string, unknown>;
     newsletters: Record<string, unknown>;

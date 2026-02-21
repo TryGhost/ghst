@@ -135,3 +135,118 @@ export async function publishPost(
     },
   });
 }
+
+export async function schedulePost(
+  global: GlobalOptions,
+  id: string,
+  at: string,
+): Promise<Record<string, unknown>> {
+  return updatePost(global, {
+    id,
+    patch: {
+      status: 'scheduled',
+      published_at: at,
+    },
+  });
+}
+
+export async function unschedulePost(
+  global: GlobalOptions,
+  id: string,
+): Promise<Record<string, unknown>> {
+  return updatePost(global, {
+    id,
+    patch: {
+      status: 'draft',
+      published_at: null,
+    },
+  });
+}
+
+export async function copyPost(
+  global: GlobalOptions,
+  id: string,
+): Promise<Record<string, unknown>> {
+  const client = await getClient(global);
+  return client.posts.copy(id);
+}
+
+function extractPostIds(payload: GhostPaginatedResponse): string[] {
+  const posts = Array.isArray(payload.posts) ? payload.posts : [];
+  return posts
+    .map((entry) => String((entry as Record<string, unknown>)?.id ?? '').trim())
+    .filter(Boolean);
+}
+
+export async function bulkPosts(
+  global: GlobalOptions,
+  options: {
+    filter: string;
+    delete?: boolean;
+    status?: 'draft' | 'published' | 'scheduled';
+    tags?: string[];
+  },
+): Promise<Record<string, unknown>> {
+  const list = await listPosts(
+    global,
+    {
+      filter: options.filter,
+      limit: 100,
+    },
+    true,
+  );
+  const ids = extractPostIds(list);
+
+  if (ids.length === 0) {
+    return {
+      bulk: {
+        meta: {
+          stats: {
+            successful: 0,
+            unsuccessful: 0,
+          },
+        },
+        errors: [],
+      },
+    };
+  }
+
+  let successful = 0;
+  let unsuccessful = 0;
+  const errors: Array<Record<string, string>> = [];
+
+  for (const id of ids) {
+    try {
+      if (options.delete) {
+        await deletePost(global, id);
+      } else {
+        await updatePost(global, {
+          id,
+          patch: {
+            status: options.status,
+            tags: options.tags,
+          },
+        });
+      }
+      successful += 1;
+    } catch (error) {
+      unsuccessful += 1;
+      errors.push({
+        id,
+        message: (error as Error).message,
+      });
+    }
+  }
+
+  return {
+    bulk: {
+      meta: {
+        stats: {
+          successful,
+          unsuccessful,
+        },
+      },
+      errors,
+    },
+  };
+}

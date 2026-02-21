@@ -6,9 +6,12 @@ import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printThemeHuman, printThemeListHuman } from '../lib/output.js';
+import { parseInteger } from '../lib/parse.js';
+import { runThemeDev } from '../lib/theme-dev.js';
 import { activateTheme, listThemes, uploadTheme } from '../lib/themes.js';
 import {
   ThemeActivateInputSchema,
+  ThemeDevInputSchema,
   ThemeUploadInputSchema,
   ThemeValidateInputSchema,
 } from '../schemas/theme.js';
@@ -108,11 +111,40 @@ function getValidationErrorCount(result: Record<string, unknown>): number {
 
 let themeValidatorForTests: ((targetPath: string) => Promise<Record<string, unknown>>) | null =
   null;
+let themeDevRunnerForTests:
+  | ((
+      global: ReturnType<typeof getGlobalOptions>,
+      options: {
+        path: string;
+        watch?: boolean;
+        activate?: boolean;
+        debounceMs?: number;
+        onEvent?: (event: Record<string, unknown>) => void;
+      },
+    ) => Promise<Record<string, unknown>>)
+  | null = null;
 
 export function setThemeValidatorForTests(
   validator: ((targetPath: string) => Promise<Record<string, unknown>>) | null,
 ): void {
   themeValidatorForTests = validator;
+}
+
+export function setThemeDevRunnerForTests(
+  runner:
+    | ((
+        global: ReturnType<typeof getGlobalOptions>,
+        options: {
+          path: string;
+          watch?: boolean;
+          activate?: boolean;
+          debounceMs?: number;
+          onEvent?: (event: Record<string, unknown>) => void;
+        },
+      ) => Promise<Record<string, unknown>>)
+    | null,
+): void {
+  themeDevRunnerForTests = runner;
 }
 
 export function registerThemeCommands(program: Command): void {
@@ -236,5 +268,54 @@ export function registerThemeCommands(program: Command): void {
           exitCode: ExitCode.VALIDATION_ERROR,
         });
       }
+    });
+
+  theme
+    .command('dev <pathArg>')
+    .description('Watch a theme directory and auto-upload on changes')
+    .option('--watch', 'Keep watching for changes')
+    .option('--activate', 'Activate after successful uploads')
+    .option('--debounce-ms <ms>', 'Debounce delay before upload')
+    .action(async (pathArg: string, options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = ThemeDevInputSchema.safeParse({
+        path: pathArg,
+        watch: options.watch,
+        activate: options.activate,
+        debounceMs: parseInteger(options.debounceMs, 'debounce-ms'),
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const runner = themeDevRunnerForTests ?? runThemeDev;
+      const payload = await runner(global, {
+        path: parsed.data.path,
+        watch: parsed.data.watch,
+        activate: parsed.data.activate,
+        debounceMs: parsed.data.debounceMs,
+        onEvent: (event) => {
+          if (global.json) {
+            console.log(JSON.stringify(event));
+          } else if (event.type === 'uploaded') {
+            const source = String(event.source ?? 'unknown');
+            const activeTheme = String(event.activeTheme ?? '');
+            if (activeTheme) {
+              console.log(`Uploaded (${source}) and activated '${activeTheme}'.`);
+            } else {
+              console.log(`Uploaded (${source}).`);
+            }
+          } else if (event.type === 'error') {
+            console.error(`Theme dev upload error: ${String(event.message ?? '')}`);
+          }
+        },
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+      printThemeHuman(payload);
     });
 }

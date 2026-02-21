@@ -71,3 +71,19 @@ export const TagDeleteInputSchema = z.object({
   id: z.string().min(1),
   yes: z.boolean().optional(),
 });
+
+export const TagBulkInputSchema = z
+  .object({
+    filter: z.string().min(1),
+    action: z.enum(['update', 'delete']),
+    visibility: z.enum(['public', 'internal']).optional(),
+    yes: z.boolean().optional(),
+  })
+  .refine((data) => data.action !== 'delete' || data.yes === true, {
+    message: 'Bulk delete requires --yes.',
+    path: ['yes'],
+  })
+  .refine((data) => data.action !== 'update' || Boolean(data.visibility !== undefined), {
+    message: 'Bulk update requires --visibility.',
+    path: ['visibility'],
+  });

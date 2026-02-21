@@ -4,8 +4,16 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: `v0.3.0` Phase 3 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- PRD parity status: action + core flags implemented through `v0.4.0`; `snippet` intentionally deferred pending confirmed Ghost Admin API contract.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
+
+## Phase Timeline
+
+- `v0.1.x`: Phase 1 (`auth`, `post`, `page`, `tag`)
+- `v0.2.x`: Phase 2 (`member`, `newsletter`, `tier`, `offer`, `label`)
+- `v0.3.0`: Phase 3 (`webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `completion`)
+- `v0.4.0`: Phase 4 (`mcp`, `webhook listen`, `theme dev --watch`, post/page/tag parity actions)
 
 ## Runtime And Tooling
 
@@ -51,24 +59,37 @@ pnpm build
 ## Implemented Commands
 
 - `ghst auth login|status|list|switch|logout|link|token`
-- `ghst post list|get|create|update|delete|publish`
-- `ghst page list|get|create|update|delete`
-- `ghst tag list|get|create|update|delete`
+- `ghst post list|get|create|update|delete|publish|schedule|unschedule|copy|bulk`
+- `ghst page list|get|create|update|delete|copy|bulk`
+- `ghst tag list|get|create|update|delete|bulk`
 - `ghst member list|get|create|update|delete|import|export|bulk`
 - `ghst newsletter list|get|create|update`
 - `ghst tier list|get|create|update`
 - `ghst offer list|get|create|update`
 - `ghst label list|get|create|update|delete`
-- `ghst webhook create|update|delete|events`
+- `ghst webhook create|update|delete|events|listen`
 - `ghst user list|get|me`
 - `ghst image upload`
-- `ghst theme list|upload|activate|validate`
+- `ghst theme list|upload|activate|validate|dev`
 - `ghst site info`
 - `ghst setting list|get|set`
 - `ghst migrate wordpress|medium|substack|csv|json|export`
 - `ghst config show|path|list|get|set`
-- `ghst api [endpointPath]`
+- `ghst api [endpointPath]` (supports `--paginate`, `--include-headers`, `--field|-f`)
+- `ghst mcp stdio|http`
 - `ghst completion <bash|zsh|fish|powershell>`
+
+## MCP Tool Groups
+
+- `posts`
+- `pages`
+- `tags`
+- `members`
+- `site`
+- `settings`
+- `users`
+- `api`
+- `search`
 
 ## Config Resolution Order
 
@@ -111,4 +132,5 @@ pnpm fixtures:ghost:check
 - Ghost Admin API version defaults to `v6.0`.
 - JWT auth uses `{id}:{secret}` Admin key with `aud: /admin/` and 5-minute expiry.
 - Fixture capture/check scripts target Ghost Admin API responses only.
+- Fixture coverage includes phase 4 copy/bulk/listen endpoint usage used by command and runtime tests.
 - Source migration commands use Ghost-maintained `@tryghost/mg-*` packages and build Ghost JSON imports uploaded via `/db`.

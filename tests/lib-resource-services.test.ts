@@ -31,18 +31,30 @@ import {
   updateNewsletter,
 } from '../src/lib/newsletters.js';
 import { createOffer, getOffer, listOffers, updateOffer } from '../src/lib/offers.js';
-import { createPage, deletePage, getPage, listPages, updatePage } from '../src/lib/pages.js';
 import {
+  bulkPages,
+  copyPage,
+  createPage,
+  deletePage,
+  getPage,
+  listPages,
+  updatePage,
+} from '../src/lib/pages.js';
+import {
+  bulkPosts,
+  copyPost,
   createPost,
   deletePost,
   getPost,
   listPosts,
   publishPost,
+  schedulePost,
+  unschedulePost,
   updatePost,
 } from '../src/lib/posts.js';
 import { getSetting, listSettings, setSetting } from '../src/lib/settings.js';
 import { getSiteInfo } from '../src/lib/site.js';
-import { createTag, deleteTag, getTag, listTags, updateTag } from '../src/lib/tags.js';
+import { bulkTags, createTag, deleteTag, getTag, listTags, updateTag } from '../src/lib/tags.js';
 import { activateTheme, listThemes, uploadTheme } from '../src/lib/themes.js';
 import { createTier, getTier, listTiers, updateTier } from '../src/lib/tiers.js';
 import { getCurrentUser, getUser, listUsers } from '../src/lib/users.js';
@@ -280,6 +292,160 @@ describe('resource service helpers', () => {
     await expect(updatePost({}, { patch: { title: 'bad' } })).rejects.toMatchObject({
       code: 'USAGE_ERROR',
       exitCode: ExitCode.USAGE_ERROR,
+    });
+  });
+
+  test('supports phase4 post/page/tag parity helpers', async () => {
+    installGhostFixtureFetchMock({ postConflictOnce: true });
+
+    await expect(
+      schedulePost({}, fixtureIds.postId, '2026-03-01T10:00:00Z'),
+    ).resolves.toMatchObject({
+      posts: [{ id: fixtureIds.postId }],
+    });
+    await expect(unschedulePost({}, fixtureIds.postId)).resolves.toMatchObject({
+      posts: [{ id: fixtureIds.postId }],
+    });
+    await expect(copyPost({}, fixtureIds.postId)).resolves.toMatchObject({
+      posts: [{ id: fixtureIds.postId }],
+    });
+    await expect(copyPage({}, fixtureIds.pageId)).resolves.toMatchObject({
+      pages: [{ id: fixtureIds.pageId }],
+    });
+
+    await expect(
+      bulkPosts(
+        {},
+        {
+          filter: 'status:draft',
+          status: 'published',
+          tags: ['News'],
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 1, unsuccessful: 0 } } },
+    });
+    await expect(
+      bulkPosts(
+        {},
+        {
+          filter: 'status:draft',
+          delete: true,
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 1, unsuccessful: 0 } } },
+    });
+    await expect(
+      bulkPages(
+        {},
+        {
+          filter: 'status:draft',
+          status: 'published',
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 1, unsuccessful: 0 } } },
+    });
+    await expect(
+      bulkPages(
+        {},
+        {
+          filter: 'status:draft',
+          delete: true,
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 1, unsuccessful: 0 } } },
+    });
+    await expect(
+      bulkTags(
+        {},
+        {
+          filter: 'visibility:public',
+          visibility: 'internal',
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 1, unsuccessful: 0 } } },
+    });
+    await expect(
+      bulkTags(
+        {},
+        {
+          filter: 'visibility:public',
+          delete: true,
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 1, unsuccessful: 0 } } },
+    });
+  });
+
+  test('returns zero-op bulk result when no resources match', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (method !== 'GET') {
+          return undefined;
+        }
+
+        if (pathname.endsWith('/posts/')) {
+          return jsonResponse({
+            posts: [],
+            meta: { pagination: { page: 1, pages: 1, total: 0 } },
+          });
+        }
+
+        if (pathname.endsWith('/pages/')) {
+          return jsonResponse({
+            pages: [],
+            meta: { pagination: { page: 1, pages: 1, total: 0 } },
+          });
+        }
+
+        if (pathname.endsWith('/tags/')) {
+          return jsonResponse({
+            tags: [],
+            meta: { pagination: { page: 1, pages: 1, total: 0 } },
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      bulkPosts(
+        {},
+        {
+          filter: 'status:draft',
+          status: 'published',
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 0, unsuccessful: 0 } }, errors: [] },
+    });
+    await expect(
+      bulkPages(
+        {},
+        {
+          filter: 'status:draft',
+          status: 'published',
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 0, unsuccessful: 0 } }, errors: [] },
+    });
+    await expect(
+      bulkTags(
+        {},
+        {
+          filter: 'visibility:public',
+          visibility: 'internal',
+        },
+      ),
+    ).resolves.toMatchObject({
+      bulk: { meta: { stats: { successful: 0, unsuccessful: 0 } }, errors: [] },
     });
   });
 

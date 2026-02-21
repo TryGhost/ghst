@@ -34,19 +34,26 @@ import {
   OfferUpdateInputSchema,
 } from '../src/schemas/offer.js';
 import {
+  PageBulkInputSchema,
+  PageCopyInputSchema,
   PageCreateInputSchema,
   PageGetInputSchema,
   PageListInputSchema,
   PageUpdateInputSchema,
 } from '../src/schemas/page.js';
 import {
+  PostBulkInputSchema,
+  PostCopyInputSchema,
   PostCreateInputSchema,
   PostGetInputSchema,
   PostListInputSchema,
+  PostScheduleInputSchema,
+  PostUnscheduleInputSchema,
   PostUpdateInputSchema,
 } from '../src/schemas/post.js';
 import { SettingGetInputSchema, SettingSetInputSchema } from '../src/schemas/setting.js';
 import {
+  TagBulkInputSchema,
   TagCreateInputSchema,
   TagGetInputSchema,
   TagListInputSchema,
@@ -54,6 +61,7 @@ import {
 } from '../src/schemas/tag.js';
 import {
   ThemeActivateInputSchema,
+  ThemeDevInputSchema,
   ThemeUploadInputSchema,
   ThemeValidateInputSchema,
 } from '../src/schemas/theme.js';
@@ -67,6 +75,7 @@ import { UserGetInputSchema, UserListInputSchema } from '../src/schemas/user.js'
 import {
   WebhookCreateInputSchema,
   WebhookDeleteInputSchema,
+  WebhookListenInputSchema,
   WebhookUpdateInputSchema,
 } from '../src/schemas/webhook.js';
 
@@ -94,6 +103,17 @@ describe('post schemas', () => {
       PostCreateInputSchema.parse({ title: 'bad', html: 'x', lexicalFile: 'y' }),
     ).toThrow();
     expect(() => PostUpdateInputSchema.parse({ id: 'id1' })).toThrow();
+    expect(PostScheduleInputSchema.parse({ id: 'id1', at: '2026-03-01T10:00:00Z' }).id).toBe('id1');
+    expect(PostUnscheduleInputSchema.parse({ id: 'id1' }).id).toBe('id1');
+    expect(PostCopyInputSchema.parse({ id: 'id1' }).id).toBe('id1');
+    expect(
+      PostBulkInputSchema.parse({
+        filter: 'status:draft',
+        action: 'update',
+        status: 'published',
+      }).action,
+    ).toBe('update');
+    expect(() => PostBulkInputSchema.parse({ filter: 'status:draft', action: 'delete' })).toThrow();
   });
 });
 
@@ -105,6 +125,14 @@ describe('page schemas', () => {
     expect(PageUpdateInputSchema.parse({ id: 'id1', title: 'New' }).title).toBe('New');
 
     expect(() => PageUpdateInputSchema.parse({ slug: 'about' })).toThrow();
+    expect(PageCopyInputSchema.parse({ id: 'id1' }).id).toBe('id1');
+    expect(
+      PageBulkInputSchema.parse({
+        filter: 'status:draft',
+        action: 'update',
+        status: 'published',
+      }).action,
+    ).toBe('update');
   });
 });
 
@@ -117,6 +145,13 @@ describe('tag schemas', () => {
 
     expect(() => TagCreateInputSchema.parse({ name: 'x', accentColor: 'red' })).toThrow();
     expect(() => TagUpdateInputSchema.parse({ id: 'id1' })).toThrow();
+    expect(
+      TagBulkInputSchema.parse({
+        filter: 'visibility:public',
+        action: 'update',
+        visibility: 'internal',
+      }).action,
+    ).toBe('update');
   });
 });
 
@@ -246,12 +281,19 @@ describe('phase3 schemas', () => {
     expect(WebhookUpdateInputSchema.parse({ id: 'id1', name: 'Updated' }).name).toBe('Updated');
     expect(() => WebhookUpdateInputSchema.parse({ id: 'id1' })).toThrow();
     expect(WebhookDeleteInputSchema.parse({ id: 'id1', yes: true }).id).toBe('id1');
+    expect(
+      WebhookListenInputSchema.parse({
+        publicUrl: 'https://example.com/hook',
+        forwardTo: 'http://localhost:3000/webhooks',
+      }).publicUrl,
+    ).toBe('https://example.com/hook');
 
     expect(ImageUploadInputSchema.parse({ filePath: './image.jpg' }).filePath).toBe('./image.jpg');
 
     expect(ThemeUploadInputSchema.parse({ path: './theme.zip' }).path).toBe('./theme.zip');
     expect(ThemeActivateInputSchema.parse({ name: 'casper' }).name).toBe('casper');
     expect(ThemeValidateInputSchema.parse({ path: './theme' }).path).toBe('./theme');
+    expect(ThemeDevInputSchema.parse({ path: './theme', watch: true }).path).toBe('./theme');
 
     expect(SettingGetInputSchema.parse({ key: 'title' }).key).toBe('title');
     expect(SettingSetInputSchema.parse({ key: 'title', value: 'My Blog' }).value).toBe('My Blog');

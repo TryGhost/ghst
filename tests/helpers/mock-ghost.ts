@@ -115,6 +115,17 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       return new Response(null, { status: 204 });
     }
 
+    if (
+      pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/copy/`) &&
+      method === 'POST'
+    ) {
+      return jsonResponse(
+        cloneFixture(
+          (ghostFixtures.posts.copy ?? ghostFixtures.posts.create) as Record<string, unknown>,
+        ),
+      );
+    }
+
     if (pathname.endsWith('/ghost/api/admin/pages/') && method === 'GET') {
       return jsonResponse(cloneFixture(ghostFixtures.pages.browse));
     }
@@ -140,6 +151,17 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
 
     if (pathname.endsWith(`/ghost/api/admin/pages/${fixtureIds.pageId}/`) && method === 'DELETE') {
       return new Response(null, { status: 204 });
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/pages/${fixtureIds.pageId}/copy/`) &&
+      method === 'POST'
+    ) {
+      return jsonResponse(
+        cloneFixture(
+          (ghostFixtures.pages.copy ?? ghostFixtures.pages.create) as Record<string, unknown>,
+        ),
+      );
     }
 
     if (pathname.endsWith('/ghost/api/admin/tags/') && method === 'GET') {

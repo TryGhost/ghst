@@ -111,3 +111,37 @@ export const PostDeleteInputSchema = z.object({
 export const PostPublishInputSchema = z.object({
   id: z.string().min(1),
 });
+
+export const PostScheduleInputSchema = z.object({
+  id: z.string().min(1),
+  at: z.string().datetime(),
+});
+
+export const PostUnscheduleInputSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const PostCopyInputSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const PostBulkInputSchema = z
+  .object({
+    filter: z.string().min(1),
+    action: z.enum(['update', 'delete']),
+    status: StatusSchema.optional(),
+    tags: z.string().optional(),
+    yes: z.boolean().optional(),
+  })
+  .refine((data) => data.action !== 'delete' || data.yes === true, {
+    message: 'Bulk delete requires --yes.',
+    path: ['yes'],
+  })
+  .refine(
+    (data) =>
+      data.action !== 'update' || Boolean(data.status !== undefined || data.tags !== undefined),
+    {
+      message: 'Bulk update requires at least one of --status or --tags.',
+      path: ['status'],
+    },
+  );

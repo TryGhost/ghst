@@ -35,3 +35,11 @@ export const WebhookDeleteInputSchema = z.object({
   id: z.string().min(1),
   yes: z.boolean().optional(),
 });
+
+export const WebhookListenInputSchema = z.object({
+  publicUrl: z.string().url(),
+  forwardTo: z.string().url(),
+  events: z.string().optional(),
+  host: z.string().min(1).optional(),
+  port: z.number().int().positive().optional(),
+});

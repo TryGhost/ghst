@@ -6,6 +6,7 @@ import { registerCompletionCommands } from './commands/completion.js';
 import { registerConfigCommands } from './commands/config.js';
 import { registerImageCommands } from './commands/image.js';
 import { registerLabelCommands } from './commands/label.js';
+import { registerMcpCommands } from './commands/mcp.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerMigrateCommands } from './commands/migrate.js';
 import { registerNewsletterCommands } from './commands/newsletter.js';
@@ -54,6 +55,7 @@ export function buildProgram(): Command {
   registerSettingCommands(program);
   registerConfigCommands(program);
   registerApiCommands(program);
+  registerMcpCommands(program);
   registerMigrateCommands(program);
   registerCompletionCommands(program);
 

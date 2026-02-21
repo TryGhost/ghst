@@ -5,21 +5,29 @@ import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printPostHuman, printPostListHuman } from '../lib/output.js';
 import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
 import {
+  bulkPosts,
+  copyPost,
   createPost,
   deletePost,
   getPost,
   listPosts,
   publishPost,
+  schedulePost,
+  unschedulePost,
   updatePost,
 } from '../lib/posts.js';
 import { confirm } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
+  PostBulkInputSchema,
+  PostCopyInputSchema,
   PostCreateInputSchema,
   PostDeleteInputSchema,
   PostGetInputSchema,
   PostListInputSchema,
   PostPublishInputSchema,
+  PostScheduleInputSchema,
+  PostUnscheduleInputSchema,
   PostUpdateInputSchema,
 } from '../schemas/post.js';
 
@@ -332,5 +340,108 @@ export function registerPostCommands(program: Command): void {
       }
 
       printPostHuman(payload);
+    });
+
+  post
+    .command('schedule <id>')
+    .description('Schedule a post')
+    .requiredOption('--at <datetime>', 'ISO datetime for scheduled publish')
+    .action(async (id: string, options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = PostScheduleInputSchema.safeParse({
+        id,
+        at: options.at,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await schedulePost(global, parsed.data.id, parsed.data.at);
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+      printPostHuman(payload);
+    });
+
+  post
+    .command('unschedule <id>')
+    .description('Unschedule a post')
+    .action(async (id: string, _, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = PostUnscheduleInputSchema.safeParse({ id });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await unschedulePost(global, parsed.data.id);
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+      printPostHuman(payload);
+    });
+
+  post
+    .command('copy <id>')
+    .description('Copy a post')
+    .action(async (id: string, _, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = PostCopyInputSchema.safeParse({ id });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await copyPost(global, parsed.data.id);
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+      printPostHuman(payload);
+    });
+
+  post
+    .command('bulk')
+    .description('Run bulk post operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select posts')
+    .requiredOption('--action <action>', 'update|delete')
+    .option('--status <status>', 'Status to set for bulk update')
+    .option('--tags <tags>', 'Comma separated tags for bulk update')
+    .option('--yes', 'Confirm bulk delete')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = PostBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        status: options.status,
+        tags: options.tags,
+        yes: options.yes,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkPosts(global, {
+        filter: parsed.data.filter,
+        delete: parsed.data.action === 'delete',
+        status: parsed.data.status,
+        tags: parseCsv(parsed.data.tags),
+      });
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      const stats = (payload.bulk as Record<string, unknown> | undefined)?.meta as
+        | Record<string, unknown>
+        | undefined;
+      const statValues = (stats?.stats as Record<string, unknown> | undefined) ?? {};
+      console.log(
+        `Bulk operation complete: ${String(statValues.successful ?? 0)} successful, ${String(statValues.unsuccessful ?? 0)} unsuccessful`,
+      );
     });
 }

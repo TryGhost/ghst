@@ -3,7 +3,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { setOpenUrlForTests, setPromptForTests } from '../src/commands/auth.js';
-import { setThemeValidatorForTests } from '../src/commands/theme.js';
+import { setMcpRunnersForTests } from '../src/commands/mcp.js';
+import { setThemeDevRunnerForTests, setThemeValidatorForTests } from '../src/commands/theme.js';
+import { setWebhookListenRunnerForTests } from '../src/commands/webhook.js';
 import { run } from '../src/index.js';
 import { ExitCode } from '../src/lib/errors.js';
 import { setMigrateSourceLoaderForTests } from '../src/lib/migrate.js';
@@ -58,7 +60,10 @@ describe('run + commands', () => {
     setPromptForTests(null);
     setOpenUrlForTests(null);
     setPromptHandlerForTests(null);
+    setMcpRunnersForTests(null);
+    setThemeDevRunnerForTests(null);
     setThemeValidatorForTests(null);
+    setWebhookListenRunnerForTests(null);
     setMigrateSourceLoaderForTests(null);
     vi.restoreAllMocks();
     process.chdir(previousCwd);
@@ -249,6 +254,42 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'post', 'publish', fixtureIds.postId])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    await expect(
+      run(['node', 'ghst', 'post', 'schedule', fixtureIds.postId, '--at', '2026-03-01T10:00:00Z']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'post', 'unschedule', fixtureIds.postId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'post', 'copy', fixtureIds.postId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'post',
+        'bulk',
+        '--filter',
+        'status:draft',
+        '--action',
+        'update',
+        '--status',
+        'published',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'post',
+        'bulk',
+        '--filter',
+        'status:draft',
+        '--action',
+        'delete',
+        '--yes',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     const stdoutTty = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
@@ -282,6 +323,36 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'page', 'delete', fixtureIds.pageId, '--yes'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    await expect(run(['node', 'ghst', 'page', 'copy', fixtureIds.pageId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'page',
+        'bulk',
+        '--filter',
+        'status:draft',
+        '--action',
+        'update',
+        '--status',
+        'published',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'page',
+        'bulk',
+        '--filter',
+        'status:draft',
+        '--action',
+        'delete',
+        '--yes',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'tag', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'tag', 'get', '--slug', fixtureIds.tagSlug])).resolves.toBe(
@@ -296,6 +367,33 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'tag', 'delete', fixtureIds.tagId, '--yes'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'tag',
+        'bulk',
+        '--filter',
+        'visibility:public',
+        '--action',
+        'update',
+        '--visibility',
+        'internal',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'tag',
+        'bulk',
+        '--filter',
+        'visibility:public',
+        '--action',
+        'delete',
+        '--yes',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'member', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'member', 'get', fixtureIds.memberId])).resolves.toBe(
@@ -417,6 +515,44 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId, '--yes']),
     ).resolves.toBe(ExitCode.SUCCESS);
+    setWebhookListenRunnerForTests(async (_global, listenOptions) => {
+      listenOptions.onEvent?.({
+        type: 'ready',
+        host: listenOptions.host,
+        port: listenOptions.port,
+        forwardTo: listenOptions.forwardTo,
+      });
+      listenOptions.onEvent?.({
+        type: 'forwarded',
+        status: 200,
+      });
+    });
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'webhook',
+        'listen',
+        '--public-url',
+        'https://hooks.example.com/ghost',
+        '--forward-to',
+        'http://localhost:3000/webhooks',
+        '--events',
+        'post.published,member.added',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'webhook',
+        'listen',
+        '--public-url',
+        'https://hooks.example.com/ghost',
+        '--forward-to',
+        'http://localhost:3000/webhooks',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'user', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'user', 'get', fixtureIds.userId])).resolves.toBe(
@@ -441,6 +577,16 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'theme', 'activate', fixtureIds.themeName])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    const themeDir = path.join(workDir, 'theme-dev');
+    await fs.mkdir(themeDir, { recursive: true });
+    await fs.writeFile(path.join(themeDir, 'package.json'), '{"name":"theme-dev"}', 'utf8');
+    setThemeDevRunnerForTests(async (_global, devOptions) => {
+      devOptions.onEvent?.({ type: 'uploaded', source: 'initial', activeTheme: 'uploaded-theme' });
+      return { themes: [{ name: 'uploaded-theme', active: true }] };
+    });
+    await expect(
+      run(['node', 'ghst', 'theme', 'dev', './theme-dev', '--watch', '--activate']),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'site', 'info'])).resolves.toBe(ExitCode.SUCCESS);
 
@@ -481,6 +627,44 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'api', '/posts/', '--content-api', '--method', 'GET']),
     ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'api',
+        '/posts/',
+        '--method',
+        'POST',
+        '--body',
+        '{"title":"Inline"}',
+        '--field',
+        'status=draft',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--paginate', '--include-headers']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'api', '/site/', '--paginate'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--field', 'status=draft']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--body', '{}', '--input', './payload.json']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+
+    setMcpRunnersForTests({
+      stdio: async () => undefined,
+      http: async () => undefined,
+    });
+    await expect(run(['node', 'ghst', 'mcp', 'stdio'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'mcp', 'stdio', '--tools', 'posts,tags'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'mcp', 'http', '--port', '3100'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
 
     await expect(run(['node', 'ghst', 'completion'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'completion', 'bash'])).resolves.toBe(ExitCode.SUCCESS);
@@ -534,6 +718,15 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'label', 'get', fixtureIds.labelId, '--slug', fixtureIds.labelSlug]),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'post', 'bulk', '--filter', 'status:draft', '--action', 'delete']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'page', 'bulk', '--filter', 'status:draft', '--action', 'update']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'tag', 'bulk', '--filter', 'visibility:public', '--action', 'update']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
@@ -576,6 +769,20 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'webhook', 'update', fixtureIds.webhookId])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,
     );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'webhook',
+        'listen',
+        '--public-url',
+        'https://hooks.example.com/ghost',
+        '--forward-to',
+        'http://localhost:3000/webhooks',
+        '--events',
+        'post.invalid',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
     await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
@@ -617,6 +824,28 @@ describe('run + commands', () => {
     );
     setThemeValidatorForTests(async () => ({ results: { error: [{ message: 'invalid' }] } }));
     await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'api',
+        '/posts/',
+        '--method',
+        'POST',
+        '--body',
+        '[]',
+        '--field',
+        'status=draft',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'api', '/posts/', '--field', '=broken'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+
+    await expect(run(['node', 'ghst', 'mcp', 'stdio', '--tools', 'unknown'])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,
     );
     setThemeValidatorForTests(async () => ({

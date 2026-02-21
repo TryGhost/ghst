@@ -111,3 +111,89 @@ export async function deletePage(
   const client = await getClient(global);
   return client.pages.delete(id);
 }
+
+export async function copyPage(
+  global: GlobalOptions,
+  id: string,
+): Promise<Record<string, unknown>> {
+  const client = await getClient(global);
+  return client.pages.copy(id);
+}
+
+function extractPageIds(payload: GhostPaginatedResponse): string[] {
+  const pages = Array.isArray(payload.pages) ? payload.pages : [];
+  return pages
+    .map((entry) => String((entry as Record<string, unknown>)?.id ?? '').trim())
+    .filter(Boolean);
+}
+
+export async function bulkPages(
+  global: GlobalOptions,
+  options: {
+    filter: string;
+    delete?: boolean;
+    status?: 'draft' | 'published' | 'scheduled';
+  },
+): Promise<Record<string, unknown>> {
+  const list = await listPages(
+    global,
+    {
+      filter: options.filter,
+      limit: 100,
+    },
+    true,
+  );
+  const ids = extractPageIds(list);
+
+  if (ids.length === 0) {
+    return {
+      bulk: {
+        meta: {
+          stats: {
+            successful: 0,
+            unsuccessful: 0,
+          },
+        },
+        errors: [],
+      },
+    };
+  }
+
+  let successful = 0;
+  let unsuccessful = 0;
+  const errors: Array<Record<string, string>> = [];
+
+  for (const id of ids) {
+    try {
+      if (options.delete) {
+        await deletePage(global, id);
+      } else {
+        await updatePage(global, {
+          id,
+          patch: {
+            status: options.status,
+          },
+        });
+      }
+      successful += 1;
+    } catch (error) {
+      unsuccessful += 1;
+      errors.push({
+        id,
+        message: (error as Error).message,
+      });
+    }
+  }
+
+  return {
+    bulk: {
+      meta: {
+        stats: {
+          successful,
+          unsuccessful,
+        },
+      },
+      errors,
+    },
+  };
+}

@@ -4,9 +4,10 @@ import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printTagHuman, printTagListHuman } from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
 import { confirm } from '../lib/prompts.js';
-import { createTag, deleteTag, getTag, listTags, updateTag } from '../lib/tags.js';
+import { bulkTags, createTag, deleteTag, getTag, listTags, updateTag } from '../lib/tags.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
+  TagBulkInputSchema,
   TagCreateInputSchema,
   TagDeleteInputSchema,
   TagGetInputSchema,
@@ -258,5 +259,44 @@ export function registerTagCommands(program: Command): void {
       }
 
       console.log(`Deleted tag '${parsed.data.id}'.`);
+    });
+
+  tag
+    .command('bulk')
+    .description('Run bulk tag operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select tags')
+    .requiredOption('--action <action>', 'update|delete')
+    .option('--visibility <visibility>', 'Visibility for bulk update (public|internal)')
+    .option('--yes', 'Confirm bulk delete')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = TagBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        visibility: options.visibility,
+        yes: options.yes,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkTags(global, {
+        filter: parsed.data.filter,
+        delete: parsed.data.action === 'delete',
+        visibility: parsed.data.visibility,
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      const stats = (
+        (payload.bulk as Record<string, unknown> | undefined)?.meta as Record<string, unknown>
+      )?.stats as Record<string, unknown> | undefined;
+      console.log(
+        `Bulk operation complete: ${String(stats?.successful ?? 0)} successful, ${String(stats?.unsuccessful ?? 0)} unsuccessful`,
+      );
     });
 }

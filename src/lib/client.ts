@@ -20,6 +20,12 @@ export interface GhostPaginatedResponse extends Record<string, unknown> {
 type RequestApi = 'admin' | 'content';
 type ResponseType = 'json' | 'text' | 'buffer';
 
+export interface GhostResponseWithMeta<T> {
+  data: T;
+  status: number;
+  headers: Record<string, string>;
+}
+
 export class GhostApiError extends GhstError {
   readonly payload: GhostApiErrorPayload | null;
 
@@ -110,8 +116,33 @@ export class GhostClient {
       source?: 'html';
       api?: RequestApi;
       responseType?: ResponseType;
+      includeMeta: true;
+    },
+  ): Promise<GhostResponseWithMeta<T>>;
+  private async request<T>(
+    method: string,
+    endpointPath: string,
+    options?: {
+      params?: Record<string, string | number | boolean | undefined>;
+      body?: unknown;
+      source?: 'html';
+      api?: RequestApi;
+      responseType?: ResponseType;
+      includeMeta?: false | undefined;
+    },
+  ): Promise<T>;
+  private async request<T>(
+    method: string,
+    endpointPath: string,
+    options: {
+      params?: Record<string, string | number | boolean | undefined>;
+      body?: unknown;
+      source?: 'html';
+      api?: RequestApi;
+      responseType?: ResponseType;
+      includeMeta?: boolean;
     } = {},
-  ): Promise<T> {
+  ): Promise<T | GhostResponseWithMeta<T>> {
     const api = options.api ?? 'admin';
     const upperMethod = method.toUpperCase();
     const maxNetworkRetries = isReadMethod(upperMethod) ? 1 : 0;
@@ -225,24 +256,44 @@ export class GhostClient {
         throw new GhostApiError(response.status, ghostMessage, payload);
       }
 
+      const responseHeaders = Object.fromEntries(response.headers.entries());
+
       if (response.status === 204) {
-        return {} as T;
+        const empty = {} as T;
+        if (options.includeMeta) {
+          return {
+            data: empty,
+            status: response.status,
+            headers: responseHeaders,
+          };
+        }
+
+        return empty;
       }
 
+      let data: T;
       if (options.responseType === 'text') {
-        return (await response.text()) as T;
+        data = (await response.text()) as T;
+      } else if (options.responseType === 'buffer') {
+        data = Buffer.from(await response.arrayBuffer()) as T;
+      } else {
+        const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+        if (!contentType.includes('application/json')) {
+          data = (await response.text()) as T;
+        } else {
+          data = (await response.json()) as T;
+        }
       }
 
-      if (options.responseType === 'buffer') {
-        return Buffer.from(await response.arrayBuffer()) as T;
+      if (options.includeMeta) {
+        return {
+          data,
+          status: response.status,
+          headers: responseHeaders,
+        };
       }
 
-      const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
-      if (!contentType.includes('application/json')) {
-        return (await response.text()) as T;
-      }
-
-      return (await response.json()) as T;
+      return data;
     }
   }
 
@@ -258,12 +309,29 @@ export class GhostClient {
     options: { api?: RequestApi; responseType?: ResponseType } = {},
   ): Promise<T> {
     const normalized = path.startsWith('/') ? path : `/${path}`;
-    return this.request<T>(method.toUpperCase(), normalized, {
+    return (await this.request<T>(method.toUpperCase(), normalized, {
       body,
       params,
       api: options.api,
       responseType: options.responseType,
-    });
+    })) as T;
+  }
+
+  async rawRequestWithMeta<T>(
+    path: string,
+    method = 'GET',
+    body?: unknown,
+    params?: Record<string, string | number | boolean | undefined>,
+    options: { api?: RequestApi; responseType?: ResponseType } = {},
+  ): Promise<GhostResponseWithMeta<T>> {
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    return (await this.request<T>(method.toUpperCase(), normalized, {
+      body,
+      params,
+      api: options.api,
+      responseType: options.responseType,
+      includeMeta: true,
+    })) as GhostResponseWithMeta<T>;
   }
 
   posts = {
@@ -299,6 +367,8 @@ export class GhostClient {
         body: { posts: [post] },
         source,
       }),
+
+    copy: (id: string) => this.request<Record<string, unknown>>('POST', `/posts/${id}/copy/`),
 
     delete: (id: string) => this.request<Record<string, never>>('DELETE', `/posts/${id}/`),
   };
@@ -336,6 +406,8 @@ export class GhostClient {
         body: { pages: [page] },
         source,
       }),
+
+    copy: (id: string) => this.request<Record<string, unknown>>('POST', `/pages/${id}/copy/`),
 
     delete: (id: string) => this.request<Record<string, never>>('DELETE', `/pages/${id}/`),
   };

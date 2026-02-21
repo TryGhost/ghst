@@ -13,11 +13,12 @@ This command will:
 
 1. Resolve the active Ghost connection using normal CLI precedence.
 2. Create temporary post/page/tag resources.
-3. Capture representative browse/read/create/update responses across phase 1-3 resources.
-4. Capture representative `ghst api` admin responses (`/site/` and `/settings/`).
-5. Capture representative error responses (`409`, `404`, and `422` when returned).
-6. Sanitize volatile fields and write `fixtures.json`.
-7. Delete temporary resources.
+3. Capture representative browse/read/create/update responses across phase 1-4 resources.
+4. Capture post/page copy responses and phase 4 parity request paths used in command tests.
+5. Capture representative `ghst api` admin responses (`/site/` and `/settings/`).
+6. Capture representative error responses (`409`, `404`, and `422` when returned).
+7. Sanitize volatile fields and write `fixtures.json`.
+8. Delete temporary resources.
 
 ## Check Fixtures In CI
 
