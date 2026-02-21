@@ -13,6 +13,12 @@ interface FixtureDoc {
     tiers: Record<string, unknown>;
     offers: Record<string, unknown>;
     labels: Record<string, unknown>;
+    users: Record<string, unknown>;
+    webhooks: Record<string, unknown>;
+    images: Record<string, unknown>;
+    themes: Record<string, unknown>;
+    settingsAdmin: Record<string, unknown>;
+    db: Record<string, unknown>;
     api: {
       admin: {
         site: Record<string, unknown>;
@@ -47,6 +53,11 @@ const placeholderMap = new Map<string, string>([
   ['<offerCode>', 'offer-code'],
   ['<labelId>', 'label-id'],
   ['<labelSlug>', 'test-label'],
+  ['<userId>', 'user-id'],
+  ['<userSlug>', 'owner'],
+  ['<userEmail>', 'owner@example.com'],
+  ['<webhookId>', 'webhook-id'],
+  ['<themeName>', 'casper'],
   ['<fixture-post-title>', 'Fixture Post'],
   ['<fixture-post-updated-title>', 'Fixture Post Updated'],
   ['<fixture-page-title>', 'Fixture Page'],
@@ -57,6 +68,8 @@ const placeholderMap = new Map<string, string>([
   ['<fixture-member-updated-name>', 'Fixture Member Updated'],
   ['<fixture-label-name>', 'Fixture Label'],
   ['<fixture-label-updated-name>', 'Fixture Label Updated'],
+  ['<fixture-user-name>', 'Site Owner'],
+  ['<fixture-webhook-name>', 'Publish Hook'],
   ['<datetime>', '2026-01-01T00:00:00.000Z'],
   ['<email>', 'fixture@example.com'],
   ['<error-id>', 'error-id'],
@@ -105,6 +118,11 @@ export const fixtureIds = {
   offerId: 'offer-id',
   labelId: 'label-id',
   labelSlug: 'test-label',
+  userId: 'user-id',
+  userSlug: 'owner',
+  userEmail: 'owner@example.com',
+  webhookId: 'webhook-id',
+  themeName: 'casper',
 };
 
 export function cloneFixture<T>(value: T): T {

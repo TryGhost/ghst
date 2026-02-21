@@ -296,6 +296,111 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       return new Response(null, { status: 204 });
     }
 
+    if (pathname.endsWith('/ghost/api/admin/users/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.users.browse));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/users/${fixtureIds.userId}/`) && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.users.readById));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/users/slug/${fixtureIds.userSlug}/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.users.readBySlug));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/users/email/${fixtureIds.userEmail}/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.users.readByEmail));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/users/me/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.users.me));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/webhooks/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.webhooks.create));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/webhooks/${fixtureIds.webhookId}/`) &&
+      method === 'PUT'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.webhooks.update));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/webhooks/${fixtureIds.webhookId}/`) &&
+      method === 'DELETE'
+    ) {
+      const fixture = cloneFixture(ghostFixtures.webhooks.delete) as Record<string, unknown>;
+      if (Object.keys(fixture).length === 0) {
+        return new Response(null, { status: 204 });
+      }
+      return jsonResponse(fixture);
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/images/upload/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.images.upload));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/themes/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.themes.browse));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/themes/active/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.themes.active));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/themes/upload/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.themes.upload));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/themes/uploaded-theme/activate/') && method === 'PUT') {
+      return jsonResponse(cloneFixture(ghostFixtures.themes.activate));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/themes/${fixtureIds.themeName}/activate/`) &&
+      method === 'PUT'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.themes.activate));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'PUT') {
+      const payload = cloneFixture(ghostFixtures.settingsAdmin.edit) as Record<string, unknown>;
+      if (payload.status && payload.payload) {
+        return jsonResponse({
+          settings: [
+            {
+              key: 'title',
+              value: 'Updated Blog',
+              group: 'site',
+              updated_at: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        });
+      }
+      return jsonResponse(payload);
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/db/') && method === 'GET') {
+      const dbFixture = cloneFixture(ghostFixtures.db.export) as Record<string, unknown>;
+      const byteLength = Number(dbFixture.bytes ?? 14);
+      return new Response(Buffer.alloc(byteLength, 0), {
+        status: 200,
+        headers: { 'content-type': 'application/zip' },
+      });
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/db/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.db.importSuccess));
+    }
+
     return unknownRouteResponse(pathname);
   };
 }

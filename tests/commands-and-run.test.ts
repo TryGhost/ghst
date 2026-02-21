@@ -3,11 +3,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { setOpenUrlForTests, setPromptForTests } from '../src/commands/auth.js';
+import { setThemeValidatorForTests } from '../src/commands/theme.js';
 import { run } from '../src/index.js';
 import { ExitCode } from '../src/lib/errors.js';
+import { setMigrateSourceLoaderForTests } from '../src/lib/migrate.js';
 import { setPromptHandlerForTests } from '../src/lib/prompts.js';
 import { fixtureIds } from './helpers/ghost-fixtures.js';
-import { installGhostFixtureFetchMock } from './helpers/mock-ghost.js';
+import {
+  createGhostFixtureFetchHandler,
+  installGhostFixtureFetchMock,
+} from './helpers/mock-ghost.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
 
@@ -53,6 +58,8 @@ describe('run + commands', () => {
     setPromptForTests(null);
     setOpenUrlForTests(null);
     setPromptHandlerForTests(null);
+    setThemeValidatorForTests(null);
+    setMigrateSourceLoaderForTests(null);
     vi.restoreAllMocks();
     process.chdir(previousCwd);
 
@@ -170,7 +177,7 @@ describe('run + commands', () => {
     delete process.env.MY_GHOST_KEY;
   });
 
-  test('covers post/page/tag/member/newsletter/tier/offer/label/config/api/completion command flows', async () => {
+  test('covers post/page/tag/member/newsletter/tier/offer/label/webhook/user/image/theme/site/setting/migrate/config/api/completion command flows', async () => {
     await expect(
       run([
         'node',
@@ -191,6 +198,14 @@ describe('run + commands', () => {
     await fs.writeFile(path.join(workDir, 'post.lexical.json'), '{"root":{}}', 'utf8');
     await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
     await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
+    await fs.writeFile(path.join(workDir, 'photo.jpg'), 'fake-image', 'utf8');
+    await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-zip', 'utf8');
+    await fs.writeFile(path.join(workDir, 'import.json'), '{"db":[{"meta":{},"data":{}}]}', 'utf8');
+    await fs.writeFile(
+      path.join(workDir, 'migrate.csv'),
+      'title,html\nImported Post,<p>Hello</p>\n',
+      'utf8',
+    );
 
     await expect(run(['node', 'ghst', 'post', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'post', 'list', '--limit', 'all'])).resolves.toBe(
@@ -375,6 +390,76 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'label', 'delete', fixtureIds.labelId, '--yes']),
     ).resolves.toBe(ExitCode.SUCCESS);
 
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'webhook',
+        'create',
+        '--event',
+        'post.published',
+        '--target-url',
+        'https://example.com/hook',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'webhook', 'events'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'webhook',
+        'update',
+        fixtureIds.webhookId,
+        '--target-url',
+        'https://example.com/new-hook',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId, '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'user', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'user', 'get', fixtureIds.userId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'user', 'get', '--slug', fixtureIds.userSlug])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'user', 'get', '--email', fixtureIds.userEmail]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'image', 'upload', './photo.jpg'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(run(['node', 'ghst', 'theme', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'theme', 'upload', './theme.zip'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'theme', 'activate', fixtureIds.themeName])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(run(['node', 'ghst', 'site', 'info'])).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'setting', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'setting', 'get', 'title'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', 'Updated Blog'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(run(['node', 'ghst', 'migrate', 'csv', '--file', './migrate.csv'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'migrate', 'json', '--file', './import.json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'migrate', 'export', '--output', './export.zip']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
     await expect(run(['node', 'ghst', 'config', 'path'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'config', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
@@ -462,5 +547,254 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'member', 'export', '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+  });
+
+  test('covers phase3 validation, permission, and migrate edge branches', async () => {
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--key',
+        KEY,
+        '--site',
+        'myblog',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await fs.writeFile(path.join(workDir, 'wp.xml'), '<rss></rss>', 'utf8');
+    await fs.writeFile(path.join(workDir, 'medium.zip'), 'fake-medium', 'utf8');
+    await fs.writeFile(path.join(workDir, 'substack.zip'), 'fake-substack', 'utf8');
+    await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-theme', 'utf8');
+    await fs.writeFile(path.join(workDir, 'import.json'), '{"db":[{"meta":{},"data":{}}]}', 'utf8');
+    await fs.writeFile(path.join(workDir, 'bad.csv'), 'title,body\nNope,Nope\n', 'utf8');
+
+    await expect(run(['node', 'ghst', 'webhook', 'update', fixtureIds.webhookId])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
+    await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    setPromptHandlerForTests(async () => 'no');
+    await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
+      ExitCode.OPERATION_CANCELLED,
+    );
+    if (stdinTty) {
+      Object.defineProperty(process.stdin, 'isTTY', stdinTty);
+    }
+
+    await expect(run(['node', 'ghst', 'user', 'get'])).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'user', 'get', fixtureIds.userId, '--slug', 'owner']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    const themeDir = path.join(workDir, 'theme-dir');
+    await fs.mkdir(themeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(themeDir, 'package.json'),
+      '{"name":"theme-dir","version":"1.0.0"}',
+      'utf8',
+    );
+    await expect(run(['node', 'ghst', 'theme', 'upload', './theme-dir'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+    await expect(
+      run(['node', 'ghst', 'theme', 'upload', './theme-dir', '--zip', '--activate']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    setThemeValidatorForTests(async () => ({ results: { error: [] } }));
+    await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip', '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    setThemeValidatorForTests(async () => ({ results: { error: [{ message: 'invalid' }] } }));
+    await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    setThemeValidatorForTests(async () => ({
+      results: { error: { all: [{ message: 'invalid' }] } },
+    }));
+    await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    setThemeValidatorForTests(async () => ({ error: [{ message: 'invalid' }] }));
+    await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    setThemeValidatorForTests(null);
+    await expect(
+      run(['node', 'ghst', 'theme', 'activate', fixtureIds.themeName, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'webhook', 'events', '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', 'true'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', '5'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', 'null'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', '{"a":1}'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', '{bad}'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      createGhostFixtureFetchHandler({
+        onRequest: ({ pathname, method }) => {
+          if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'PUT') {
+            return new Response(
+              JSON.stringify({ errors: [{ message: 'No permission', context: 'Forbidden' }] }),
+              {
+                status: 403,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          }
+          return undefined;
+        },
+      }),
+    );
+    await expect(run(['node', 'ghst', 'setting', 'set', 'title', 'Denied'])).resolves.toBe(
+      ExitCode.AUTH_ERROR,
+    );
+    installGhostFixtureFetchMock({ postConflictOnce: true });
+
+    await expect(
+      run(['node', 'ghst', 'migrate', 'substack', '--file', './substack.zip']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://substack.example.com',
+        'migrate',
+        'substack',
+        '--file',
+        './substack.zip',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'migrate', 'csv', '--file', './bad.csv'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+
+    setMigrateSourceLoaderForTests(async (modulePath) => {
+      if (modulePath === '@tryghost/mg-wp-xml') {
+        return {
+          default: async () => ({
+            posts: [{ url: 'wp://post/1', data: { title: 'WP', html: '<p>wp</p>' } }],
+          }),
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-medium-export') {
+        return {
+          default: () => ({
+            posts: [{ url: 'medium://post/1', data: { title: 'Medium', html: '<p>medium</p>' } }],
+          }),
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-substack') {
+        return {
+          default: {
+            ingest: async () => ({ posts: [] }),
+            process: async () => ({
+              posts: [
+                { url: 'substack://post/1', data: { title: 'Substack', html: '<p>substack</p>' } },
+              ],
+            }),
+          },
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-json') {
+        return {
+          toGhostJSON: async (input: Record<string, unknown>) => ({
+            meta: { exported_on: 1, version: '2.0.0' },
+            data: input,
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected migrate module: ${modulePath}`);
+    });
+    await expect(run(['node', 'ghst', 'migrate', 'wordpress', '--file', './wp.xml'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'migrate', 'wordpress', '--file', './wp.xml', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'migrate', 'medium', '--file', './medium.zip']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'migrate', 'medium', '--file', './medium.zip', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'migrate',
+        'substack',
+        '--file',
+        './substack.zip',
+        '--url',
+        'https://substack.example.com',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'migrate',
+        'substack',
+        '--file',
+        './substack.zip',
+        '--url',
+        'https://substack.example.com',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'migrate', 'json', '--file', './import.json', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'migrate', 'export', '--output', './out.zip', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    setMigrateSourceLoaderForTests(null);
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      createGhostFixtureFetchHandler({
+        onRequest: ({ pathname, method }) => {
+          if (pathname.endsWith('/ghost/api/admin/users/me/') && method === 'GET') {
+            return new Response(
+              JSON.stringify({ errors: [{ message: 'Forbidden', context: 'No staff context' }] }),
+              {
+                status: 403,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          }
+          return undefined;
+        },
+      }),
+    );
+    await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.AUTH_ERROR);
   });
 });

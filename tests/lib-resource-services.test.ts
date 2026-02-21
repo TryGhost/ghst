@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ExitCode } from '../src/lib/errors.js';
+import { uploadImage } from '../src/lib/images.js';
 import { createLabel, deleteLabel, getLabel, listLabels, updateLabel } from '../src/lib/labels.js';
 import {
   bulkMembers,
@@ -14,6 +15,15 @@ import {
   listMembers,
   updateMember,
 } from '../src/lib/members.js';
+import {
+  migrateExport,
+  migrateImportCsv,
+  migrateImportJson,
+  migrateImportMedium,
+  migrateImportSubstack,
+  migrateImportWordpress,
+  setMigrateSourceLoaderForTests,
+} from '../src/lib/migrate.js';
 import {
   createNewsletter,
   getNewsletter,
@@ -30,8 +40,13 @@ import {
   publishPost,
   updatePost,
 } from '../src/lib/posts.js';
+import { getSetting, listSettings, setSetting } from '../src/lib/settings.js';
+import { getSiteInfo } from '../src/lib/site.js';
 import { createTag, deleteTag, getTag, listTags, updateTag } from '../src/lib/tags.js';
+import { activateTheme, listThemes, uploadTheme } from '../src/lib/themes.js';
 import { createTier, getTier, listTiers, updateTier } from '../src/lib/tiers.js';
+import { getCurrentUser, getUser, listUsers } from '../src/lib/users.js';
+import { createWebhook, deleteWebhook, updateWebhook } from '../src/lib/webhooks.js';
 import { cloneFixture, fixtureIds, ghostFixtures } from './helpers/ghost-fixtures.js';
 import { installGhostFixtureFetchMock, jsonResponse } from './helpers/mock-ghost.js';
 
@@ -76,10 +91,20 @@ describe('resource service helpers', () => {
       ),
       'utf8',
     );
+
+    await fs.writeFile(path.join(workDir, 'photo.jpg'), 'fake-image', 'utf8');
+    await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-zip', 'utf8');
+    await fs.writeFile(path.join(workDir, 'import.json'), '{"db":[{"meta":{},"data":{}}]}', 'utf8');
+    await fs.writeFile(
+      path.join(workDir, 'migrate.csv'),
+      'title,html\nImported Post,<p>Hello</p>\n',
+      'utf8',
+    );
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    setMigrateSourceLoaderForTests(null);
     process.chdir(previousCwd);
     if (previousConfigDir === undefined) {
       delete process.env.GHST_CONFIG_DIR;
@@ -185,6 +210,14 @@ describe('resource service helpers', () => {
           return jsonResponse(payload);
         }
 
+        if (pathname.endsWith('/users/')) {
+          const payload = {
+            users: [{ id: `user-${page}`, name: 'Owner', slug: `owner-${page}` }],
+            meta: { pagination: { page, pages: 2, total: 2 } },
+          };
+          return jsonResponse(payload);
+        }
+
         return undefined;
       },
     });
@@ -197,6 +230,7 @@ describe('resource service helpers', () => {
     const tiers = await listTiers({}, { limit: 10 }, true);
     const offers = await listOffers({}, { limit: 10 }, true);
     const labels = await listLabels({}, { limit: 10 }, true);
+    const users = await listUsers({}, { limit: 10 }, true);
 
     const postItems = posts.posts as Array<{ id?: string }>;
     const pageItems = pages.pages as Array<{ id?: string }>;
@@ -206,6 +240,7 @@ describe('resource service helpers', () => {
     const tierItems = tiers.tiers as Array<{ id?: string }>;
     const offerItems = offers.offers as Array<{ id?: string }>;
     const labelItems = labels.labels as Array<{ id?: string }>;
+    const userItems = users.users as Array<{ id?: string }>;
 
     expect(postItems.map((post) => post.id)).toEqual(['post-1', 'post-2']);
     expect(pageItems.map((page) => page.id)).toEqual(['page-1', 'page-2']);
@@ -215,6 +250,7 @@ describe('resource service helpers', () => {
     expect(tierItems.map((item) => item.id)).toEqual(['tier-1', 'tier-2']);
     expect(offerItems.map((item) => item.id)).toEqual(['offer-1', 'offer-2']);
     expect(labelItems.map((item) => item.id)).toEqual(['label-1', 'label-2']);
+    expect(userItems.map((item) => item.id)).toEqual(['user-1', 'user-2']);
   });
 
   test('supports post CRUD/update publish with conflict retry', async () => {
@@ -444,6 +480,339 @@ describe('resource service helpers', () => {
     await expect(deleteLabel({}, fixtureIds.labelId)).resolves.toEqual({});
   });
 
+  test('supports user/webhook/image/theme/site/setting helpers', async () => {
+    installGhostFixtureFetchMock();
+
+    await expect(getUser({}, { id: fixtureIds.userId })).resolves.toMatchObject({
+      users: [{ id: fixtureIds.userId }],
+    });
+    await expect(getUser({}, { slug: fixtureIds.userSlug })).resolves.toMatchObject({
+      users: [{ slug: fixtureIds.userSlug }],
+    });
+    await expect(getUser({}, { email: fixtureIds.userEmail })).resolves.toMatchObject({
+      users: [{ email: fixtureIds.userEmail }],
+    });
+    await expect(getCurrentUser({})).resolves.toMatchObject({
+      users: [{ id: fixtureIds.userId }],
+    });
+
+    await expect(
+      createWebhook({}, { event: 'post.published', target_url: 'https://example.com/hook' }),
+    ).resolves.toMatchObject({
+      webhooks: [{ id: fixtureIds.webhookId }],
+    });
+    await expect(
+      updateWebhook({}, fixtureIds.webhookId, { name: 'updated' }),
+    ).resolves.toMatchObject({
+      webhooks: [{ id: fixtureIds.webhookId }],
+    });
+    await expect(deleteWebhook({}, fixtureIds.webhookId)).resolves.toEqual({});
+
+    await expect(
+      uploadImage({}, { filePath: path.join(workDir, 'photo.jpg') }),
+    ).resolves.toMatchObject({
+      images: [{ url: expect.any(String) }],
+    });
+
+    await expect(listThemes({})).resolves.toMatchObject({
+      themes: [{ name: fixtureIds.themeName }],
+    });
+    await expect(uploadTheme({}, path.join(workDir, 'theme.zip'))).resolves.toMatchObject({
+      themes: [{ name: 'uploaded-theme' }],
+    });
+    await expect(activateTheme({}, fixtureIds.themeName)).resolves.toMatchObject({
+      themes: [{ name: fixtureIds.themeName }],
+    });
+
+    await expect(getSiteInfo({})).resolves.toMatchObject({
+      site: {
+        title: expect.any(String),
+      },
+    });
+    await expect(listSettings({})).resolves.toMatchObject({
+      settings: expect.any(Array),
+    });
+    await expect(getSetting({}, 'title')).resolves.toMatchObject({
+      settings: [{ key: 'title' }],
+    });
+    await expect(setSetting({}, 'title', 'Updated')).resolves.toMatchObject({
+      settings: [{ key: 'title' }],
+    });
+  });
+
+  test('supports migrate helpers', async () => {
+    installGhostFixtureFetchMock();
+
+    await expect(migrateImportCsv({}, path.join(workDir, 'migrate.csv'))).resolves.toMatchObject({
+      imported: 1,
+    });
+    await expect(migrateImportJson({}, path.join(workDir, 'import.json'))).resolves.toMatchObject({
+      db: [{ status: 'imported' }],
+    });
+    await expect(migrateExport({}, path.join(workDir, 'backup.zip'))).resolves.toContain(
+      'backup.zip',
+    );
+  });
+
+  test('supports wordpress/medium/substack migrate helpers via source runner hook', async () => {
+    installGhostFixtureFetchMock();
+
+    await fs.writeFile(path.join(workDir, 'wp.xml'), '<rss></rss>', 'utf8');
+    await fs.writeFile(path.join(workDir, 'medium.zip'), 'fake-medium', 'utf8');
+    await fs.writeFile(path.join(workDir, 'substack.zip'), 'fake-substack', 'utf8');
+
+    const loadedModules: string[] = [];
+    const seenOptions: Array<Record<string, unknown>> = [];
+
+    setMigrateSourceLoaderForTests(async (modulePath) => {
+      loadedModules.push(modulePath);
+
+      if (modulePath === '@tryghost/mg-wp-xml') {
+        return {
+          default: async (ctx: { options: Record<string, unknown> }) => {
+            seenOptions.push(ctx.options);
+            return {
+              posts: [{ url: 'wp://post/1', data: { title: 'WP Import', html: '<p>WP</p>' } }],
+            };
+          },
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-medium-export') {
+        return {
+          default: (inputPath: string, options: Record<string, unknown>) => {
+            seenOptions.push({ pathToZip: inputPath, ...options });
+            return {
+              posts: [
+                { url: 'medium://post/1', data: { title: 'Medium Import', html: '<p>Medium</p>' } },
+              ],
+            };
+          },
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-substack') {
+        return {
+          default: {
+            ingest: async ({ options }: { options: Record<string, unknown> }) => {
+              seenOptions.push({ ingest: options });
+              return { posts: [] };
+            },
+            process: async (_input: unknown, ctx: { options: Record<string, unknown> }) => {
+              seenOptions.push({ process: ctx.options });
+              return {
+                posts: [
+                  {
+                    url: 'substack://post/1',
+                    data: { title: 'Substack Import', html: '<p>Substack</p>' },
+                  },
+                ],
+              };
+            },
+          },
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-json') {
+        return {
+          toGhostJSON: async (input: Record<string, unknown>) => ({
+            meta: { exported_on: 1, version: '2.0.0' },
+            data: input,
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected module path: ${modulePath}`);
+    });
+
+    await expect(migrateImportWordpress({}, path.join(workDir, 'wp.xml'))).resolves.toMatchObject({
+      db: [{ status: 'imported' }],
+    });
+    await expect(migrateImportMedium({}, path.join(workDir, 'medium.zip'))).resolves.toMatchObject({
+      db: [{ status: 'imported' }],
+    });
+    await expect(
+      migrateImportSubstack({}, path.join(workDir, 'substack.zip'), 'https://substack.example.com'),
+    ).resolves.toMatchObject({
+      db: [{ status: 'imported' }],
+    });
+
+    expect(loadedModules).toEqual([
+      '@tryghost/mg-wp-xml',
+      '@tryghost/mg-json',
+      '@tryghost/mg-medium-export',
+      '@tryghost/mg-json',
+      '@tryghost/mg-substack',
+      '@tryghost/mg-json',
+    ]);
+    expect(seenOptions[0]).toMatchObject({ pathToFile: path.join(workDir, 'wp.xml') });
+    expect(seenOptions[1]).toMatchObject({ pathToZip: path.join(workDir, 'medium.zip') });
+    expect(seenOptions[2]).toMatchObject({
+      ingest: expect.objectContaining({
+        pathToZip: path.join(workDir, 'substack.zip'),
+        url: 'https://substack.example.com',
+      }),
+    });
+    expect(seenOptions[3]).toMatchObject({
+      process: expect.objectContaining({
+        pathToZip: path.join(workDir, 'substack.zip'),
+        url: 'https://substack.example.com',
+      }),
+    });
+  });
+
+  test('csv migrate enforces strict header and row validation', async () => {
+    installGhostFixtureFetchMock();
+
+    const missingTitlePath = path.join(workDir, 'missing-title.csv');
+    await fs.writeFile(missingTitlePath, 'html\n<p>Hello</p>\n', 'utf8');
+    await expect(migrateImportCsv({}, missingTitlePath)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+
+    const bothContentHeadersPath = path.join(workDir, 'both-content.csv');
+    await fs.writeFile(
+      bothContentHeadersPath,
+      'title,html,markdown\nPost,<p>Hello</p>,# Hello\n',
+      'utf8',
+    );
+    await expect(migrateImportCsv({}, bothContentHeadersPath)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+
+    const badStatusPath = path.join(workDir, 'bad-status.csv');
+    await fs.writeFile(badStatusPath, 'title,html,status\nPost,<p>Hello</p>,invalid\n', 'utf8');
+    await expect(migrateImportCsv({}, badStatusPath)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+
+    const duplicateHeaderPath = path.join(workDir, 'duplicate-headers.csv');
+    await fs.writeFile(duplicateHeaderPath, 'title,title,html\nA,B,<p>Hello</p>\n', 'utf8');
+    await expect(migrateImportCsv({}, duplicateHeaderPath)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+
+    const emptyHeaderPath = path.join(workDir, 'empty-header.csv');
+    await fs.writeFile(emptyHeaderPath, 'title,,html\nA,B,<p>Hello</p>\n', 'utf8');
+    await expect(migrateImportCsv({}, emptyHeaderPath)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+
+    const mismatchedColumnsPath = path.join(workDir, 'mismatched-columns.csv');
+    await fs.writeFile(mismatchedColumnsPath, 'title,html\nA,<p>Hello</p>,extra\n', 'utf8');
+    await expect(migrateImportCsv({}, mismatchedColumnsPath)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+
+    const markdownOnlyPath = path.join(workDir, 'markdown-only.csv');
+    await fs.writeFile(markdownOnlyPath, 'title,markdown\nMarkdown Post,# Title\n', 'utf8');
+    await expect(migrateImportCsv({}, markdownOnlyPath)).resolves.toMatchObject({
+      imported: 1,
+    });
+
+    const multilineHtmlPath = path.join(workDir, 'multiline-html.csv');
+    await fs.writeFile(
+      multilineHtmlPath,
+      'title,html\n"Multi line","<p>Line 1\nLine 2</p>"\n',
+      'utf8',
+    );
+    await expect(migrateImportCsv({}, multilineHtmlPath)).resolves.toMatchObject({
+      imported: 1,
+      db: [{ status: 'imported' }],
+    });
+
+    const authorsAndTagsPath = path.join(workDir, 'authors-tags.csv');
+    await fs.writeFile(
+      authorsAndTagsPath,
+      'title,html,tags,authors\nPost,<p>Hello</p>,"news, updates","writer@example.com,Second Author"\n',
+      'utf8',
+    );
+    await expect(migrateImportCsv({}, authorsAndTagsPath)).resolves.toMatchObject({
+      imported: 1,
+      db: [{ status: 'imported' }],
+    });
+  });
+
+  test('migrate source helpers surface module and shape errors clearly', async () => {
+    installGhostFixtureFetchMock();
+
+    await fs.writeFile(path.join(workDir, 'wp.xml'), '<rss></rss>', 'utf8');
+    await fs.writeFile(path.join(workDir, 'substack.zip'), 'fake-substack', 'utf8');
+
+    setMigrateSourceLoaderForTests(async () => {
+      throw new Error('Cannot find module @tryghost/mg-wp-xml');
+    });
+    await expect(migrateImportWordpress({}, path.join(workDir, 'wp.xml'))).rejects.toMatchObject({
+      code: 'USAGE_ERROR',
+      exitCode: ExitCode.USAGE_ERROR,
+    });
+
+    setMigrateSourceLoaderForTests(async (modulePath) => {
+      if (modulePath === '@tryghost/mg-wp-xml') {
+        return {};
+      }
+      return {
+        toGhostJSON: async () => ({ meta: {}, data: {} }),
+      };
+    });
+    await expect(migrateImportWordpress({}, path.join(workDir, 'wp.xml'))).rejects.toMatchObject({
+      code: 'GENERAL_ERROR',
+      exitCode: ExitCode.GENERAL_ERROR,
+    });
+
+    setMigrateSourceLoaderForTests(async (modulePath) => {
+      if (modulePath === '@tryghost/mg-wp-xml') {
+        return {
+          default: async () => [],
+        };
+      }
+      return {
+        toGhostJSON: async () => ({ meta: {}, data: {} }),
+      };
+    });
+    await expect(migrateImportWordpress({}, path.join(workDir, 'wp.xml'))).rejects.toMatchObject({
+      code: 'GENERAL_ERROR',
+      exitCode: ExitCode.GENERAL_ERROR,
+    });
+
+    setMigrateSourceLoaderForTests(async (modulePath) => {
+      if (modulePath === '@tryghost/mg-wp-xml') {
+        return {
+          default: async () => ({ posts: [{ url: 'wp://post/1', data: { title: 'WP' } }] }),
+        };
+      }
+
+      if (modulePath === '@tryghost/mg-json') {
+        return {};
+      }
+
+      return {};
+    });
+    await expect(migrateImportWordpress({}, path.join(workDir, 'wp.xml'))).rejects.toMatchObject({
+      code: 'GENERAL_ERROR',
+      exitCode: ExitCode.GENERAL_ERROR,
+    });
+
+    setMigrateSourceLoaderForTests(async (modulePath) => {
+      if (modulePath === '@tryghost/mg-substack') {
+        return { default: {} };
+      }
+      return {};
+    });
+    await expect(
+      migrateImportSubstack({}, path.join(workDir, 'substack.zip'), 'https://substack.example.com'),
+    ).rejects.toMatchObject({
+      code: 'GENERAL_ERROR',
+      exitCode: ExitCode.GENERAL_ERROR,
+    });
+  });
+
   test('member email lookup returns NOT_FOUND when no member matches', async () => {
     installGhostFixtureFetchMock({
       onRequest: ({ pathname, method }) => {
@@ -460,6 +829,67 @@ describe('resource service helpers', () => {
     await expect(getMember({}, { email: 'missing@example.com' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
       exitCode: ExitCode.NOT_FOUND,
+    });
+  });
+
+  test('covers setting and user auth edge branches', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'PUT') {
+          return jsonResponse(
+            {
+              errors: [{ message: 'Forbidden', context: 'No permission' }],
+            },
+            403,
+          );
+        }
+
+        if (pathname.endsWith('/ghost/api/admin/users/me/') && method === 'GET') {
+          return jsonResponse(
+            {
+              errors: [{ message: 'Not found', context: 'No current user' }],
+            },
+            404,
+          );
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(getSetting({}, 'missing-key')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      exitCode: ExitCode.NOT_FOUND,
+    });
+    await expect(setSetting({}, 'title', 'Denied')).rejects.toMatchObject({
+      code: 'AUTH_ERROR',
+      exitCode: ExitCode.AUTH_ERROR,
+    });
+    await expect(getCurrentUser({})).rejects.toMatchObject({
+      code: 'AUTH_ERROR',
+      exitCode: ExitCode.AUTH_ERROR,
+    });
+    await expect(getUser({}, {})).rejects.toMatchObject({
+      code: 'USAGE_ERROR',
+      exitCode: ExitCode.USAGE_ERROR,
+    });
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'PUT') {
+          return jsonResponse(
+            {
+              errors: [{ message: 'Validation failed', context: 'Bad setting value' }],
+            },
+            422,
+          );
+        }
+        return undefined;
+      },
+    });
+    await expect(setSetting({}, 'title', 'bad')).rejects.toMatchObject({
+      code: 'GHOST_API_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
     });
   });
 });

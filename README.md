@@ -4,7 +4,7 @@ A modern Ghost CMS CLI.
 
 ## Release
 
-- Current release target: `v0.2.0` (Phase 2 membership surface)
+- Current release target: `v0.3.0` (Phase 3 operations surface)
 
 ## Prerequisites
 
@@ -64,10 +64,17 @@ ghst newsletter list
 ghst tier list
 ghst offer list
 ghst label list
+ghst webhook events
+ghst user me
+ghst image upload ./photo.jpg
+ghst theme list
+ghst site info
+ghst setting get title
+ghst migrate export --output ./backup.zip
 ghst api /settings/ --method GET --query limit=1
 ```
 
-## Commands Included Through Phase 2
+## Commands Included Through Phase 3
 
 - `ghst auth login|logout|status|switch|list|link|token`
 - `ghst post list|get|create|update|delete|publish`
@@ -78,11 +85,18 @@ ghst api /settings/ --method GET --query limit=1
 - `ghst tier list|get|create|update`
 - `ghst offer list|get|create|update`
 - `ghst label list|get|create|update|delete`
+- `ghst webhook create|update|delete|events`
+- `ghst user list|get|me`
+- `ghst image upload`
+- `ghst theme list|upload|activate|validate`
+- `ghst site info`
+- `ghst setting list|get|set`
+- `ghst migrate wordpress|medium|substack|csv|json|export`
 - `ghst config show|path|list|get|set`
 - `ghst api` (`--method|-X`, `--body`, `--input`, `--query`, `--content-api`)
 - `ghst completion <bash|zsh|fish|powershell>`
 
-## Phase 2 Resource Notes
+## Phase 3 Resource Notes
 
 - `ghst member get [id] --email <email>` supports id or email lookup.
 - `ghst member delete <id> --cancel --yes` supports Stripe cancellation passthrough and non-interactive deletion.
@@ -93,3 +107,9 @@ ghst api /settings/ --method GET --query limit=1
 - `ghst label get [id] --slug <slug>` and `ghst label update [id] --slug <slug> --name <name>` support slug-based lookup.
 - `ghst newsletter create|update --sender-email null` and `ghst offer create|update --currency null` explicitly clear nullable fields.
 - `ghst tier get|update` normalizes known Ghost tier not-found-like 500 responses to not-found CLI semantics.
+- `ghst setting set` uses `PUT /settings` and returns explicit permission guidance when integration tokens are blocked.
+- `ghst migrate csv` enforces strict canonical CSV headers:
+  `title` + exactly one of `html` or `markdown`; optional
+  `slug,status,published_at,tags,authors,excerpt,feature_image`.
+- `ghst migrate substack` requires an explicit source URL via `--url` and uses `--target-url` for destination Ghost URL overrides.
+- `ghst migrate wordpress|medium|substack` uses Ghost-maintained migration packages and uploads generated Ghost import JSON through `POST /db`.

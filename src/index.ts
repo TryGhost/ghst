@@ -4,14 +4,21 @@ import { registerApiCommands } from './commands/api.js';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerCompletionCommands } from './commands/completion.js';
 import { registerConfigCommands } from './commands/config.js';
+import { registerImageCommands } from './commands/image.js';
 import { registerLabelCommands } from './commands/label.js';
 import { registerMemberCommands } from './commands/member.js';
+import { registerMigrateCommands } from './commands/migrate.js';
 import { registerNewsletterCommands } from './commands/newsletter.js';
 import { registerOfferCommands } from './commands/offer.js';
 import { registerPageCommands } from './commands/page.js';
 import { registerPostCommands } from './commands/post.js';
+import { registerSettingCommands } from './commands/setting.js';
+import { registerSiteCommands } from './commands/site.js';
 import { registerTagCommands } from './commands/tag.js';
+import { registerThemeCommands } from './commands/theme.js';
 import { registerTierCommands } from './commands/tier.js';
+import { registerUserCommands } from './commands/user.js';
+import { registerWebhookCommands } from './commands/webhook.js';
 import { ExitCode, GhstError, normalizeError, printError } from './lib/errors.js';
 
 export function buildProgram(): Command {
@@ -39,8 +46,15 @@ export function buildProgram(): Command {
   registerTierCommands(program);
   registerOfferCommands(program);
   registerLabelCommands(program);
+  registerWebhookCommands(program);
+  registerUserCommands(program);
+  registerImageCommands(program);
+  registerThemeCommands(program);
+  registerSiteCommands(program);
+  registerSettingCommands(program);
   registerConfigCommands(program);
   registerApiCommands(program);
+  registerMigrateCommands(program);
   registerCompletionCommands(program);
 
   program.exitOverride();

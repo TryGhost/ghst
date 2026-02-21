@@ -217,6 +217,39 @@ async function captureImportValidation(
   };
 }
 
+async function captureDbImportValidation(
+  url: string,
+  key: string,
+  version: string,
+): Promise<Record<string, unknown>> {
+  const token = await generateAdminToken(key);
+  const formData = new FormData();
+  const response = await fetch(`${url.replace(/\/$/, '')}/ghost/api/admin/db/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Ghost ${token}`,
+      'Accept-Version': version,
+    },
+    body: formData,
+  });
+
+  let payload: unknown = null;
+  try {
+    payload = (await response.json()) as unknown;
+  } catch {
+    payload = null;
+  }
+
+  return {
+    status: response.status,
+    code: 'GHOST_API_ERROR',
+    message:
+      (asRecord(payload).errors as Array<{ message?: string }> | undefined)?.[0]?.message ??
+      `Ghost API request failed (${response.status})`,
+    payload,
+  };
+}
+
 async function buildFixtures(): Promise<FixtureDocument> {
   const connection = await resolveConnectionConfig({});
   const client = new GhostClient({
@@ -556,6 +589,145 @@ async function buildFixtures(): Promise<FixtureDocument> {
       labelNotFound = extractGhostError(error);
     }
 
+    const usersBrowse = await client.users.browse({ limit: 2 });
+    const firstUser = firstResource(usersBrowse, 'users');
+    createdIds.userId = String(firstUser.id ?? '');
+    createdIds.userSlug = String(firstUser.slug ?? '');
+    createdIds.userEmail = String(firstUser.email ?? '');
+
+    let usersReadById: Record<string, unknown> = { users: [firstUser] };
+    try {
+      usersReadById = await client.users.read(createdIds.userId);
+    } catch {}
+
+    let usersReadBySlug: Record<string, unknown> = { users: [firstUser] };
+    try {
+      usersReadBySlug = await client.users.read(createdIds.userSlug, { bySlug: true });
+    } catch {}
+
+    let usersReadByEmail: Record<string, unknown> = { users: [firstUser] };
+    if (createdIds.userEmail) {
+      try {
+        usersReadByEmail = await client.users.read(createdIds.userEmail, { byEmail: true });
+      } catch {}
+    }
+
+    let usersMe: Record<string, unknown> = { users: [firstUser] };
+    try {
+      usersMe = await client.users.me();
+    } catch {}
+
+    let webhookCreate: Record<string, unknown> = {
+      webhooks: [
+        {
+          id: 'webhook-id',
+          name: `Fixture Webhook ${runId}`,
+          event: 'post.published',
+          target_url: 'https://example.com/webhook',
+        },
+      ],
+    };
+    let webhookUpdate: Record<string, unknown> = {
+      webhooks: [
+        {
+          id: 'webhook-id',
+          name: `Fixture Webhook Updated ${runId}`,
+          event: 'post.published',
+          target_url: 'https://example.com/webhook-updated',
+        },
+      ],
+    };
+    let webhookDelete: Record<string, unknown> = {};
+
+    try {
+      webhookCreate = await client.webhooks.add({
+        event: 'post.published',
+        name: `Fixture Webhook ${runId}`,
+        target_url: 'https://example.com/webhook',
+      });
+      const createdWebhook = firstResource(webhookCreate, 'webhooks');
+      createdIds.webhookId = String(createdWebhook.id ?? '');
+      webhookUpdate = await client.webhooks.edit(createdIds.webhookId, {
+        event: 'post.published',
+        name: `Fixture Webhook Updated ${runId}`,
+        target_url: 'https://example.com/webhook-updated',
+      });
+      webhookDelete = await client.webhooks.delete(createdIds.webhookId);
+    } catch {}
+
+    const imageBytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBgJf9NfQAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const imageFormData = new FormData();
+    imageFormData.append('file', new Blob([imageBytes]), 'fixture.png');
+    let imageUpload: Record<string, unknown> = {
+      images: [{ url: 'https://myblog.ghost.io/content/images/uploaded.jpg' }],
+    };
+    try {
+      imageUpload = await client.images.upload(imageFormData);
+    } catch {}
+
+    let themesBrowse: Record<string, unknown> = {
+      themes: [{ name: 'casper', active: true, package: { version: '1.0.0' } }],
+    };
+    try {
+      themesBrowse = await client.themes.browse();
+    } catch {}
+    let themesActive: Record<string, unknown> = themesBrowse;
+    try {
+      themesActive = await client.themes.readActive();
+    } catch {}
+
+    const activeTheme = firstResource(themesActive, 'themes');
+    createdIds.themeName = String(activeTheme.name ?? '');
+
+    let themeActivate: Record<string, unknown> = themesActive;
+    if (createdIds.themeName) {
+      try {
+        themeActivate = await client.themes.activate(createdIds.themeName);
+      } catch {}
+    }
+
+    const themesUploadFallback = {
+      themes: [
+        {
+          name: 'uploaded-theme',
+          active: false,
+          package: { version: '1.0.0' },
+        },
+      ],
+    };
+
+    let settingsEdit: Record<string, unknown> = {};
+    const settingsList =
+      (asRecord(settings).settings as Array<Record<string, unknown>> | undefined) ?? [];
+    const titleSetting = settingsList.find((entry) => String(entry.key ?? '') === 'title');
+    if (titleSetting) {
+      try {
+        settingsEdit = await client.settings.edit([{ key: 'title', value: titleSetting.value }]);
+      } catch (error) {
+        settingsEdit = extractGhostError(error);
+      }
+    }
+
+    let dbExport: Record<string, unknown> = {};
+    try {
+      const dbData = await client.db.export();
+      dbExport = {
+        ok: true,
+        bytes: dbData.length,
+      };
+    } catch (error) {
+      dbExport = extractGhostError(error);
+    }
+
+    const dbImportValidation = await captureDbImportValidation(
+      connection.url,
+      connection.key,
+      connection.apiVersion,
+    );
+
     replacements.set(postTitle, '<fixture-post-title>');
     replacements.set(postUpdatedTitle, '<fixture-post-updated-title>');
     replacements.set(pageTitle, '<fixture-page-title>');
@@ -572,6 +744,9 @@ async function buildFixtures(): Promise<FixtureDocument> {
     replacements.set(offerUpdatedName, '<fixture-offer-updated-name>');
     replacements.set(labelName, '<fixture-label-name>');
     replacements.set(labelUpdatedName, '<fixture-label-updated-name>');
+    replacements.set(String(firstUser.name ?? ''), '<fixture-user-name>');
+    replacements.set(`Fixture Webhook ${runId}`, '<fixture-webhook-name>');
+    replacements.set(`Fixture Webhook Updated ${runId}`, '<fixture-webhook-name>');
 
     for (const [key, value] of Object.entries(createdIds)) {
       if (value) {
@@ -648,6 +823,42 @@ async function buildFixtures(): Promise<FixtureDocument> {
       notFound404: sanitizeValue(labelNotFound, replacements),
     };
 
+    fixtures.users = {
+      browse: sanitizeValue(usersBrowse, replacements),
+      readById: sanitizeValue(usersReadById, replacements),
+      readBySlug: sanitizeValue(usersReadBySlug, replacements),
+      readByEmail: sanitizeValue(usersReadByEmail, replacements),
+      me: sanitizeValue(usersMe, replacements),
+    };
+
+    fixtures.webhooks = {
+      create: sanitizeValue(webhookCreate, replacements),
+      update: sanitizeValue(webhookUpdate, replacements),
+      delete: sanitizeValue(webhookDelete, replacements),
+    };
+
+    fixtures.images = {
+      upload: sanitizeValue(imageUpload, replacements),
+    };
+
+    fixtures.themes = {
+      browse: sanitizeValue(themesBrowse, replacements),
+      active: sanitizeValue(themesActive, replacements),
+      upload: sanitizeValue(themesUploadFallback, replacements),
+      activate: sanitizeValue(themeActivate, replacements),
+    };
+
+    fixtures.settingsAdmin = {
+      list: sanitizeValue(settings, replacements),
+      edit: sanitizeValue(settingsEdit, replacements),
+    };
+
+    fixtures.db = {
+      export: sanitizeValue(dbExport, replacements),
+      importSuccess: sanitizeValue({ db: [{ status: 'imported' }] }, replacements),
+      importValidation: sanitizeValue(dbImportValidation, replacements),
+    };
+
     fixtures.api = {
       admin: {
         site: sanitizeValue(siteInfo, replacements),
@@ -690,7 +901,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt: new Date().toISOString(),
     source: {
       siteAlias: connection.siteAlias ?? null,

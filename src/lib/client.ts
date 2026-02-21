@@ -18,7 +18,7 @@ export interface GhostPaginatedResponse extends Record<string, unknown> {
 }
 
 type RequestApi = 'admin' | 'content';
-type ResponseType = 'json' | 'text';
+type ResponseType = 'json' | 'text' | 'buffer';
 
 export class GhostApiError extends GhstError {
   readonly payload: GhostApiErrorPayload | null;
@@ -231,6 +231,10 @@ export class GhostClient {
 
       if (options.responseType === 'text') {
         return (await response.text()) as T;
+      }
+
+      if (options.responseType === 'buffer') {
+        return Buffer.from(await response.arrayBuffer()) as T;
       }
 
       const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
@@ -518,5 +522,98 @@ export class GhostClient {
       }),
 
     delete: (id: string) => this.request<Record<string, never>>('DELETE', `/labels/${id}/`),
+  };
+
+  users = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/users/', { params }),
+
+    read: (
+      idOrSlugOrEmail: string,
+      options: {
+        bySlug?: boolean;
+        byEmail?: boolean;
+        params?: Record<string, string | number | boolean | undefined>;
+      } = {},
+    ) => {
+      if (options.bySlug) {
+        return this.request<Record<string, unknown>>('GET', `/users/slug/${idOrSlugOrEmail}/`, {
+          params: options.params,
+        });
+      }
+
+      if (options.byEmail) {
+        return this.request<Record<string, unknown>>('GET', `/users/email/${idOrSlugOrEmail}/`, {
+          params: options.params,
+        });
+      }
+
+      return this.request<Record<string, unknown>>('GET', `/users/${idOrSlugOrEmail}/`, {
+        params: options.params,
+      });
+    },
+
+    me: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('GET', '/users/me/', { params }),
+  };
+
+  webhooks = {
+    add: (webhook: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('POST', '/webhooks/', {
+        body: { webhooks: [webhook] },
+      }),
+
+    edit: (id: string, webhook: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('PUT', `/webhooks/${id}/`, {
+        body: { webhooks: [webhook] },
+      }),
+
+    delete: (id: string) => this.request<Record<string, never>>('DELETE', `/webhooks/${id}/`),
+  };
+
+  images = {
+    upload: (formData: FormData) =>
+      this.request<Record<string, unknown>>('POST', '/images/upload/', {
+        body: formData,
+      }),
+  };
+
+  themes = {
+    browse: () => this.request<Record<string, unknown>>('GET', '/themes/'),
+
+    readActive: () => this.request<Record<string, unknown>>('GET', '/themes/active/'),
+
+    upload: (formData: FormData) =>
+      this.request<Record<string, unknown>>('POST', '/themes/upload/', {
+        body: formData,
+      }),
+
+    activate: (name: string) =>
+      this.request<Record<string, unknown>>('PUT', `/themes/${name}/activate/`, {
+        body: {},
+      }),
+  };
+
+  settings = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('GET', '/settings/', { params }),
+
+    edit: (settings: Array<Record<string, unknown>>) =>
+      this.request<Record<string, unknown>>('PUT', '/settings/', {
+        body: { settings },
+      }),
+  };
+
+  db = {
+    export: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Buffer>('GET', '/db/', {
+        params,
+        responseType: 'buffer',
+      }),
+
+    import: (formData: FormData) =>
+      this.request<Record<string, unknown>>('POST', '/db/', {
+        body: formData,
+      }),
   };
 }

@@ -4,7 +4,7 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: `v0.2.0` Phase 2 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `config`, `api`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- Status: `v0.3.0` Phase 3 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 
 ## Runtime And Tooling
@@ -59,6 +59,13 @@ pnpm build
 - `ghst tier list|get|create|update`
 - `ghst offer list|get|create|update`
 - `ghst label list|get|create|update|delete`
+- `ghst webhook create|update|delete|events`
+- `ghst user list|get|me`
+- `ghst image upload`
+- `ghst theme list|upload|activate|validate`
+- `ghst site info`
+- `ghst setting list|get|set`
+- `ghst migrate wordpress|medium|substack|csv|json|export`
 - `ghst config show|path|list|get|set`
 - `ghst api [endpointPath]`
 - `ghst completion <bash|zsh|fish|powershell>`
@@ -104,3 +111,4 @@ pnpm fixtures:ghost:check
 - Ghost Admin API version defaults to `v6.0`.
 - JWT auth uses `{id}:{secret}` Admin key with `aud: /admin/` and 5-minute expiry.
 - Fixture capture/check scripts target Ghost Admin API responses only.
+- Source migration commands use Ghost-maintained `@tryghost/mg-*` packages and build Ghost JSON imports uploaded via `/db`.

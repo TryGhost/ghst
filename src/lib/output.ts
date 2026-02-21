@@ -258,6 +258,39 @@ export function printLabelListHuman(payload: Record<string, unknown>, useColor =
   printPagination(payload, 'labels');
 }
 
+export function printUserListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'users', (record) => [
+    String(record.id ?? ''),
+    String(record.name ?? ''),
+    String(record.slug ?? ''),
+    String(record.email ?? ''),
+    formatStatus(String(record.status ?? ''), useColor),
+  ]);
+
+  printRows(['ID', 'NAME', 'SLUG', 'EMAIL', 'STATUS'], rows, useColor);
+  printPagination(payload, 'users');
+}
+
+export function printThemeListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'themes', (record) => [
+    String(record.name ?? ''),
+    String(record.active ?? ''),
+    String(((record.package as Record<string, unknown> | undefined)?.version as string) ?? ''),
+  ]);
+
+  printRows(['NAME', 'ACTIVE', 'VERSION'], rows, useColor);
+}
+
+export function printSettingListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'settings', (record) => [
+    String(record.key ?? ''),
+    String(record.value ?? ''),
+    String(record.group ?? ''),
+  ]);
+
+  printRows(['KEY', 'VALUE', 'GROUP'], rows, useColor);
+}
+
 export function printPostHuman(payload: Record<string, unknown>): void {
   printSingleRecord(payload, 'posts', [
     { label: 'ID', field: 'id' },
@@ -339,6 +372,63 @@ export function printLabelHuman(payload: Record<string, unknown>): void {
     { label: 'Slug', field: 'slug' },
     { label: 'Updated', field: 'updated_at' },
   ]);
+}
+
+export function printUserHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'users', [
+    { label: 'ID', field: 'id' },
+    { label: 'Name', field: 'name' },
+    { label: 'Slug', field: 'slug' },
+    { label: 'Email', field: 'email' },
+    { label: 'Status', field: 'status' },
+  ]);
+}
+
+export function printWebhookHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'webhooks', [
+    { label: 'ID', field: 'id' },
+    { label: 'Name', field: 'name' },
+    { label: 'Event', field: 'event' },
+    { label: 'Target URL', field: 'target_url' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printThemeHuman(payload: Record<string, unknown>): void {
+  const themes = Array.isArray(payload.themes) ? payload.themes : [];
+  const theme = (themes[0] as Record<string, unknown> | undefined) ?? payload;
+  const pkg = (theme.package as Record<string, unknown> | undefined) ?? {};
+
+  console.log(
+    [
+      `Name: ${String(theme.name ?? '')}`,
+      `Active: ${String(theme.active ?? '')}`,
+      `Version: ${String(pkg.version ?? '')}`,
+    ].join('\n'),
+  );
+}
+
+export function printSettingHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'settings', [
+    { label: 'Key', field: 'key' },
+    { label: 'Value', field: 'value' },
+    { label: 'Group', field: 'group' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printSiteHuman(payload: Record<string, unknown>): void {
+  const site = ((payload.site as Record<string, unknown> | undefined) ?? payload) as Record<
+    string,
+    unknown
+  >;
+  const lines = [
+    `Title: ${String(site.title ?? '')}`,
+    `Description: ${String(site.description ?? '')}`,
+    `URL: ${String(site.url ?? site.site_url ?? '')}`,
+    `Version: ${String(site.version ?? '')}`,
+  ];
+  console.log(lines.join('\n'));
 }
 
 export function isJsonMode(global: GlobalOptions): boolean {

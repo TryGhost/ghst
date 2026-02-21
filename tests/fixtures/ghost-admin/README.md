@@ -13,7 +13,7 @@ This command will:
 
 1. Resolve the active Ghost connection using normal CLI precedence.
 2. Create temporary post/page/tag resources.
-3. Capture representative browse/read/create/update responses.
+3. Capture representative browse/read/create/update responses across phase 1-3 resources.
 4. Capture representative `ghst api` admin responses (`/site/` and `/settings/`).
 5. Capture representative error responses (`409`, `404`, and `422` when returned).
 6. Sanitize volatile fields and write `fixtures.json`.

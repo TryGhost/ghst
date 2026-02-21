@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { ImageUploadInputSchema } from '../src/schemas/image.js';
 import {
   LabelCreateInputSchema,
   LabelGetInputSchema,
@@ -12,6 +13,14 @@ import {
   MemberListInputSchema,
   MemberUpdateInputSchema,
 } from '../src/schemas/member.js';
+import {
+  MigrateCsvInputSchema,
+  MigrateExportInputSchema,
+  MigrateJsonInputSchema,
+  MigrateMediumInputSchema,
+  MigrateSubstackInputSchema,
+  MigrateWordpressInputSchema,
+} from '../src/schemas/migrate.js';
 import {
   NewsletterCreateInputSchema,
   NewsletterGetInputSchema,
@@ -36,6 +45,7 @@ import {
   PostListInputSchema,
   PostUpdateInputSchema,
 } from '../src/schemas/post.js';
+import { SettingGetInputSchema, SettingSetInputSchema } from '../src/schemas/setting.js';
 import {
   TagCreateInputSchema,
   TagGetInputSchema,
@@ -43,11 +53,22 @@ import {
   TagUpdateInputSchema,
 } from '../src/schemas/tag.js';
 import {
+  ThemeActivateInputSchema,
+  ThemeUploadInputSchema,
+  ThemeValidateInputSchema,
+} from '../src/schemas/theme.js';
+import {
   TierCreateInputSchema,
   TierGetInputSchema,
   TierListInputSchema,
   TierUpdateInputSchema,
 } from '../src/schemas/tier.js';
+import { UserGetInputSchema, UserListInputSchema } from '../src/schemas/user.js';
+import {
+  WebhookCreateInputSchema,
+  WebhookDeleteInputSchema,
+  WebhookUpdateInputSchema,
+} from '../src/schemas/webhook.js';
 
 describe('post schemas', () => {
   test('validates list/get/create/update', () => {
@@ -204,5 +225,44 @@ describe('label schemas', () => {
     expect(() =>
       LabelUpdateInputSchema.parse({ id: 'id1', slugLookup: 'vip', name: 'x' }),
     ).toThrow();
+  });
+});
+
+describe('phase3 schemas', () => {
+  test('validates user/webhook/image/theme/setting/migrate schemas', () => {
+    expect(UserListInputSchema.parse({ limit: 'all' }).limit).toBe('all');
+    expect(UserGetInputSchema.parse({ email: 'owner@example.com' }).email).toBe(
+      'owner@example.com',
+    );
+    expect(() => UserGetInputSchema.parse({})).toThrow();
+    expect(() => UserGetInputSchema.parse({ id: 'id1', slug: 'slug' })).toThrow();
+
+    expect(
+      WebhookCreateInputSchema.parse({
+        event: 'post.published',
+        targetUrl: 'https://example.com/hook',
+      }).event,
+    ).toBe('post.published');
+    expect(WebhookUpdateInputSchema.parse({ id: 'id1', name: 'Updated' }).name).toBe('Updated');
+    expect(() => WebhookUpdateInputSchema.parse({ id: 'id1' })).toThrow();
+    expect(WebhookDeleteInputSchema.parse({ id: 'id1', yes: true }).id).toBe('id1');
+
+    expect(ImageUploadInputSchema.parse({ filePath: './image.jpg' }).filePath).toBe('./image.jpg');
+
+    expect(ThemeUploadInputSchema.parse({ path: './theme.zip' }).path).toBe('./theme.zip');
+    expect(ThemeActivateInputSchema.parse({ name: 'casper' }).name).toBe('casper');
+    expect(ThemeValidateInputSchema.parse({ path: './theme' }).path).toBe('./theme');
+
+    expect(SettingGetInputSchema.parse({ key: 'title' }).key).toBe('title');
+    expect(SettingSetInputSchema.parse({ key: 'title', value: 'My Blog' }).value).toBe('My Blog');
+
+    expect(MigrateWordpressInputSchema.parse({ file: './wp.xml' }).file).toBe('./wp.xml');
+    expect(MigrateMediumInputSchema.parse({ file: './medium.zip' }).file).toBe('./medium.zip');
+    expect(
+      MigrateSubstackInputSchema.parse({ file: './substack.zip', url: 'https://example.com' }).url,
+    ).toBe('https://example.com');
+    expect(MigrateCsvInputSchema.parse({ file: './posts.csv' }).file).toBe('./posts.csv');
+    expect(MigrateJsonInputSchema.parse({ file: './import.json' }).file).toBe('./import.json');
+    expect(MigrateExportInputSchema.parse({ output: './backup.zip' }).output).toBe('./backup.zip');
   });
 });
