@@ -1,0 +1,13 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: |
+          echo "Release workflow placeholder"
+          echo "Add npm publish steps once package name and release process are finalized"
