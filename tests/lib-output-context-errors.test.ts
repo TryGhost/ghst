@@ -11,12 +11,23 @@ import {
 import {
   isJsonMode,
   printJson,
+  printLabelHuman,
+  printLabelListHuman,
+  printMemberHuman,
+  printMemberListHuman,
+  printNewsletterHuman,
+  printNewsletterListHuman,
+  printOfferHuman,
+  printOfferListHuman,
+  printOperationStatsHuman,
   printPageHuman,
   printPageListHuman,
   printPostHuman,
   printPostListHuman,
   printTagHuman,
   printTagListHuman,
+  printTierHuman,
+  printTierListHuman,
 } from '../src/lib/output.js';
 
 describe('context helper', () => {
@@ -130,7 +141,7 @@ describe('output helpers', () => {
     expect(() => printJson({ posts: [] }, 'bad-filter')).toThrowError('Unsupported --jq filter');
   });
 
-  test('prints human list/details for posts/pages/tags', () => {
+  test('prints human list/details for resources', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const previousForceTty = process.env.GHST_FORCE_TTY;
     process.env.GHST_FORCE_TTY = '1';
@@ -144,11 +155,42 @@ describe('output helpers', () => {
     );
     printPageListHuman({ pages: [{ id: '2', title: 'B', status: 'draft', published_at: '' }] });
     printTagListHuman({ tags: [{ id: '3', name: 'Tag', slug: 'tag', visibility: 'public' }] });
+    printMemberListHuman({
+      members: [{ id: '4', email: 'x@example.com', name: 'X', status: 'free', updated_at: '' }],
+    });
+    printNewsletterListHuman({
+      newsletters: [
+        { id: '5', name: 'Newsletter', slug: 'news', status: 'active', visibility: 'members' },
+      ],
+    });
+    printTierListHuman({
+      tiers: [{ id: '6', name: 'Tier', type: 'paid', active: true, monthly_price: 500 }],
+    });
+    printOfferListHuman({
+      offers: [{ id: '7', name: 'Offer', code: 'offer', status: 'active', type: 'percent' }],
+    });
+    printLabelListHuman({
+      labels: [{ id: '8', name: 'Label', slug: 'label', updated_at: '2026-01-01' }],
+    });
 
     printPostHuman({ posts: [{ id: 'id1', title: 'Title', slug: 'slug', status: 'draft' }] });
     printPageHuman({ pages: [{ id: 'id2', title: 'Page', slug: 'about', status: 'draft' }] });
     printTagHuman({ tags: [{ id: 'id3', name: 'Tag', slug: 'tag', visibility: 'public' }] });
+    printMemberHuman({
+      members: [{ id: 'id4', email: 'x@example.com', name: 'X', status: 'free', updated_at: '' }],
+    });
+    printNewsletterHuman({
+      newsletters: [{ id: 'id5', name: 'News', slug: 'news', status: 'active' }],
+    });
+    printTierHuman({ tiers: [{ id: 'id6', name: 'Tier', type: 'paid' }] });
+    printOfferHuman({ offers: [{ id: 'id7', name: 'Offer', code: 'offer', status: 'active' }] });
+    printLabelHuman({ labels: [{ id: 'id8', name: 'Label', slug: 'label' }] });
     printPostHuman({ posts: [] });
+    printOperationStatsHuman({ meta: { stats: { imported: 2, invalid: [] } } }, 'Imported members');
+    printOperationStatsHuman(
+      { bulk: { meta: { stats: { successful: 2, unsuccessful: 1 } } } },
+      'Bulk operation',
+    );
 
     if (previousForceTty === undefined) {
       delete process.env.GHST_FORCE_TTY;

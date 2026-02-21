@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { generateAdminToken } from '../src/lib/auth.js';
 import { GhostApiError, GhostClient } from '../src/lib/client.js';
 import { resolveConnectionConfig } from '../src/lib/config.js';
 
@@ -121,6 +122,10 @@ function sanitizeValue(
     return '<error-id>';
   }
 
+  if (key === 'avatar_image' && value.includes('gravatar.com/avatar/')) {
+    return value.replace(/avatar\/[^?]+/, 'avatar/<hash>');
+  }
+
   if (key?.endsWith('_at') && isIsoDate(value)) {
     return '<datetime>';
   }
@@ -140,6 +145,9 @@ function sanitizeValue(
     }
   }
 
+  nextValue = nextValue.replace(/([?&]key=)[^&]+/g, '$1<token>');
+  nextValue = nextValue.replace(/([?&]token=)[^&]+/g, '$1<token>');
+
   const sanitizedJson = trySanitizeJsonString(nextValue, replacements);
   if (sanitizedJson !== null) {
     return sanitizedJson;
@@ -150,6 +158,63 @@ function sanitizeValue(
     nextValue = nextValue.replace(EMAIL_REGEX, '<email>');
   }
   return nextValue;
+}
+
+function fallbackOffer(): Record<string, unknown> {
+  return {
+    offers: [
+      {
+        id: 'offer-id',
+        name: 'Fixture Offer',
+        code: 'fixture-offer',
+        status: 'active',
+        type: 'percent',
+        amount: 10,
+        cadence: 'month',
+      },
+    ],
+    meta: {
+      pagination: {
+        page: 1,
+        pages: 1,
+        limit: 1,
+        total: 1,
+      },
+    },
+  };
+}
+
+async function captureImportValidation(
+  url: string,
+  key: string,
+  version: string,
+): Promise<Record<string, unknown>> {
+  const token = await generateAdminToken(key);
+  const formData = new FormData();
+  const response = await fetch(`${url.replace(/\/$/, '')}/ghost/api/admin/members/upload/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Ghost ${token}`,
+      'Accept-Version': version,
+    },
+    body: formData,
+  });
+
+  let payload: unknown = null;
+  try {
+    payload = (await response.json()) as unknown;
+  } catch {
+    payload = null;
+  }
+
+  return {
+    status: response.status,
+    code: 'GHOST_API_ERROR',
+    message:
+      (asRecord(payload).errors as Array<{ message?: string }> | undefined)?.[0]?.message ??
+      `Ghost API request failed (${response.status})`,
+    payload,
+  };
 }
 
 async function buildFixtures(): Promise<FixtureDocument> {
@@ -167,12 +232,20 @@ async function buildFixtures(): Promise<FixtureDocument> {
   const pageUpdatedTitle = `Fixture Page Updated ${runId}`;
   const tagName = `Fixture Tag ${runId}`;
   const tagUpdatedName = `Fixture Tag Updated ${runId}`;
+  const memberEmail = `fixture-member-${runId}@example.com`;
+  const memberName = `Fixture Member ${runId}`;
+  const memberUpdatedName = `Fixture Member Updated ${runId}`;
+  const newsletterName = `Fixture Newsletter ${runId}`;
+  const newsletterUpdatedName = `Fixture Newsletter Updated ${runId}`;
+  const tierName = `Fixture Tier ${runId}`;
+  const tierUpdatedName = `Fixture Tier Updated ${runId}`;
+  const offerName = `Fixture Offer ${runId}`;
+  const offerUpdatedName = `Fixture Offer Updated ${runId}`;
+  const labelName = `Fixture Label ${runId}`;
+  const labelUpdatedName = `Fixture Label Updated ${runId}`;
 
   const createdIds: Record<string, string> = {};
   const replacements = new Map<string, string>();
-  let postUpdatedAt = '';
-  let pageUpdatedAt = '';
-  let tagUpdatedAt = '';
 
   const fixtures: Record<string, unknown> = {};
 
@@ -194,7 +267,6 @@ async function buildFixtures(): Promise<FixtureDocument> {
     createdIds.postId = String(createdPost.id ?? '');
     createdIds.postSlug = String(createdPost.slug ?? '');
     createdIds.postUuid = String(createdPost.uuid ?? '');
-    postUpdatedAt = String(createdPost.updated_at ?? '');
 
     const postRead = await client.posts.read(createdIds.postId, {
       params: { include: 'tags,authors' },
@@ -207,10 +279,8 @@ async function buildFixtures(): Promise<FixtureDocument> {
 
     const postUpdate = await client.posts.edit(createdIds.postId, {
       title: postUpdatedTitle,
-      updated_at: postUpdatedAt,
+      updated_at: String(createdPost.updated_at ?? ''),
     });
-
-    postUpdatedAt = String(firstResource(postUpdate, 'posts').updated_at ?? postUpdatedAt);
 
     let postConflict: Record<string, unknown> = {};
     try {
@@ -256,7 +326,6 @@ async function buildFixtures(): Promise<FixtureDocument> {
     createdIds.pageId = String(createdPage.id ?? '');
     createdIds.pageSlug = String(createdPage.slug ?? '');
     createdIds.pageUuid = String(createdPage.uuid ?? '');
-    pageUpdatedAt = String(createdPage.updated_at ?? '');
 
     const pageRead = await client.pages.read(createdIds.pageId, {
       params: { include: 'authors' },
@@ -268,9 +337,8 @@ async function buildFixtures(): Promise<FixtureDocument> {
     });
     const pageUpdate = await client.pages.edit(createdIds.pageId, {
       title: pageUpdatedTitle,
-      updated_at: pageUpdatedAt,
+      updated_at: String(createdPage.updated_at ?? ''),
     });
-    pageUpdatedAt = String(firstResource(pageUpdate, 'pages').updated_at ?? pageUpdatedAt);
 
     const tagCreate = await client.tags.add({
       name: tagName,
@@ -283,7 +351,6 @@ async function buildFixtures(): Promise<FixtureDocument> {
     createdIds.tagId = String(createdTag.id ?? '');
     createdIds.tagSlug = String(createdTag.slug ?? '');
     createdIds.tagUuid = String(createdTag.uuid ?? '');
-    tagUpdatedAt = String(createdTag.updated_at ?? '');
 
     const tagRead = await client.tags.read(createdIds.tagId, {
       params: { include: 'count.posts' },
@@ -295,9 +362,199 @@ async function buildFixtures(): Promise<FixtureDocument> {
     });
     const tagUpdate = await client.tags.edit(createdIds.tagId, {
       name: tagUpdatedName,
-      updated_at: tagUpdatedAt,
+      updated_at: String(createdTag.updated_at ?? ''),
     });
-    tagUpdatedAt = String(firstResource(tagUpdate, 'tags').updated_at ?? tagUpdatedAt);
+
+    const memberCreate = await client.members.add({
+      email: memberEmail,
+      name: memberName,
+      note: 'Fixture note',
+    });
+
+    const createdMember = firstResource(memberCreate, 'members');
+    createdIds.memberId = String(createdMember.id ?? '');
+    createdIds.memberEmail = String(createdMember.email ?? '');
+    createdIds.memberUuid = String(createdMember.uuid ?? '');
+
+    const memberRead = await client.members.read(createdIds.memberId, {
+      include: 'tiers,newsletters',
+    });
+    const memberBrowse = await client.members.browse({
+      limit: 2,
+      filter: `email:'${createdIds.memberEmail}'`,
+    });
+    const memberUpdate = await client.members.edit(createdIds.memberId, {
+      name: memberUpdatedName,
+      note: 'Fixture note updated',
+    });
+
+    let memberNotFound: Record<string, unknown> = {};
+    try {
+      await client.members.read('000000000000000000000000');
+    } catch (error) {
+      memberNotFound = extractGhostError(error);
+    }
+
+    const memberBulkEdit = await client.members.bulkEdit(
+      {
+        action: 'unsubscribe',
+      },
+      {
+        filter: `id:'${createdIds.memberId}'`,
+      },
+    );
+
+    const memberDeleteCandidate = await client.members.add({
+      email: `fixture-delete-${runId}@example.com`,
+      name: 'Fixture Member Delete Candidate',
+    });
+
+    const bulkDeleteMemberId = String(firstResource(memberDeleteCandidate, 'members').id ?? '');
+    const memberBulkDestroy = await client.members.bulkDestroy({
+      filter: `id:'${bulkDeleteMemberId}'`,
+    });
+
+    const memberExportCsv = await client.members.exportCsv({ limit: 1 });
+    const memberImportValidation = await captureImportValidation(
+      connection.url,
+      connection.key,
+      connection.apiVersion,
+    );
+
+    const newslettersBrowse = await client.newsletters.browse({ limit: 2 });
+    const firstNewsletter = firstResource(newslettersBrowse, 'newsletters');
+    createdIds.newsletterId = String(firstNewsletter.id ?? '');
+    createdIds.newsletterSlug = String(firstNewsletter.slug ?? '');
+    createdIds.newsletterUuid = String(firstNewsletter.uuid ?? '');
+
+    const newslettersRead = await client.newsletters.read(createdIds.newsletterId);
+    const newslettersCreate = {
+      newsletters: [
+        {
+          ...firstNewsletter,
+          name: newsletterName,
+        },
+      ],
+    };
+    const newslettersUpdate = {
+      newsletters: [
+        {
+          ...firstNewsletter,
+          name: newsletterUpdatedName,
+        },
+      ],
+    };
+
+    let newslettersNotFound: Record<string, unknown> = {};
+    try {
+      await client.newsletters.read('000000000000000000000000');
+    } catch (error) {
+      newslettersNotFound = extractGhostError(error);
+    }
+
+    const tiersBrowse = await client.tiers.browse({ limit: 2 });
+    const tierList =
+      (asRecord(tiersBrowse).tiers as Array<Record<string, unknown>> | undefined) ?? [];
+    const firstTier =
+      tierList.find((entry) => String(entry.type ?? '') === 'paid') ??
+      firstResource(tiersBrowse, 'tiers');
+    createdIds.tierId = String(firstTier.id ?? '');
+    createdIds.tierSlug = String(firstTier.slug ?? '');
+
+    const tiersRead = await client.tiers.read(createdIds.tierId);
+    const tiersCreate = {
+      tiers: [
+        {
+          ...firstTier,
+          name: tierName,
+        },
+      ],
+    };
+    const tiersUpdate = {
+      tiers: [
+        {
+          ...firstTier,
+          name: tierUpdatedName,
+        },
+      ],
+    };
+
+    let tiersNotFoundLike500: Record<string, unknown> = {};
+    try {
+      await client.tiers.read('000000000000000000000000');
+    } catch (error) {
+      tiersNotFoundLike500 = extractGhostError(error);
+    }
+
+    let offersBrowse: Record<string, unknown>;
+    let offersRead: Record<string, unknown>;
+
+    const offersBrowseRaw = await client.offers.browse({ limit: 2 });
+    const offerList = asRecord(offersBrowseRaw).offers;
+
+    if (Array.isArray(offerList) && offerList.length > 0) {
+      offersBrowse = offersBrowseRaw;
+      const firstOffer = offerList[0] as Record<string, unknown>;
+      createdIds.offerId = String(firstOffer.id ?? '');
+      createdIds.offerCode = String(firstOffer.code ?? '');
+      offersRead = await client.offers.read(createdIds.offerId);
+    } else {
+      offersBrowse = fallbackOffer();
+      offersRead = {
+        offers: [(fallbackOffer().offers as Array<Record<string, unknown>>)[0]],
+      };
+      createdIds.offerId = 'offer-id';
+      createdIds.offerCode = 'offer-code';
+    }
+
+    const firstOffer = firstResource(offersRead, 'offers');
+    const offersCreate = {
+      offers: [
+        {
+          ...firstOffer,
+          name: offerName,
+        },
+      ],
+    };
+    const offersUpdate = {
+      offers: [
+        {
+          ...firstOffer,
+          name: offerUpdatedName,
+        },
+      ],
+    };
+
+    let offersNotFound: Record<string, unknown> = {};
+    try {
+      await client.offers.read('000000000000000000000000');
+    } catch (error) {
+      offersNotFound = extractGhostError(error);
+    }
+
+    const labelCreate = await client.labels.add({
+      name: labelName,
+    });
+
+    const createdLabel = firstResource(labelCreate, 'labels');
+    createdIds.labelId = String(createdLabel.id ?? '');
+    createdIds.labelSlug = String(createdLabel.slug ?? '');
+
+    const labelRead = await client.labels.read(createdIds.labelId);
+    const labelBrowse = await client.labels.browse({
+      limit: 2,
+      filter: `slug:${createdIds.labelSlug}`,
+    });
+    const labelUpdate = await client.labels.edit(createdIds.labelId, {
+      name: labelUpdatedName,
+    });
+
+    let labelNotFound: Record<string, unknown> = {};
+    try {
+      await client.labels.read('000000000000000000000000');
+    } catch (error) {
+      labelNotFound = extractGhostError(error);
+    }
 
     replacements.set(postTitle, '<fixture-post-title>');
     replacements.set(postUpdatedTitle, '<fixture-post-updated-title>');
@@ -305,6 +562,16 @@ async function buildFixtures(): Promise<FixtureDocument> {
     replacements.set(pageUpdatedTitle, '<fixture-page-updated-title>');
     replacements.set(tagName, '<fixture-tag-name>');
     replacements.set(tagUpdatedName, '<fixture-tag-updated-name>');
+    replacements.set(memberName, '<fixture-member-name>');
+    replacements.set(memberUpdatedName, '<fixture-member-updated-name>');
+    replacements.set(newsletterName, '<fixture-newsletter-name>');
+    replacements.set(newsletterUpdatedName, '<fixture-newsletter-updated-name>');
+    replacements.set(tierName, '<fixture-tier-name>');
+    replacements.set(tierUpdatedName, '<fixture-tier-updated-name>');
+    replacements.set(offerName, '<fixture-offer-name>');
+    replacements.set(offerUpdatedName, '<fixture-offer-updated-name>');
+    replacements.set(labelName, '<fixture-label-name>');
+    replacements.set(labelUpdatedName, '<fixture-label-updated-name>');
 
     for (const [key, value] of Object.entries(createdIds)) {
       if (value) {
@@ -336,6 +603,51 @@ async function buildFixtures(): Promise<FixtureDocument> {
       update: sanitizeValue(tagUpdate, replacements),
     };
 
+    fixtures.members = {
+      browse: sanitizeValue(memberBrowse, replacements),
+      read: sanitizeValue(memberRead, replacements),
+      create: sanitizeValue(memberCreate, replacements),
+      update: sanitizeValue(memberUpdate, replacements),
+      notFound404: sanitizeValue(memberNotFound, replacements),
+      bulkEdit: sanitizeValue(memberBulkEdit, replacements),
+      bulkDestroy: sanitizeValue(memberBulkDestroy, replacements),
+      exportCsv: sanitizeValue(memberExportCsv, replacements),
+      importCsv: sanitizeValue(memberCreate, replacements),
+      importValidation422: sanitizeValue(memberImportValidation, replacements),
+    };
+
+    fixtures.newsletters = {
+      browse: sanitizeValue(newslettersBrowse, replacements),
+      read: sanitizeValue(newslettersRead, replacements),
+      create: sanitizeValue(newslettersCreate, replacements),
+      update: sanitizeValue(newslettersUpdate, replacements),
+      notFound404: sanitizeValue(newslettersNotFound, replacements),
+    };
+
+    fixtures.tiers = {
+      browse: sanitizeValue(tiersBrowse, replacements),
+      read: sanitizeValue(tiersRead, replacements),
+      create: sanitizeValue(tiersCreate, replacements),
+      update: sanitizeValue(tiersUpdate, replacements),
+      notFoundLike500: sanitizeValue(tiersNotFoundLike500, replacements),
+    };
+
+    fixtures.offers = {
+      browse: sanitizeValue(offersBrowse, replacements),
+      read: sanitizeValue(offersRead, replacements),
+      create: sanitizeValue(offersCreate, replacements),
+      update: sanitizeValue(offersUpdate, replacements),
+      notFound404: sanitizeValue(offersNotFound, replacements),
+    };
+
+    fixtures.labels = {
+      browse: sanitizeValue(labelBrowse, replacements),
+      read: sanitizeValue(labelRead, replacements),
+      create: sanitizeValue(labelCreate, replacements),
+      update: sanitizeValue(labelUpdate, replacements),
+      notFound404: sanitizeValue(labelNotFound, replacements),
+    };
+
     fixtures.api = {
       admin: {
         site: sanitizeValue(siteInfo, replacements),
@@ -363,10 +675,22 @@ async function buildFixtures(): Promise<FixtureDocument> {
         await client.tags.delete(createdIds.tagId);
       } catch {}
     }
+
+    if (createdIds.memberId) {
+      try {
+        await client.members.delete(createdIds.memberId);
+      } catch {}
+    }
+
+    if (createdIds.labelId) {
+      try {
+        await client.labels.delete(createdIds.labelId);
+      } catch {}
+    }
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     source: {
       siteAlias: connection.siteAlias ?? null,

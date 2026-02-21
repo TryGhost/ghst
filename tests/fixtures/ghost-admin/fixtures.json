@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-02-21T16:37:19.001Z",
+  "schemaVersion": 2,
+  "generatedAt": "2026-02-21T17:35:52.601Z",
   "source": {
     "siteAlias": "ghst",
     "apiVersion": "v6.0"
@@ -348,9 +348,9 @@
                 "yearly_price_id": null
               },
               {
-                "id": "6999b72e4237850008fa572d",
+                "id": "<tierId>",
                 "name": "ghst",
-                "slug": "default-product",
+                "slug": "<tierSlug>",
                 "active": true,
                 "welcome_page_url": null,
                 "visibility": "public",
@@ -531,9 +531,9 @@
                 "yearly_price_id": null
               },
               {
-                "id": "6999b72e4237850008fa572d",
+                "id": "<tierId>",
                 "name": "ghst",
-                "slug": "default-product",
+                "slug": "<tierSlug>",
                 "active": true,
                 "welcome_page_url": null,
                 "visibility": "public",
@@ -1033,9 +1033,9 @@
                 "yearly_price_id": null
               },
               {
-                "id": "6999b72e4237850008fa572d",
+                "id": "<tierId>",
                 "name": "ghst",
-                "slug": "default-product",
+                "slug": "<tierSlug>",
                 "active": true,
                 "welcome_page_url": null,
                 "visibility": "public",
@@ -1213,9 +1213,9 @@
                 "yearly_price_id": null
               },
               {
-                "id": "6999b72e4237850008fa572d",
+                "id": "<tierId>",
                 "name": "ghst",
-                "slug": "default-product",
+                "slug": "<tierSlug>",
                 "active": true,
                 "welcome_page_url": null,
                 "visibility": "public",
@@ -1428,6 +1428,848 @@
         ]
       }
     },
+    "members": {
+      "browse": {
+        "members": [
+          {
+            "id": "<memberId>",
+            "uuid": "<memberUuid>",
+            "email": "<memberEmail>",
+            "name": "<fixture-member-name>",
+            "note": "Fixture note",
+            "geolocation": null,
+            "subscribed": true,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "labels": [],
+            "subscriptions": [],
+            "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+            "comped": false,
+            "email_count": 0,
+            "email_opened_count": 0,
+            "email_open_rate": null,
+            "status": "free",
+            "last_seen_at": null,
+            "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=<memberUuid>&key=<token>",
+            "can_comment": true,
+            "commenting": {
+              "disabled": false,
+              "disabled_reason": null,
+              "disabled_until": null
+            },
+            "email_suppression": {
+              "suppressed": false,
+              "info": null
+            },
+            "newsletters": [
+              {
+                "id": "<newsletterId>",
+                "name": "ghst",
+                "description": null,
+                "status": "active"
+              }
+            ]
+          }
+        ],
+        "meta": {
+          "pagination": {
+            "page": 1,
+            "limit": 2,
+            "pages": 1,
+            "total": 1,
+            "next": null,
+            "prev": null
+          }
+        }
+      },
+      "read": {
+        "members": [
+          {
+            "id": "<memberId>",
+            "uuid": "<memberUuid>",
+            "email": "<memberEmail>",
+            "name": "<fixture-member-name>",
+            "note": "Fixture note",
+            "geolocation": null,
+            "subscribed": true,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "labels": [],
+            "subscriptions": [],
+            "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+            "comped": false,
+            "email_count": 0,
+            "email_opened_count": 0,
+            "email_open_rate": null,
+            "status": "free",
+            "last_seen_at": null,
+            "attribution": {
+              "id": null,
+              "type": null,
+              "url": null,
+              "title": null,
+              "referrer_source": "Integration: ghst",
+              "referrer_medium": "Admin API",
+              "referrer_url": null
+            },
+            "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=<memberUuid>&key=<token>",
+            "can_comment": true,
+            "commenting": {
+              "disabled": false,
+              "disabled_reason": null,
+              "disabled_until": null
+            },
+            "tiers": [],
+            "email_suppression": {
+              "suppressed": false,
+              "info": null
+            },
+            "newsletters": [
+              {
+                "id": "<newsletterId>",
+                "name": "ghst",
+                "description": null,
+                "status": "active"
+              }
+            ]
+          }
+        ]
+      },
+      "create": {
+        "members": [
+          {
+            "id": "<memberId>",
+            "uuid": "<memberUuid>",
+            "email": "<memberEmail>",
+            "name": "<fixture-member-name>",
+            "note": "Fixture note",
+            "geolocation": null,
+            "subscribed": true,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "labels": [],
+            "subscriptions": [],
+            "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+            "comped": false,
+            "email_count": 0,
+            "email_opened_count": 0,
+            "email_open_rate": null,
+            "status": "free",
+            "last_seen_at": null,
+            "attribution": {
+              "id": null,
+              "type": null,
+              "url": null,
+              "title": null,
+              "referrer_source": "Integration: ghst",
+              "referrer_medium": "Admin API",
+              "referrer_url": null
+            },
+            "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=<memberUuid>&key=<token>",
+            "can_comment": true,
+            "commenting": {
+              "disabled": false,
+              "disabled_reason": null,
+              "disabled_until": null
+            },
+            "tiers": [],
+            "email_suppression": {
+              "suppressed": false,
+              "info": null
+            },
+            "newsletters": [
+              {
+                "id": "<newsletterId>",
+                "name": "ghst",
+                "description": null,
+                "status": "active"
+              }
+            ]
+          }
+        ]
+      },
+      "update": {
+        "members": [
+          {
+            "id": "<memberId>",
+            "uuid": "<memberUuid>",
+            "email": "<memberEmail>",
+            "name": "<fixture-member-updated-name>",
+            "note": "Fixture note updated",
+            "geolocation": null,
+            "subscribed": true,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "labels": [],
+            "subscriptions": [],
+            "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+            "comped": false,
+            "email_count": 0,
+            "email_opened_count": 0,
+            "email_open_rate": null,
+            "status": "free",
+            "last_seen_at": null,
+            "attribution": {
+              "id": null,
+              "type": null,
+              "url": null,
+              "title": null,
+              "referrer_source": "Integration: ghst",
+              "referrer_medium": "Admin API",
+              "referrer_url": null
+            },
+            "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=<memberUuid>&key=<token>",
+            "can_comment": true,
+            "commenting": {
+              "disabled": false,
+              "disabled_reason": null,
+              "disabled_until": null
+            },
+            "tiers": [],
+            "email_suppression": {
+              "suppressed": false,
+              "info": null
+            },
+            "newsletters": [
+              {
+                "id": "<newsletterId>",
+                "name": "ghst",
+                "description": null,
+                "status": "active"
+              }
+            ]
+          }
+        ]
+      },
+      "notFound404": {
+        "status": 404,
+        "code": "GHOST_API_ERROR",
+        "message": "Resource not found error, cannot read member.",
+        "payload": {
+          "errors": [
+            {
+              "message": "Resource not found error, cannot read member.",
+              "context": "Member not found.",
+              "type": "NotFoundError",
+              "details": null,
+              "property": null,
+              "help": null,
+              "code": null,
+              "id": "<error-id>",
+              "ghostErrorCode": null
+            }
+          ]
+        }
+      },
+      "bulkEdit": {
+        "bulk": {
+          "meta": {
+            "stats": {
+              "successful": 1,
+              "unsuccessful": 0
+            },
+            "errors": [],
+            "unsuccessfulData": []
+          }
+        }
+      },
+      "bulkDestroy": {
+        "meta": {
+          "stats": {
+            "successful": 1,
+            "unsuccessful": 0
+          },
+          "unsuccessfulIds": [],
+          "errors": []
+        }
+      },
+      "exportCsv": "id,email,name,note,subscribed_to_emails,complimentary_plan,stripe_customer_id,created_at,deleted_at,labels,tiers\r\n6999d123e5e8560001f39b3f,<email>,John,This is a note,true,,cus_U1MkTku8Khlkf2,<datetime>,,Test,ghst\r\n<memberId>,<memberEmail>,<fixture-member-updated-name>,Fixture note updated,false,,,<datetime>,,,",
+      "importCsv": {
+        "members": [
+          {
+            "id": "<memberId>",
+            "uuid": "<memberUuid>",
+            "email": "<memberEmail>",
+            "name": "<fixture-member-name>",
+            "note": "Fixture note",
+            "geolocation": null,
+            "subscribed": true,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "labels": [],
+            "subscriptions": [],
+            "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+            "comped": false,
+            "email_count": 0,
+            "email_opened_count": 0,
+            "email_open_rate": null,
+            "status": "free",
+            "last_seen_at": null,
+            "attribution": {
+              "id": null,
+              "type": null,
+              "url": null,
+              "title": null,
+              "referrer_source": "Integration: ghst",
+              "referrer_medium": "Admin API",
+              "referrer_url": null
+            },
+            "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=<memberUuid>&key=<token>",
+            "can_comment": true,
+            "commenting": {
+              "disabled": false,
+              "disabled_reason": null,
+              "disabled_until": null
+            },
+            "tiers": [],
+            "email_suppression": {
+              "suppressed": false,
+              "info": null
+            },
+            "newsletters": [
+              {
+                "id": "<newsletterId>",
+                "name": "ghst",
+                "description": null,
+                "status": "active"
+              }
+            ]
+          }
+        ]
+      },
+      "importValidation422": {
+        "status": 422,
+        "code": "GHOST_API_ERROR",
+        "message": "Please select a members CSV file.",
+        "payload": {
+          "errors": [
+            {
+              "message": "Please select a members CSV file.",
+              "context": null,
+              "type": "ValidationError",
+              "details": null,
+              "property": null,
+              "help": null,
+              "code": null,
+              "id": "<error-id>",
+              "ghostErrorCode": null
+            }
+          ]
+        }
+      }
+    },
+    "newsletters": {
+      "browse": {
+        "newsletters": [
+          {
+            "id": "<newsletterId>",
+            "uuid": "<newsletterUuid>",
+            "name": "ghst",
+            "description": null,
+            "feedback_enabled": false,
+            "slug": "<newsletterSlug>",
+            "sender_name": null,
+            "sender_email": null,
+            "sender_reply_to": "newsletter",
+            "status": "active",
+            "visibility": "members",
+            "subscribe_on_signup": true,
+            "sort_order": 0,
+            "header_image": null,
+            "show_header_icon": true,
+            "show_header_title": true,
+            "show_excerpt": false,
+            "title_font_category": "sans_serif",
+            "title_alignment": "center",
+            "show_feature_image": true,
+            "body_font_category": "sans_serif",
+            "footer_content": null,
+            "show_badge": true,
+            "show_header_name": false,
+            "show_post_title_section": true,
+            "show_comment_cta": true,
+            "show_subscription_details": false,
+            "show_latest_posts": false,
+            "background_color": "light",
+            "post_title_color": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "button_corners": "rounded",
+            "button_style": "fill",
+            "title_font_weight": "bold",
+            "link_style": "underline",
+            "image_corners": "square",
+            "header_background_color": "transparent",
+            "section_title_color": null,
+            "divider_color": null,
+            "button_color": "accent",
+            "link_color": "accent"
+          }
+        ],
+        "meta": {
+          "pagination": {
+            "page": 1,
+            "limit": 2,
+            "pages": 1,
+            "total": 1,
+            "next": null,
+            "prev": null
+          }
+        }
+      },
+      "read": {
+        "newsletters": [
+          {
+            "id": "<newsletterId>",
+            "uuid": "<newsletterUuid>",
+            "name": "ghst",
+            "description": null,
+            "feedback_enabled": false,
+            "slug": "<newsletterSlug>",
+            "sender_name": null,
+            "sender_email": null,
+            "sender_reply_to": "newsletter",
+            "status": "active",
+            "visibility": "members",
+            "subscribe_on_signup": true,
+            "sort_order": 0,
+            "header_image": null,
+            "show_header_icon": true,
+            "show_header_title": true,
+            "show_excerpt": false,
+            "title_font_category": "sans_serif",
+            "title_alignment": "center",
+            "show_feature_image": true,
+            "body_font_category": "sans_serif",
+            "footer_content": null,
+            "show_badge": true,
+            "show_header_name": false,
+            "show_post_title_section": true,
+            "show_comment_cta": true,
+            "show_subscription_details": false,
+            "show_latest_posts": false,
+            "background_color": "light",
+            "post_title_color": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "button_corners": "rounded",
+            "button_style": "fill",
+            "title_font_weight": "bold",
+            "link_style": "underline",
+            "image_corners": "square",
+            "header_background_color": "transparent",
+            "section_title_color": null,
+            "divider_color": null,
+            "button_color": "accent",
+            "link_color": "accent"
+          }
+        ]
+      },
+      "create": {
+        "newsletters": [
+          {
+            "id": "<newsletterId>",
+            "uuid": "<newsletterUuid>",
+            "name": "<fixture-newsletter-name>",
+            "description": null,
+            "feedback_enabled": false,
+            "slug": "<newsletterSlug>",
+            "sender_name": null,
+            "sender_email": null,
+            "sender_reply_to": "newsletter",
+            "status": "active",
+            "visibility": "members",
+            "subscribe_on_signup": true,
+            "sort_order": 0,
+            "header_image": null,
+            "show_header_icon": true,
+            "show_header_title": true,
+            "show_excerpt": false,
+            "title_font_category": "sans_serif",
+            "title_alignment": "center",
+            "show_feature_image": true,
+            "body_font_category": "sans_serif",
+            "footer_content": null,
+            "show_badge": true,
+            "show_header_name": false,
+            "show_post_title_section": true,
+            "show_comment_cta": true,
+            "show_subscription_details": false,
+            "show_latest_posts": false,
+            "background_color": "light",
+            "post_title_color": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "button_corners": "rounded",
+            "button_style": "fill",
+            "title_font_weight": "bold",
+            "link_style": "underline",
+            "image_corners": "square",
+            "header_background_color": "transparent",
+            "section_title_color": null,
+            "divider_color": null,
+            "button_color": "accent",
+            "link_color": "accent"
+          }
+        ]
+      },
+      "update": {
+        "newsletters": [
+          {
+            "id": "<newsletterId>",
+            "uuid": "<newsletterUuid>",
+            "name": "<fixture-newsletter-updated-name>",
+            "description": null,
+            "feedback_enabled": false,
+            "slug": "<newsletterSlug>",
+            "sender_name": null,
+            "sender_email": null,
+            "sender_reply_to": "newsletter",
+            "status": "active",
+            "visibility": "members",
+            "subscribe_on_signup": true,
+            "sort_order": 0,
+            "header_image": null,
+            "show_header_icon": true,
+            "show_header_title": true,
+            "show_excerpt": false,
+            "title_font_category": "sans_serif",
+            "title_alignment": "center",
+            "show_feature_image": true,
+            "body_font_category": "sans_serif",
+            "footer_content": null,
+            "show_badge": true,
+            "show_header_name": false,
+            "show_post_title_section": true,
+            "show_comment_cta": true,
+            "show_subscription_details": false,
+            "show_latest_posts": false,
+            "background_color": "light",
+            "post_title_color": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "button_corners": "rounded",
+            "button_style": "fill",
+            "title_font_weight": "bold",
+            "link_style": "underline",
+            "image_corners": "square",
+            "header_background_color": "transparent",
+            "section_title_color": null,
+            "divider_color": null,
+            "button_color": "accent",
+            "link_color": "accent"
+          }
+        ]
+      },
+      "notFound404": {
+        "status": 404,
+        "code": "GHOST_API_ERROR",
+        "message": "Resource not found error, cannot read newsletter.",
+        "payload": {
+          "errors": [
+            {
+              "message": "Resource not found error, cannot read newsletter.",
+              "context": "Newsletter not found.",
+              "type": "NotFoundError",
+              "details": null,
+              "property": null,
+              "help": null,
+              "code": null,
+              "id": "<error-id>",
+              "ghostErrorCode": null
+            }
+          ]
+        }
+      }
+    },
+    "tiers": {
+      "browse": {
+        "tiers": [
+          {
+            "id": "6999b72e4237850008fa572c",
+            "name": "Free",
+            "description": null,
+            "slug": "free",
+            "active": true,
+            "type": "free",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "visibility": "public",
+            "benefits": [],
+            "trial_days": 0
+          },
+          {
+            "id": "<tierId>",
+            "name": "ghst",
+            "description": null,
+            "slug": "<tierSlug>",
+            "active": true,
+            "type": "paid",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "visibility": "public",
+            "benefits": [],
+            "currency": "USD",
+            "monthly_price": 500,
+            "yearly_price": 5000,
+            "trial_days": 0
+          }
+        ],
+        "meta": {
+          "pagination": {
+            "page": 1,
+            "pages": 1,
+            "limit": 2,
+            "total": 2,
+            "prev": null,
+            "next": null
+          }
+        }
+      },
+      "read": {
+        "tiers": [
+          {
+            "id": "<tierId>",
+            "name": "ghst",
+            "description": null,
+            "slug": "<tierSlug>",
+            "active": true,
+            "type": "paid",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "visibility": "public",
+            "benefits": [],
+            "currency": "USD",
+            "monthly_price": 500,
+            "yearly_price": 5000,
+            "trial_days": 0
+          }
+        ]
+      },
+      "create": {
+        "tiers": [
+          {
+            "id": "<tierId>",
+            "name": "<fixture-tier-name>",
+            "description": null,
+            "slug": "<tierSlug>",
+            "active": true,
+            "type": "paid",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "visibility": "public",
+            "benefits": [],
+            "currency": "USD",
+            "monthly_price": 500,
+            "yearly_price": 5000,
+            "trial_days": 0
+          }
+        ]
+      },
+      "update": {
+        "tiers": [
+          {
+            "id": "<tierId>",
+            "name": "<fixture-tier-updated-name>",
+            "description": null,
+            "slug": "<tierSlug>",
+            "active": true,
+            "type": "paid",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "visibility": "public",
+            "benefits": [],
+            "currency": "USD",
+            "monthly_price": 500,
+            "yearly_price": 5000,
+            "trial_days": 0
+          }
+        ]
+      },
+      "notFoundLike500": {
+        "status": 404,
+        "code": "GHOST_API_ERROR",
+        "message": "Tier not found",
+        "payload": {
+          "errors": [
+            {
+              "message": "Internal server error, cannot read tier.",
+              "context": "An unexpected error occurred, please try again. Cannot read properties of null (reading 'toJSON')",
+              "type": "InternalServerError",
+              "details": null,
+              "property": null,
+              "help": null,
+              "code": "UNEXPECTED_ERROR",
+              "id": "<error-id>",
+              "ghostErrorCode": null
+            }
+          ]
+        }
+      }
+    },
+    "offers": {
+      "browse": {
+        "offers": [
+          {
+            "id": "<offerId>",
+            "name": "Fixture Offer",
+            "code": "fixture-offer",
+            "status": "active",
+            "type": "percent",
+            "amount": 10,
+            "cadence": "month"
+          }
+        ],
+        "meta": {
+          "pagination": {
+            "page": 1,
+            "pages": 1,
+            "limit": 1,
+            "total": 1
+          }
+        }
+      },
+      "read": {
+        "offers": [
+          {
+            "id": "<offerId>",
+            "name": "Fixture Offer",
+            "code": "fixture-offer",
+            "status": "active",
+            "type": "percent",
+            "amount": 10,
+            "cadence": "month"
+          }
+        ]
+      },
+      "create": {
+        "offers": [
+          {
+            "id": "<offerId>",
+            "name": "<fixture-offer-name>",
+            "code": "fixture-offer",
+            "status": "active",
+            "type": "percent",
+            "amount": 10,
+            "cadence": "month"
+          }
+        ]
+      },
+      "update": {
+        "offers": [
+          {
+            "id": "<offerId>",
+            "name": "<fixture-offer-updated-name>",
+            "code": "fixture-offer",
+            "status": "active",
+            "type": "percent",
+            "amount": 10,
+            "cadence": "month"
+          }
+        ]
+      },
+      "notFound404": {
+        "status": 404,
+        "code": "GHOST_API_ERROR",
+        "message": "Resource not found error, cannot read offer.",
+        "payload": {
+          "errors": [
+            {
+              "message": "Resource not found error, cannot read offer.",
+              "context": "Offer not found.",
+              "type": "NotFoundError",
+              "details": null,
+              "property": null,
+              "help": null,
+              "code": null,
+              "id": "<error-id>",
+              "ghostErrorCode": null
+            }
+          ]
+        }
+      }
+    },
+    "labels": {
+      "browse": {
+        "labels": [
+          {
+            "id": "<labelId>",
+            "name": "<fixture-label-name>",
+            "slug": "<labelSlug>",
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>"
+          }
+        ],
+        "meta": {
+          "pagination": {
+            "page": 1,
+            "limit": 2,
+            "pages": 1,
+            "total": 1,
+            "next": null,
+            "prev": null
+          }
+        }
+      },
+      "read": {
+        "labels": [
+          {
+            "id": "<labelId>",
+            "name": "<fixture-label-name>",
+            "slug": "<labelSlug>",
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>"
+          }
+        ]
+      },
+      "create": {
+        "labels": [
+          {
+            "id": "<labelId>",
+            "name": "<fixture-label-name>",
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "slug": "<labelSlug>"
+          }
+        ]
+      },
+      "update": {
+        "labels": [
+          {
+            "id": "<labelId>",
+            "name": "<fixture-label-updated-name>",
+            "slug": "<labelSlug>",
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>"
+          }
+        ]
+      },
+      "notFound404": {
+        "status": 404,
+        "code": "GHOST_API_ERROR",
+        "message": "Resource not found error, cannot read label.",
+        "payload": {
+          "errors": [
+            {
+              "message": "Resource not found error, cannot read label.",
+              "context": "Label not found.",
+              "type": "NotFoundError",
+              "details": null,
+              "property": null,
+              "help": null,
+              "code": null,
+              "id": "<error-id>",
+              "ghostErrorCode": null
+            }
+          ]
+        }
+      }
+    },
     "api": {
       "admin": {
         "site": {
@@ -1579,7 +2421,7 @@
             },
             {
               "key": "stripe_billing_portal_configuration_id",
-              "value": null
+              "value": "bpc_1T3JzRBATzDJmjGyiLmeGhDl"
             },
             {
               "key": "stripe_secret_key",
@@ -1595,15 +2437,15 @@
             },
             {
               "key": "stripe_connect_publishable_key",
-              "value": null
+              "value": "pk_test_51T3JxwBATzDJmjGyoxCCy6LJB1knm0JElobMUsp65KkkEPwz9HKwNrPuI12nPpPQQVCIoPrt2tTnhszs8b7vVUqP00K2JHP5mD"
             },
             {
               "key": "stripe_connect_secret_key",
-              "value": null
+              "value": "••••••••"
             },
             {
               "key": "stripe_connect_livemode",
-              "value": null
+              "value": false
             },
             {
               "key": "stripe_connect_display_name",
@@ -1611,7 +2453,7 @@
             },
             {
               "key": "stripe_connect_account_id",
-              "value": null
+              "value": "acct_1T3JxwBATzDJmjGy"
             },
             {
               "key": "members_monthly_price_id",
@@ -1639,7 +2481,7 @@
             },
             {
               "key": "portal_plans",
-              "value": "[\"free\"]"
+              "value": "[\"free\",\"monthly\",\"yearly\"]"
             },
             {
               "key": "portal_default_plan",
@@ -1691,7 +2533,7 @@
             },
             {
               "key": "email_verification_required",
-              "value": false
+              "value": true
             },
             {
               "key": "firstpromoter",
@@ -1835,7 +2677,7 @@
             },
             {
               "key": "paid_members_enabled",
-              "value": false
+              "value": true
             },
             {
               "key": "firstpromoter_account",
@@ -1843,7 +2685,7 @@
             },
             {
               "key": "donations_enabled",
-              "value": false
+              "value": true
             },
             {
               "key": "default_email_address",

@@ -4,9 +4,14 @@ import { registerApiCommands } from './commands/api.js';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerCompletionCommands } from './commands/completion.js';
 import { registerConfigCommands } from './commands/config.js';
+import { registerLabelCommands } from './commands/label.js';
+import { registerMemberCommands } from './commands/member.js';
+import { registerNewsletterCommands } from './commands/newsletter.js';
+import { registerOfferCommands } from './commands/offer.js';
 import { registerPageCommands } from './commands/page.js';
 import { registerPostCommands } from './commands/post.js';
 import { registerTagCommands } from './commands/tag.js';
+import { registerTierCommands } from './commands/tier.js';
 import { ExitCode, GhstError, normalizeError, printError } from './lib/errors.js';
 
 export function buildProgram(): Command {
@@ -29,6 +34,11 @@ export function buildProgram(): Command {
   registerPostCommands(program);
   registerPageCommands(program);
   registerTagCommands(program);
+  registerMemberCommands(program);
+  registerNewsletterCommands(program);
+  registerTierCommands(program);
+  registerOfferCommands(program);
+  registerLabelCommands(program);
   registerConfigCommands(program);
   registerApiCommands(program);
   registerCompletionCommands(program);

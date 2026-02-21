@@ -170,7 +170,7 @@ describe('run + commands', () => {
     delete process.env.MY_GHOST_KEY;
   });
 
-  test('covers post/page/tag/config/api/completion command flows', async () => {
+  test('covers post/page/tag/member/newsletter/tier/offer/label/config/api/completion command flows', async () => {
     await expect(
       run([
         'node',
@@ -190,6 +190,7 @@ describe('run + commands', () => {
     await fs.writeFile(path.join(workDir, 'post.html'), '<p>Hello</p>', 'utf8');
     await fs.writeFile(path.join(workDir, 'post.lexical.json'), '{"root":{}}', 'utf8');
     await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
+    await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
 
     await expect(run(['node', 'ghst', 'post', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'post', 'list', '--limit', 'all'])).resolves.toBe(
@@ -281,6 +282,99 @@ describe('run + commands', () => {
       ExitCode.SUCCESS,
     );
 
+    await expect(run(['node', 'ghst', 'member', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'member', 'get', fixtureIds.memberId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'member', 'get', '--email', fixtureIds.memberEmail]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'member',
+        'create',
+        '--email',
+        'newmember@example.com',
+        '--name',
+        'New Member',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'update', fixtureIds.memberId, '--name', 'Updated Member']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--action', 'unsubscribe', '--all']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--action', 'delete', '--all']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'import', './members.csv', '--labels', 'Imported']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'export', '--output', './members-export.csv']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'delete', fixtureIds.memberId, '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'newsletter', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'newsletter', 'get', fixtureIds.newsletterId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'newsletter', 'create', '--name', 'Weekly'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'newsletter',
+        'update',
+        fixtureIds.newsletterId,
+        '--name',
+        'Updated Weekly',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'tier', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'tier', 'get', fixtureIds.tierId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'tier', 'create', '--name', 'Premium', '--monthly-price', '500']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'tier', 'update', fixtureIds.tierId, '--name', 'Premium Updated']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'offer', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'offer', 'get', fixtureIds.offerId])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'offer', 'create', '--name', 'Sale', '--code', 'sale']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'offer', 'update', fixtureIds.offerId, '--name', 'Sale Updated']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'label', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'label', 'get', '--slug', fixtureIds.labelSlug]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'label', 'create', '--name', 'VIP'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'label', 'update', fixtureIds.labelId, '--name', 'VIP Updated']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'label', 'delete', fixtureIds.labelId, '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
     await expect(run(['node', 'ghst', 'config', 'path'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'config', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
@@ -316,5 +410,57 @@ describe('run + commands', () => {
   test('uses env output mode for json errors', async () => {
     process.env.GHST_OUTPUT = 'json';
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
+  });
+
+  test('covers phase2 validation and non-interactive branches', async () => {
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--key',
+        KEY,
+        '--site',
+        'myblog',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'member', 'get'])).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--action', 'add-label', '--all']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--action', 'delete', '--all', '--filter', 'id:1']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'newsletter', 'update', fixtureIds.newsletterId]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(run(['node', 'ghst', 'tier', 'update', fixtureIds.tierId])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    await expect(run(['node', 'ghst', 'offer', 'update', fixtureIds.offerId])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    await expect(run(['node', 'ghst', 'label', 'get'])).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'label', 'get', fixtureIds.labelId, '--slug', fixtureIds.labelSlug]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
+    await expect(run(['node', 'ghst', 'member', 'delete', fixtureIds.memberId])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+    if (stdinTty) {
+      Object.defineProperty(process.stdin, 'isTTY', stdinTty);
+    }
+
+    await expect(run(['node', 'ghst', 'member', 'export', '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
   });
 });

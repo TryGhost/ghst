@@ -4,7 +4,7 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: Phase 1 command surface implemented (`auth`, `post`, `page`, `tag`, `config`, `api`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- Status: `v0.2.0` Phase 2 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `config`, `api`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 
 ## Runtime And Tooling
@@ -54,6 +54,11 @@ pnpm build
 - `ghst post list|get|create|update|delete|publish`
 - `ghst page list|get|create|update|delete`
 - `ghst tag list|get|create|update|delete`
+- `ghst member list|get|create|update|delete|import|export|bulk`
+- `ghst newsletter list|get|create|update`
+- `ghst tier list|get|create|update`
+- `ghst offer list|get|create|update`
+- `ghst label list|get|create|update|delete`
 - `ghst config show|path|list|get|set`
 - `ghst api [endpointPath]`
 - `ghst completion <bash|zsh|fish|powershell>`

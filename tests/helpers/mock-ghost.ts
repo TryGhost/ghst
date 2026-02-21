@@ -20,6 +20,17 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
+function textResponse(
+  data: string,
+  status = 200,
+  contentType = 'text/plain; charset=utf-8',
+): Response {
+  return new Response(data, {
+    status,
+    headers: { 'content-type': contentType },
+  });
+}
+
 function unknownRouteResponse(pathname: string): Response {
   const fixture = ghostFixtures.api.errors.unknownRoute404 as Record<string, unknown>;
   const status = Number(fixture.status ?? 404);
@@ -155,6 +166,133 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith(`/ghost/api/admin/tags/${fixtureIds.tagId}/`) && method === 'DELETE') {
+      return new Response(null, { status: 204 });
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/members/upload/') && method === 'GET') {
+      return textResponse(
+        String(ghostFixtures.members.exportCsv ?? ''),
+        200,
+        'text/csv; charset=utf-8',
+      );
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/members/upload/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.importCsv));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/members/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.browse));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/members/bulk/') && method === 'PUT') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.bulkEdit));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/members/') && method === 'DELETE') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.bulkDestroy));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/members/${fixtureIds.memberId}/`) && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.read));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/members/${fixtureIds.memberId}/`) && method === 'PUT') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.update));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/members/${fixtureIds.memberId}/`) &&
+      method === 'DELETE'
+    ) {
+      return new Response(null, { status: 204 });
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/members/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.members.create));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/newsletters/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.newsletters.browse));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/newsletters/${fixtureIds.newsletterId}/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.newsletters.read));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/newsletters/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.newsletters.create));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/newsletters/${fixtureIds.newsletterId}/`) &&
+      method === 'PUT'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.newsletters.update));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/tiers/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.tiers.browse));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/tiers/${fixtureIds.tierId}/`) && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.tiers.read));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/tiers/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.tiers.create));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/tiers/${fixtureIds.tierId}/`) && method === 'PUT') {
+      return jsonResponse(cloneFixture(ghostFixtures.tiers.update));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/offers/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.offers.browse));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/offers/${fixtureIds.offerId}/`) && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.offers.read));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/offers/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.offers.create));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/offers/${fixtureIds.offerId}/`) && method === 'PUT') {
+      return jsonResponse(cloneFixture(ghostFixtures.offers.update));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/labels/') && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.labels.browse));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/labels/slug/${fixtureIds.labelSlug}/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneFixture(ghostFixtures.labels.read));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/labels/${fixtureIds.labelId}/`) && method === 'GET') {
+      return jsonResponse(cloneFixture(ghostFixtures.labels.read));
+    }
+
+    if (pathname.endsWith('/ghost/api/admin/labels/') && method === 'POST') {
+      return jsonResponse(cloneFixture(ghostFixtures.labels.create));
+    }
+
+    if (pathname.endsWith(`/ghost/api/admin/labels/${fixtureIds.labelId}/`) && method === 'PUT') {
+      return jsonResponse(cloneFixture(ghostFixtures.labels.update));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/labels/${fixtureIds.labelId}/`) &&
+      method === 'DELETE'
+    ) {
       return new Response(null, { status: 204 });
     }
 

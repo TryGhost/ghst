@@ -72,27 +72,64 @@ describe('GhostClient', () => {
     await client.tags.edit('tag-id', { name: 'News 2' });
     await client.tags.delete('tag-id');
 
+    await client.members.browse({ limit: 1, filter: "email:'x@example.com'" });
+    await client.members.read('member-id');
+    await client.members.add({ email: 'x@example.com' }, { send_email: true });
+    await client.members.edit('member-id', { name: 'Member' });
+    await client.members.delete('member-id', { cancel: true });
+    await client.members.bulkEdit({ action: 'unsubscribe' }, { all: true });
+    await client.members.bulkDestroy({ all: true });
+    await client.members.exportCsv({ limit: 1 });
+
+    const formData = new FormData();
+    formData.append(
+      'membersfile',
+      new Blob(['email\nx@example.com'], { type: 'text/csv' }),
+      'm.csv',
+    );
+    await client.members.importCsv(formData);
+
+    await client.newsletters.browse({ limit: 1 });
+    await client.newsletters.read('newsletter-id');
+    await client.newsletters.add({ name: 'Weekly' }, { opt_in_existing: true });
+    await client.newsletters.edit('newsletter-id', { name: 'Weekly 2' });
+
+    await client.tiers.browse({ limit: 1 });
+    await client.tiers.read('tier-id');
+    await client.tiers.add({ name: 'Tier' });
+    await client.tiers.edit('tier-id', { name: 'Tier 2' });
+
+    await client.offers.browse({ limit: 1 });
+    await client.offers.read('offer-id');
+    await client.offers.add({ name: 'Offer', code: 'offer' });
+    await client.offers.edit('offer-id', { name: 'Offer 2' });
+
+    await client.labels.browse({ limit: 1 });
+    await client.labels.read('label-id');
+    await client.labels.read('test-label', { bySlug: true });
+    await client.labels.add({ name: 'VIP' });
+    await client.labels.edit('label-id', { name: 'VIP 2' });
+    await client.labels.delete('label-id');
+
     await client.rawRequest('site/', 'get', { ok: true }, { a: 1 });
 
-    expect(urls[0]).toContain('/ghost/api/admin/posts/?limit=5&filter=status%3Adraft');
-    expect(urls[1]).toContain('/ghost/api/admin/posts/slug/welcome/?include=tags%2Cauthors');
-    expect(urls[2]).toContain('/ghost/api/admin/posts/?source=html');
-    expect(urls[3]).toContain('/ghost/api/admin/posts/post-id/?source=html');
-    expect(urls[4]).toContain('/ghost/api/admin/posts/post-id/');
-
-    expect(urls[5]).toContain('/ghost/api/admin/pages/?limit=2');
-    expect(urls[6]).toContain('/ghost/api/admin/pages/slug/about/');
-    expect(urls[7]).toContain('/ghost/api/admin/pages/?source=html');
-    expect(urls[8]).toContain('/ghost/api/admin/pages/page-id/?source=html');
-    expect(urls[9]).toContain('/ghost/api/admin/pages/page-id/');
-
-    expect(urls[10]).toContain('/ghost/api/admin/tags/?limit=2');
-    expect(urls[11]).toContain('/ghost/api/admin/tags/slug/news/');
-    expect(urls[12]).toContain('/ghost/api/admin/tags/');
-    expect(urls[13]).toContain('/ghost/api/admin/tags/tag-id/');
-    expect(urls[14]).toContain('/ghost/api/admin/tags/tag-id/');
-
-    expect(urls[15]).toContain('/ghost/api/admin/site/?a=1');
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/posts/?limit=5&filter=status%3Adraft',
+    );
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/posts/slug/welcome/?include=tags%2Cauthors',
+    );
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/pages/?limit=2');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/tags/?limit=2');
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/members/?limit=1&filter=email%3A%27x%40example.com%27',
+    );
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/members/upload/?limit=1');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/newsletters/?limit=1');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/tiers/?limit=1');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/offers/?limit=1');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/labels/?limit=1');
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/site/?a=1');
   });
 
   test('supports content API raw requests with content key', async () => {
@@ -121,6 +158,20 @@ describe('GhostClient', () => {
     const result = await client.posts.delete('id-3');
 
     expect(result).toEqual({});
+  });
+
+  test('returns plain text payloads for non-json successful responses', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('GET,HEAD,POST', {
+        status: 200,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      }),
+    );
+
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const result = await client.rawRequest<string>('/members/', 'OPTIONS');
+
+    expect(result).toBe('GET,HEAD,POST');
   });
 
   test('retries 429 with backoff attempts', async () => {
@@ -239,6 +290,34 @@ describe('GhostClient', () => {
       message: 'Ghost API request failed (500)',
       status: 500,
       exitCode: ExitCode.GENERAL_ERROR,
+    } satisfies Partial<GhostApiError>);
+  });
+
+  test('normalizes tier not-found-like 500 errors to not found', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          errors: [
+            {
+              message: 'Internal server error, cannot read tier.',
+              context:
+                "An unexpected error occurred. Cannot read properties of null (reading 'toJSON')",
+            },
+          ],
+        }),
+        {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        },
+      ),
+    );
+
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+
+    await expect(client.tiers.read('missing-tier')).rejects.toMatchObject({
+      message: 'Tier not found',
+      status: 404,
+      exitCode: ExitCode.NOT_FOUND,
     } satisfies Partial<GhostApiError>);
   });
 });

@@ -18,6 +18,7 @@ export interface GhostPaginatedResponse extends Record<string, unknown> {
 }
 
 type RequestApi = 'admin' | 'content';
+type ResponseType = 'json' | 'text';
 
 export class GhostApiError extends GhstError {
   readonly payload: GhostApiErrorPayload | null;
@@ -44,6 +45,26 @@ function getRetryDelay(attempt: number): number {
   }
 
   return 1000 * 2 ** attempt;
+}
+
+function isFormDataBody(value: unknown): value is FormData {
+  return typeof FormData !== 'undefined' && value instanceof FormData;
+}
+
+function isTierNotFoundAnomaly(
+  status: number,
+  endpointPath: string,
+  payload: GhostApiErrorPayload | null,
+): boolean {
+  if (status !== 500 || !/^\/tiers\/[^/]+\/$/.test(endpointPath)) {
+    return false;
+  }
+
+  const context = payload?.errors?.[0]?.context ?? '';
+  return (
+    context.includes('Cannot read properties of null') ||
+    context.includes('Cannot set properties of null')
+  );
 }
 
 async function wait(ms: number): Promise<void> {
@@ -88,6 +109,7 @@ export class GhostClient {
       body?: unknown;
       source?: 'html';
       api?: RequestApi;
+      responseType?: ResponseType;
     } = {},
   ): Promise<T> {
     const api = options.api ?? 'admin';
@@ -113,7 +135,6 @@ export class GhostClient {
 
       const headers: Record<string, string> = {
         'Accept-Version': this.version,
-        'Content-Type': 'application/json',
       };
 
       if (api === 'admin') {
@@ -137,12 +158,25 @@ export class GhostClient {
         url.searchParams.set('key', this.contentKey);
       }
 
+      let requestBody: string | FormData | undefined;
+      if (options.body !== undefined) {
+        if (isFormDataBody(options.body)) {
+          requestBody = options.body;
+        } else if (typeof options.body === 'string') {
+          requestBody = options.body;
+          headers['Content-Type'] = 'application/json';
+        } else {
+          requestBody = JSON.stringify(options.body);
+          headers['Content-Type'] = 'application/json';
+        }
+      }
+
       let response: Response;
       try {
         response = await fetch(url.toString(), {
           method: upperMethod,
           headers,
-          body: options.body ? JSON.stringify(options.body) : undefined,
+          body: requestBody,
         });
       } catch (error) {
         if (networkRetryCount < maxNetworkRetries) {
@@ -164,11 +198,26 @@ export class GhostClient {
       }
 
       if (!response.ok) {
+        const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+
         let payload: GhostApiErrorPayload | null = null;
-        try {
-          payload = (await response.json()) as GhostApiErrorPayload;
-        } catch {
-          payload = null;
+        if (contentType.includes('application/json')) {
+          try {
+            payload = (await response.json()) as GhostApiErrorPayload;
+          } catch {
+            payload = null;
+          }
+        } else {
+          const body = await response.text();
+          try {
+            payload = JSON.parse(body) as GhostApiErrorPayload;
+          } catch {
+            payload = null;
+          }
+        }
+
+        if (isTierNotFoundAnomaly(response.status, endpointPath, payload)) {
+          throw new GhostApiError(404, 'Tier not found', payload);
         }
 
         const ghostMessage =
@@ -178,6 +227,15 @@ export class GhostClient {
 
       if (response.status === 204) {
         return {} as T;
+      }
+
+      if (options.responseType === 'text') {
+        return (await response.text()) as T;
+      }
+
+      const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+      if (!contentType.includes('application/json')) {
+        return (await response.text()) as T;
       }
 
       return (await response.json()) as T;
@@ -193,13 +251,14 @@ export class GhostClient {
     method = 'GET',
     body?: unknown,
     params?: Record<string, string | number | boolean | undefined>,
-    options: { api?: RequestApi } = {},
+    options: { api?: RequestApi; responseType?: ResponseType } = {},
   ): Promise<T> {
     const normalized = path.startsWith('/') ? path : `/${path}`;
     return this.request<T>(method.toUpperCase(), normalized, {
       body,
       params,
       api: options.api,
+      responseType: options.responseType,
     });
   }
 
@@ -310,5 +369,154 @@ export class GhostClient {
       }),
 
     delete: (id: string) => this.request<Record<string, never>>('DELETE', `/tags/${id}/`),
+  };
+
+  members = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/members/', { params }),
+
+    read: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('GET', `/members/${id}/`, { params }),
+
+    add: (
+      member: Record<string, unknown>,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      this.request<Record<string, unknown>>('POST', '/members/', {
+        body: { members: [member] },
+        params,
+      }),
+
+    edit: (id: string, member: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('PUT', `/members/${id}/`, {
+        body: { members: [member] },
+      }),
+
+    delete: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, never>>('DELETE', `/members/${id}/`, { params }),
+
+    bulkDestroy: (params: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('DELETE', '/members/', { params }),
+
+    bulkEdit: (
+      bulk: Record<string, unknown>,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      this.request<Record<string, unknown>>('PUT', '/members/bulk/', {
+        body: { bulk },
+        params,
+      }),
+
+    exportCsv: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<string>('GET', '/members/upload/', {
+        params,
+        responseType: 'text',
+      }),
+
+    importCsv: (
+      formData: FormData,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      this.request<Record<string, unknown>>('POST', '/members/upload/', {
+        body: formData,
+        params,
+      }),
+  };
+
+  newsletters = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/newsletters/', { params }),
+
+    read: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('GET', `/newsletters/${id}/`, { params }),
+
+    add: (
+      newsletter: Record<string, unknown>,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      this.request<Record<string, unknown>>('POST', '/newsletters/', {
+        body: { newsletters: [newsletter] },
+        params,
+      }),
+
+    edit: (
+      id: string,
+      newsletter: Record<string, unknown>,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      this.request<Record<string, unknown>>('PUT', `/newsletters/${id}/`, {
+        body: { newsletters: [newsletter] },
+        params,
+      }),
+  };
+
+  tiers = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/tiers/', { params }),
+
+    read: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('GET', `/tiers/${id}/`, { params }),
+
+    add: (tier: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('POST', '/tiers/', {
+        body: { tiers: [tier] },
+      }),
+
+    edit: (id: string, tier: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('PUT', `/tiers/${id}/`, {
+        body: { tiers: [tier] },
+      }),
+  };
+
+  offers = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/offers/', { params }),
+
+    read: (id: string) => this.request<Record<string, unknown>>('GET', `/offers/${id}/`),
+
+    add: (offer: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('POST', '/offers/', {
+        body: { offers: [offer] },
+      }),
+
+    edit: (id: string, offer: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('PUT', `/offers/${id}/`, {
+        body: { offers: [offer] },
+      }),
+  };
+
+  labels = {
+    browse: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/labels/', { params }),
+
+    read: (
+      idOrSlug: string,
+      options: {
+        bySlug?: boolean;
+        params?: Record<string, string | number | boolean | undefined>;
+      } = {},
+    ) => {
+      if (options.bySlug) {
+        return this.request<Record<string, unknown>>('GET', `/labels/slug/${idOrSlug}/`, {
+          params: options.params,
+        });
+      }
+
+      return this.request<Record<string, unknown>>('GET', `/labels/${idOrSlug}/`, {
+        params: options.params,
+      });
+    },
+
+    add: (label: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('POST', '/labels/', {
+        body: { labels: [label] },
+      }),
+
+    edit: (id: string, label: Record<string, unknown>) =>
+      this.request<Record<string, unknown>>('PUT', `/labels/${id}/`, {
+        body: { labels: [label] },
+      }),
+
+    delete: (id: string) => this.request<Record<string, never>>('DELETE', `/labels/${id}/`),
   };
 }

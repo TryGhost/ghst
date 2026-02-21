@@ -57,9 +57,10 @@ function formatStatus(status: string, useColor: boolean): string {
     return status;
   }
 
-  if (status === 'published') return chalk.green(status);
+  if (status === 'published' || status === 'active') return chalk.green(status);
   if (status === 'draft') return chalk.yellow(status);
   if (status === 'scheduled') return chalk.blue(status);
+  if (status === 'archived') return chalk.gray(status);
   return status;
 }
 
@@ -116,52 +117,145 @@ function printSingleRecord(
   console.log(lines.join('\n'));
 }
 
+function rowsFromCollection(
+  payload: Record<string, unknown>,
+  key: string,
+  mapper: (record: Record<string, unknown>) => string[],
+): string[][] {
+  const collection = Array.isArray(payload[key]) ? payload[key] : [];
+  return collection.map((entry) => mapper((entry as Record<string, unknown>) ?? {}));
+}
+
+function formatOperationCount(value: unknown): string {
+  return typeof value === 'number' ? String(value) : '0';
+}
+
+export function printOperationStatsHuman(payload: Record<string, unknown>, label: string): void {
+  const rootStats = (payload.meta as Record<string, unknown> | undefined)?.stats as
+    | Record<string, unknown>
+    | undefined;
+  const bulkStats = (
+    (payload.bulk as Record<string, unknown> | undefined)?.meta as
+      | Record<string, unknown>
+      | undefined
+  )?.stats as Record<string, unknown> | undefined;
+
+  const stats = rootStats ?? bulkStats;
+  if (!stats) {
+    console.log(label);
+    return;
+  }
+
+  if (typeof stats.imported === 'number') {
+    const invalidCount = Array.isArray(stats.invalid) ? stats.invalid.length : 0;
+    console.log(`${label}: ${stats.imported} imported, ${invalidCount} invalid`);
+    return;
+  }
+
+  const successful = formatOperationCount(stats.successful);
+  const unsuccessful = formatOperationCount(stats.unsuccessful);
+  console.log(`${label}: ${successful} successful, ${unsuccessful} unsuccessful`);
+}
+
 export function printPostListHuman(payload: Record<string, unknown>, useColor = true): void {
-  const posts = Array.isArray(payload.posts) ? payload.posts : [];
-  const rows = posts.map((entry) => {
-    const record = entry as Record<string, unknown>;
-    return [
-      String(record.id ?? ''),
-      String(record.title ?? ''),
-      formatStatus(String(record.status ?? 'unknown'), useColor),
-      String(record.published_at ?? ''),
-    ];
-  });
+  const rows = rowsFromCollection(payload, 'posts', (record) => [
+    String(record.id ?? ''),
+    String(record.title ?? ''),
+    formatStatus(String(record.status ?? 'unknown'), useColor),
+    String(record.published_at ?? ''),
+  ]);
 
   printRows(['ID', 'TITLE', 'STATUS', 'PUBLISHED'], rows, useColor);
   printPagination(payload, 'posts');
 }
 
 export function printPageListHuman(payload: Record<string, unknown>, useColor = true): void {
-  const pages = Array.isArray(payload.pages) ? payload.pages : [];
-  const rows = pages.map((entry) => {
-    const record = entry as Record<string, unknown>;
-    return [
-      String(record.id ?? ''),
-      String(record.title ?? ''),
-      formatStatus(String(record.status ?? 'unknown'), useColor),
-      String(record.published_at ?? ''),
-    ];
-  });
+  const rows = rowsFromCollection(payload, 'pages', (record) => [
+    String(record.id ?? ''),
+    String(record.title ?? ''),
+    formatStatus(String(record.status ?? 'unknown'), useColor),
+    String(record.published_at ?? ''),
+  ]);
 
   printRows(['ID', 'TITLE', 'STATUS', 'PUBLISHED'], rows, useColor);
   printPagination(payload, 'pages');
 }
 
 export function printTagListHuman(payload: Record<string, unknown>, useColor = true): void {
-  const tags = Array.isArray(payload.tags) ? payload.tags : [];
-  const rows = tags.map((entry) => {
-    const record = entry as Record<string, unknown>;
-    return [
-      String(record.id ?? ''),
-      String(record.name ?? ''),
-      String(record.slug ?? ''),
-      String(record.visibility ?? 'public'),
-    ];
-  });
+  const rows = rowsFromCollection(payload, 'tags', (record) => [
+    String(record.id ?? ''),
+    String(record.name ?? ''),
+    String(record.slug ?? ''),
+    String(record.visibility ?? 'public'),
+  ]);
 
   printRows(['ID', 'NAME', 'SLUG', 'VISIBILITY'], rows, useColor);
   printPagination(payload, 'tags');
+}
+
+export function printMemberListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'members', (record) => [
+    String(record.id ?? ''),
+    String(record.email ?? ''),
+    String(record.name ?? ''),
+    formatStatus(String(record.status ?? 'free'), useColor),
+    String(record.updated_at ?? ''),
+  ]);
+
+  printRows(['ID', 'EMAIL', 'NAME', 'STATUS', 'UPDATED'], rows, useColor);
+  printPagination(payload, 'members');
+}
+
+export function printNewsletterListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'newsletters', (record) => [
+    String(record.id ?? ''),
+    String(record.name ?? ''),
+    String(record.slug ?? ''),
+    formatStatus(String(record.status ?? 'active'), useColor),
+    String(record.visibility ?? ''),
+  ]);
+
+  printRows(['ID', 'NAME', 'SLUG', 'STATUS', 'VISIBILITY'], rows, useColor);
+  printPagination(payload, 'newsletters');
+}
+
+export function printTierListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'tiers', (record) => [
+    String(record.id ?? ''),
+    String(record.name ?? ''),
+    String(record.type ?? ''),
+    String(record.active ?? ''),
+    String(record.monthly_price ?? ''),
+    String(record.yearly_price ?? ''),
+  ]);
+
+  printRows(['ID', 'NAME', 'TYPE', 'ACTIVE', 'MONTHLY', 'YEARLY'], rows, useColor);
+  printPagination(payload, 'tiers');
+}
+
+export function printOfferListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'offers', (record) => [
+    String(record.id ?? ''),
+    String(record.name ?? ''),
+    String(record.code ?? ''),
+    formatStatus(String(record.status ?? ''), useColor),
+    String(record.type ?? ''),
+  ]);
+
+  printRows(['ID', 'NAME', 'CODE', 'STATUS', 'TYPE'], rows, useColor);
+  printPagination(payload, 'offers');
+}
+
+export function printLabelListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'labels', (record) => [
+    String(record.id ?? ''),
+    String(record.name ?? ''),
+    String(record.slug ?? ''),
+    String(record.updated_at ?? ''),
+  ]);
+
+  printRows(['ID', 'NAME', 'SLUG', 'UPDATED'], rows, useColor);
+  printPagination(payload, 'labels');
 }
 
 export function printPostHuman(payload: Record<string, unknown>): void {
@@ -190,6 +284,59 @@ export function printTagHuman(payload: Record<string, unknown>): void {
     { label: 'Name', field: 'name' },
     { label: 'Slug', field: 'slug' },
     { label: 'Visibility', field: 'visibility' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printMemberHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'members', [
+    { label: 'ID', field: 'id' },
+    { label: 'Email', field: 'email' },
+    { label: 'Name', field: 'name' },
+    { label: 'Status', field: 'status' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printNewsletterHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'newsletters', [
+    { label: 'ID', field: 'id' },
+    { label: 'Name', field: 'name' },
+    { label: 'Slug', field: 'slug' },
+    { label: 'Status', field: 'status' },
+    { label: 'Visibility', field: 'visibility' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printTierHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'tiers', [
+    { label: 'ID', field: 'id' },
+    { label: 'Name', field: 'name' },
+    { label: 'Type', field: 'type' },
+    { label: 'Active', field: 'active' },
+    { label: 'Monthly', field: 'monthly_price' },
+    { label: 'Yearly', field: 'yearly_price' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printOfferHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'offers', [
+    { label: 'ID', field: 'id' },
+    { label: 'Name', field: 'name' },
+    { label: 'Code', field: 'code' },
+    { label: 'Status', field: 'status' },
+    { label: 'Type', field: 'type' },
+    { label: 'Updated', field: 'updated_at' },
+  ]);
+}
+
+export function printLabelHuman(payload: Record<string, unknown>): void {
+  printSingleRecord(payload, 'labels', [
+    { label: 'ID', field: 'id' },
+    { label: 'Name', field: 'name' },
+    { label: 'Slug', field: 'slug' },
     { label: 'Updated', field: 'updated_at' },
   ]);
 }

@@ -8,6 +8,11 @@ interface FixtureDoc {
     posts: Record<string, unknown>;
     pages: Record<string, unknown>;
     tags: Record<string, unknown>;
+    members: Record<string, unknown>;
+    newsletters: Record<string, unknown>;
+    tiers: Record<string, unknown>;
+    offers: Record<string, unknown>;
+    labels: Record<string, unknown>;
     api: {
       admin: {
         site: Record<string, unknown>;
@@ -30,12 +35,28 @@ const placeholderMap = new Map<string, string>([
   ['<tagId>', 'tag-id'],
   ['<tagSlug>', 'news'],
   ['<tagUuid>', '33333333-3333-4333-8333-333333333333'],
+  ['<memberId>', 'member-id'],
+  ['<memberEmail>', 'member@example.com'],
+  ['<memberUuid>', '44444444-4444-4444-8444-444444444444'],
+  ['<newsletterId>', 'newsletter-id'],
+  ['<newsletterSlug>', 'default-newsletter'],
+  ['<newsletterUuid>', '55555555-5555-4555-8555-555555555555'],
+  ['<tierId>', 'tier-id'],
+  ['<tierSlug>', 'default-product'],
+  ['<offerId>', 'offer-id'],
+  ['<offerCode>', 'offer-code'],
+  ['<labelId>', 'label-id'],
+  ['<labelSlug>', 'test-label'],
   ['<fixture-post-title>', 'Fixture Post'],
   ['<fixture-post-updated-title>', 'Fixture Post Updated'],
   ['<fixture-page-title>', 'Fixture Page'],
   ['<fixture-page-updated-title>', 'Fixture Page Updated'],
   ['<fixture-tag-name>', 'Fixture Tag'],
   ['<fixture-tag-updated-name>', 'Fixture Tag Updated'],
+  ['<fixture-member-name>', 'Fixture Member'],
+  ['<fixture-member-updated-name>', 'Fixture Member Updated'],
+  ['<fixture-label-name>', 'Fixture Label'],
+  ['<fixture-label-updated-name>', 'Fixture Label Updated'],
   ['<datetime>', '2026-01-01T00:00:00.000Z'],
   ['<email>', 'fixture@example.com'],
   ['<error-id>', 'error-id'],
@@ -77,6 +98,13 @@ export const fixtureIds = {
   pageSlug: 'about',
   tagId: 'tag-id',
   tagSlug: 'news',
+  memberId: 'member-id',
+  memberEmail: 'member@example.com',
+  newsletterId: 'newsletter-id',
+  tierId: 'tier-id',
+  offerId: 'offer-id',
+  labelId: 'label-id',
+  labelSlug: 'test-label',
 };
 
 export function cloneFixture<T>(value: T): T {
