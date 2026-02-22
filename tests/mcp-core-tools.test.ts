@@ -114,7 +114,7 @@ describe('mcp core tool registration', () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
 
-    expect(tools.size).toBe(28);
+    expect(tools.size).toBe(35);
 
     const run = async (
       name: string,
@@ -138,6 +138,8 @@ describe('mcp core tool registration', () => {
     await run('ghost_post_update', { id: fixtureIds.postId, title: 'Updated Tool Post' });
     await run('ghost_post_delete', { id: fixtureIds.postId, confirm: true });
     await run('ghost_post_publish', { id: fixtureIds.postId });
+    await fs.writeFile(path.join(workDir, 'image.jpg'), 'fake-image', 'utf8');
+    await run('ghost_image_upload', { file_path: path.join(workDir, 'image.jpg') });
 
     await run('ghost_page_list', { limit: 5 });
     await run('ghost_page_get', { slug: fixtureIds.pageSlug });
@@ -156,8 +158,20 @@ describe('mcp core tool registration', () => {
     await run('ghost_member_create', { email: 'newmember@example.com', name: 'Tool Member' });
     await run('ghost_member_update', { id: fixtureIds.memberId, name: 'Tool Member Updated' });
     await run('ghost_member_delete', { id: fixtureIds.memberId, confirm: true });
+    await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
+    await run('ghost_member_import', { file_path: path.join(workDir, 'members.csv') });
+    await run('ghost_newsletter_list', { limit: 5 });
+    await run('ghost_tier_list', { limit: 5 });
+    await run('ghost_offer_list', { limit: 5 });
 
     await run('ghost_site_info', {});
+    await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-zip', 'utf8');
+    await run('ghost_theme_upload', { file_path: path.join(workDir, 'theme.zip') });
+    await run('ghost_theme_upload', { file_path: path.join(workDir, 'theme.zip'), activate: true });
+    await run('ghost_webhook_create', {
+      event: 'post.published',
+      target_url: 'https://example.com/hook',
+    });
     await run('ghost_setting_list', {});
     await run('ghost_setting_get', { key: 'title' });
     await run('ghost_setting_set', { key: 'title', value: 'Tool Blog' });
@@ -189,7 +203,11 @@ describe('mcp core tool registration', () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set<McpToolGroup>(['site']));
 
-    expect(Array.from(tools.keys())).toEqual(['ghost_site_info']);
+    expect(Array.from(tools.keys())).toEqual([
+      'ghost_site_info',
+      'ghost_theme_upload',
+      'ghost_webhook_create',
+    ]);
   });
 
   test('parses tool groups from csv', () => {

@@ -2,13 +2,17 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { GhostClient } from '../../lib/client.js';
 import { resolveConnectionConfig } from '../../lib/config.js';
+import { uploadImage } from '../../lib/images.js';
 import {
   createMember,
   deleteMember,
   getMember,
+  importMembersCsv,
   listMembers,
   updateMember,
 } from '../../lib/members.js';
+import { listNewsletters } from '../../lib/newsletters.js';
+import { listOffers } from '../../lib/offers.js';
 import { createPage, deletePage, getPage, listPages, updatePage } from '../../lib/pages.js';
 import { parseCsv } from '../../lib/parse.js';
 import {
@@ -22,8 +26,11 @@ import {
 import { getSetting, listSettings, setSetting } from '../../lib/settings.js';
 import { getSiteInfo } from '../../lib/site.js';
 import { createTag, deleteTag, getTag, listTags, updateTag } from '../../lib/tags.js';
+import { activateTheme, uploadTheme } from '../../lib/themes.js';
+import { listTiers } from '../../lib/tiers.js';
 import type { GlobalOptions } from '../../lib/types.js';
 import { listUsers } from '../../lib/users.js';
+import { createWebhook } from '../../lib/webhooks.js';
 
 export type McpToolGroup =
   | 'posts'
@@ -266,6 +273,26 @@ export function registerCoreTools(
         const payload = await publishPost(global, args.id);
         return toolResult(payload);
       },
+    );
+
+    server.registerTool(
+      'ghost_image_upload',
+      {
+        description: 'Upload an image and return the uploaded image payload.',
+        inputSchema: z.object({
+          file_path: z.string().min(1),
+          purpose: z.string().optional(),
+          ref: z.string().optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await uploadImage(global, {
+            filePath: args.file_path,
+            purpose: args.purpose,
+            ref: args.ref,
+          }),
+        ),
     );
   }
 
@@ -555,6 +582,63 @@ export function registerCoreTools(
       },
       async (args) => toolResult(await deleteMember(global, args.id)),
     );
+
+    server.registerTool(
+      'ghost_member_import',
+      {
+        description: 'Import members from a CSV file path.',
+        inputSchema: z.object({
+          file_path: z.string().min(1),
+          labels: z.array(z.string()).optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await importMembersCsv(global, {
+            filePath: args.file_path,
+            labels: args.labels,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_newsletter_list',
+      {
+        description: 'List Ghost newsletters.',
+        inputSchema: z.object({
+          limit: z.number().int().positive().max(100).optional(),
+          page: z.number().int().positive().optional(),
+          filter: z.string().optional(),
+        }),
+      },
+      async (args) => toolResult(await listNewsletters(global, { ...args }, false)),
+    );
+
+    server.registerTool(
+      'ghost_tier_list',
+      {
+        description: 'List Ghost tiers.',
+        inputSchema: z.object({
+          limit: z.number().int().positive().max(100).optional(),
+          page: z.number().int().positive().optional(),
+          filter: z.string().optional(),
+        }),
+      },
+      async (args) => toolResult(await listTiers(global, { ...args }, false)),
+    );
+
+    server.registerTool(
+      'ghost_offer_list',
+      {
+        description: 'List Ghost offers.',
+        inputSchema: z.object({
+          limit: z.number().int().positive().max(100).optional(),
+          page: z.number().int().positive().optional(),
+          filter: z.string().optional(),
+        }),
+      },
+      async (args) => toolResult(await listOffers(global, { ...args }, false)),
+    );
   }
 
   if (enabledGroups.has('site')) {
@@ -564,6 +648,54 @@ export function registerCoreTools(
         description: 'Get Ghost site metadata.',
       },
       async () => toolResult(await getSiteInfo(global)),
+    );
+
+    server.registerTool(
+      'ghost_theme_upload',
+      {
+        description: 'Upload a Ghost theme zip path and optionally activate it.',
+        inputSchema: z.object({
+          file_path: z.string().min(1),
+          activate: z.boolean().optional(),
+        }),
+      },
+      async (args) => {
+        const payload = await uploadTheme(global, args.file_path);
+        if (args.activate) {
+          const themes = Array.isArray(payload.themes) ? payload.themes : [];
+          const first = (themes[0] as Record<string, unknown> | undefined) ?? payload;
+          const name = String(first.name ?? '').trim();
+          if (name) {
+            await activateTheme(global, name);
+          }
+        }
+
+        return toolResult(payload);
+      },
+    );
+
+    server.registerTool(
+      'ghost_webhook_create',
+      {
+        description: 'Create a Ghost webhook.',
+        inputSchema: z.object({
+          event: z.string().min(1),
+          target_url: z.string().url(),
+          name: z.string().optional(),
+          secret: z.string().optional(),
+          api_version: z.string().optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await createWebhook(global, {
+            event: args.event,
+            target_url: args.target_url,
+            name: args.name,
+            secret: args.secret,
+            api_version: args.api_version,
+          }),
+        ),
     );
   }
 

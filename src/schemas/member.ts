@@ -7,6 +7,7 @@ export const MemberListInputSchema = z.object({
   limit: z.union([z.number().int().positive().max(100), z.literal('all')]).optional(),
   page: z.number().int().positive().optional(),
   filter: z.string().optional(),
+  status: z.enum(['free', 'paid', 'comped']).optional(),
   search: z.string().optional(),
   include: z.string().optional(),
   fields: z.string().optional(),
@@ -58,6 +59,7 @@ export const MemberUpdateInputSchema = z
     subscribed: z.boolean().optional(),
     comp: z.boolean().optional(),
     tier: z.string().min(1).optional(),
+    expiry: z.string().datetime().optional(),
     clearTiers: z.boolean().optional(),
   })
   .refine((data) => Boolean(data.id || data.email), {
@@ -78,6 +80,7 @@ export const MemberUpdateInputSchema = z
           data.subscribed !== undefined ||
           data.comp !== undefined ||
           data.tier !== undefined ||
+          data.expiry !== undefined ||
           data.clearTiers,
       ),
     {
@@ -86,6 +89,10 @@ export const MemberUpdateInputSchema = z
   )
   .refine((data) => !(data.comp && !data.tier && !data.clearTiers), {
     message: '--tier is required when --comp is set unless --clear-tiers is used.',
+    path: ['tier'],
+  })
+  .refine((data) => !(data.expiry && !data.tier), {
+    message: '--tier is required when --expiry is set.',
     path: ['tier'],
   });
 
@@ -109,12 +116,30 @@ export const MemberExportInputSchema = z.object({
 
 export const MemberBulkInputSchema = z
   .object({
-    action: BulkActionSchema,
+    action: BulkActionSchema.optional(),
+    update: z.boolean().optional(),
+    delete: z.boolean().optional(),
     all: z.boolean().optional(),
     filter: z.string().optional(),
     search: z.string().optional(),
     labelId: z.string().min(1).optional(),
+    labels: z.string().optional(),
+    yes: z.boolean().optional(),
   })
+  .refine(
+    (data) => {
+      const selected = [
+        data.action !== undefined,
+        data.update === true,
+        data.delete === true,
+      ].filter(Boolean);
+      return selected.length === 1;
+    },
+    {
+      message: 'Select exactly one action via --action, --update, or --delete.',
+      path: ['action'],
+    },
+  )
   .refine((data) => Boolean(data.all || data.filter || data.search), {
     message: 'Provide one of --all, --filter, or --search.',
     path: ['all'],
@@ -135,4 +160,12 @@ export const MemberBulkInputSchema = z
       message: '--label-id is required for add-label/remove-label actions.',
       path: ['labelId'],
     },
-  );
+  )
+  .refine((data) => (data.update ? Boolean(data.labels) : true), {
+    message: '--labels is required with --update.',
+    path: ['labels'],
+  })
+  .refine((data) => (data.delete || data.action === 'delete' ? data.yes === true : true), {
+    message: '--delete/--action delete requires --yes.',
+    path: ['yes'],
+  });

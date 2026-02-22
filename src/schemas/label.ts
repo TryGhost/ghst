@@ -51,3 +51,19 @@ export const LabelDeleteInputSchema = z.object({
   id: z.string().min(1),
   yes: z.boolean().optional(),
 });
+
+export const LabelBulkInputSchema = z
+  .object({
+    filter: z.string().min(1),
+    action: z.enum(['update', 'delete']),
+    name: z.string().min(1).optional(),
+    yes: z.boolean().optional(),
+  })
+  .refine((data) => data.action !== 'delete' || data.yes === true, {
+    message: 'Bulk delete requires --yes.',
+    path: ['yes'],
+  })
+  .refine((data) => data.action !== 'update' || Boolean(data.name), {
+    message: 'Bulk update requires --name.',
+    path: ['name'],
+  });

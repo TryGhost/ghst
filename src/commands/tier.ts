@@ -1,10 +1,16 @@
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
-import { printJson, printTierHuman, printTierListHuman } from '../lib/output.js';
-import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
-import { createTier, getTier, listTiers, updateTier } from '../lib/tiers.js';
 import {
+  printJson,
+  printOperationStatsHuman,
+  printTierHuman,
+  printTierListHuman,
+} from '../lib/output.js';
+import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
+import { bulkTiers, createTier, getTier, listTiers, updateTier } from '../lib/tiers.js';
+import {
+  TierBulkInputSchema,
   TierCreateInputSchema,
   TierGetInputSchema,
   TierListInputSchema,
@@ -44,6 +50,7 @@ export function registerTierCommands(program: Command): void {
     .option('--limit <numberOrAll>', 'Number of tiers per page or "all"')
     .option('--page <number>', 'Page number')
     .option('--filter <nql>', 'NQL filter')
+    .option('--include <relations>', 'Include relationships')
     .option('--fields <fields>', 'Select output fields')
     .option('--order <order>', 'Sort order')
     .action(async (options, command) => {
@@ -55,6 +62,7 @@ export function registerTierCommands(program: Command): void {
         limit: rawLimit,
         page: rawPage,
         filter: options.filter,
+        include: options.include,
         fields: options.fields,
         order: options.order,
       });
@@ -209,5 +217,44 @@ export function registerTierCommands(program: Command): void {
       }
 
       printTierHuman(payload);
+    });
+
+  tier
+    .command('bulk')
+    .description('Run bulk tier operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select tiers')
+    .requiredOption('--action <action>', 'update')
+    .option('--active <value>', 'true|false')
+    .option('--visibility <visibility>', 'public|none')
+    .option('--trial-days <daysOrNull>', 'Trial days, or null')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = TierBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        active: parseBooleanFlag(options.active),
+        visibility: options.visibility,
+        trialDays: parseNullableInteger(options.trialDays, 'trial-days'),
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkTiers(global, {
+        filter: parsed.data.filter,
+        patch: {
+          active: parsed.data.active,
+          visibility: parsed.data.visibility,
+          trial_days: parsed.data.trialDays,
+        },
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      printOperationStatsHuman(payload, 'Bulk tier operation completed');
     });
 }

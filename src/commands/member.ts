@@ -65,6 +65,7 @@ export function registerMemberCommands(program: Command): void {
     .option('--limit <numberOrAll>', 'Number of members per page or "all"')
     .option('--page <number>', 'Page number')
     .option('--filter <nql>', 'NQL filter')
+    .option('--status <status>', 'Member status (free|paid|comped)')
     .option('--search <term>', 'Search term')
     .option('--include <relations>', 'Include relationships')
     .option('--fields <fields>', 'Select output fields')
@@ -78,6 +79,7 @@ export function registerMemberCommands(program: Command): void {
         limit: rawLimit,
         page: rawPage,
         filter: options.filter,
+        status: options.status,
         search: options.search,
         include: options.include,
         fields: options.fields,
@@ -89,10 +91,16 @@ export function registerMemberCommands(program: Command): void {
       }
 
       const allPages = parsed.data.limit === 'all';
+      const combinedFilter =
+        parsed.data.filter && parsed.data.status
+          ? `${parsed.data.filter}+status:${parsed.data.status}`
+          : (parsed.data.filter ??
+            (parsed.data.status ? `status:${parsed.data.status}` : undefined));
       const payload = await listMembers(
         global,
         {
           ...parsed.data,
+          filter: combinedFilter,
           limit: parsed.data.limit === 'all' ? undefined : parsed.data.limit,
         },
         allPages,
@@ -216,6 +224,7 @@ export function registerMemberCommands(program: Command): void {
     .option('--subscribed <value>', 'true|false')
     .option('--comp', 'Set complimentary tier access')
     .option('--tier <id>', 'Tier id for complimentary access')
+    .option('--expiry <datetime>', 'Tier access expiry datetime')
     .option('--clear-tiers', 'Remove all complimentary tiers')
     .action(async (id: string | undefined, options, command) => {
       const global = getGlobalOptions(command);
@@ -230,6 +239,7 @@ export function registerMemberCommands(program: Command): void {
         subscribed: parseBooleanFlag(options.subscribed),
         comp: parseBooleanFlag(options.comp),
         tier: options.tier,
+        expiry: options.expiry,
         clearTiers: parseBooleanFlag(options.clearTiers),
       });
 
@@ -251,8 +261,13 @@ export function registerMemberCommands(program: Command): void {
 
       if (parsed.data.clearTiers) {
         patch.tiers = [];
-      } else if (parsed.data.comp && parsed.data.tier) {
-        patch.tiers = [{ id: parsed.data.tier }];
+      } else if (parsed.data.tier && (parsed.data.comp || parsed.data.expiry)) {
+        patch.tiers = [
+          {
+            id: parsed.data.tier,
+            expiry_at: parsed.data.expiry,
+          },
+        ];
       }
 
       const payload = await updateMember(global, {
@@ -398,31 +413,50 @@ export function registerMemberCommands(program: Command): void {
   member
     .command('bulk')
     .description('Run a bulk member operation')
-    .requiredOption('--action <action>', 'unsubscribe|add-label|remove-label|delete')
+    .option('--action <action>', 'unsubscribe|add-label|remove-label|delete')
+    .option('--update', 'PRD alias for bulk label replacement')
+    .option('--delete', 'PRD alias for delete action')
     .option('--all', 'Apply to all members')
     .option('--filter <nql>', 'Filter members by NQL')
     .option('--search <term>', 'Search members')
     .option('--label-id <id>', 'Label id for add-label/remove-label operations')
+    .option('--labels <labels>', 'Comma separated label names for --update')
+    .option('--yes', 'Confirm --delete action')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const parsed = MemberBulkInputSchema.safeParse({
         action: options.action,
+        update: parseBooleanFlag(options.update),
+        delete: parseBooleanFlag(options.delete),
         all: parseBooleanFlag(options.all),
         filter: options.filter,
         search: options.search,
         labelId: options.labelId,
+        labels: options.labels,
+        yes: parseBooleanFlag(options.yes),
       });
 
       if (!parsed.success) {
         throwValidationError(parsed.error);
       }
 
+      const resolvedAction = parsed.data.update
+        ? 'update-labels'
+        : parsed.data.delete
+          ? 'delete'
+          : parsed.data.action;
       const payload = await bulkMembers(global, {
-        action: parsed.data.action,
+        action: (resolvedAction ?? 'unsubscribe') as
+          | 'unsubscribe'
+          | 'add-label'
+          | 'remove-label'
+          | 'delete'
+          | 'update-labels',
         all: parsed.data.all,
         filter: parsed.data.filter,
         search: parsed.data.search,
         labelId: parsed.data.labelId,
+        labels: parseCsv(parsed.data.labels),
       });
 
       if (global.json) {

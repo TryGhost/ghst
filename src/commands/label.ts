@@ -1,12 +1,25 @@
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
-import { createLabel, deleteLabel, getLabel, listLabels, updateLabel } from '../lib/labels.js';
-import { printJson, printLabelHuman, printLabelListHuman } from '../lib/output.js';
+import {
+  bulkLabels,
+  createLabel,
+  deleteLabel,
+  getLabel,
+  listLabels,
+  updateLabel,
+} from '../lib/labels.js';
+import {
+  printJson,
+  printLabelHuman,
+  printLabelListHuman,
+  printOperationStatsHuman,
+} from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
 import { confirm } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
+  LabelBulkInputSchema,
   LabelCreateInputSchema,
   LabelDeleteInputSchema,
   LabelGetInputSchema,
@@ -217,5 +230,39 @@ export function registerLabelCommands(program: Command): void {
       }
 
       console.log(`Deleted label '${parsed.data.id}'.`);
+    });
+
+  label
+    .command('bulk')
+    .description('Run bulk label operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select labels')
+    .requiredOption('--action <action>', 'update|delete')
+    .option('--name <name>', 'Label name for update action')
+    .option('--yes', 'Confirm bulk delete')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = LabelBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        name: options.name,
+        yes: options.yes,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkLabels(global, {
+        filter: parsed.data.filter,
+        delete: parsed.data.action === 'delete',
+        name: parsed.data.name,
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      printOperationStatsHuman(payload, 'Bulk label operation completed');
     });
 }

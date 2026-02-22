@@ -307,10 +307,10 @@ describe('resource service helpers', () => {
       posts: [{ id: fixtureIds.postId }],
     });
     await expect(copyPost({}, fixtureIds.postId)).resolves.toMatchObject({
-      posts: [{ id: fixtureIds.postId }],
+      posts: [{ id: expect.any(String) }],
     });
     await expect(copyPage({}, fixtureIds.pageId)).resolves.toMatchObject({
-      pages: [{ id: fixtureIds.pageId }],
+      pages: [{ id: expect.any(String) }],
     });
 
     await expect(

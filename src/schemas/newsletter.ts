@@ -58,3 +58,15 @@ export const NewsletterUpdateInputSchema = z
       message: 'Provide at least one update field.',
     },
   );
+
+export const NewsletterBulkInputSchema = z
+  .object({
+    filter: z.string().min(1),
+    action: z.literal('update'),
+    status: NewsletterStatusSchema.optional(),
+    visibility: NewsletterVisibilitySchema.optional(),
+  })
+  .refine((data) => Boolean(data.status !== undefined || data.visibility !== undefined), {
+    message: 'Bulk update requires --status or --visibility.',
+    path: ['status'],
+  });

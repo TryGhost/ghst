@@ -2,14 +2,21 @@ import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import {
+  bulkNewsletters,
   createNewsletter,
   getNewsletter,
   listNewsletters,
   updateNewsletter,
 } from '../lib/newsletters.js';
-import { printJson, printNewsletterHuman, printNewsletterListHuman } from '../lib/output.js';
+import {
+  printJson,
+  printNewsletterHuman,
+  printNewsletterListHuman,
+  printOperationStatsHuman,
+} from '../lib/output.js';
 import { parseBooleanFlag, parseInteger } from '../lib/parse.js';
 import {
+  NewsletterBulkInputSchema,
   NewsletterCreateInputSchema,
   NewsletterGetInputSchema,
   NewsletterListInputSchema,
@@ -221,5 +228,41 @@ export function registerNewsletterCommands(program: Command): void {
       }
 
       printNewsletterHuman(payload);
+    });
+
+  newsletter
+    .command('bulk')
+    .description('Run bulk newsletter operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select newsletters')
+    .requiredOption('--action <action>', 'update')
+    .option('--status <status>', 'active|archived')
+    .option('--visibility <visibility>', 'all|members|paid')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = NewsletterBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        status: options.status,
+        visibility: options.visibility,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkNewsletters(global, {
+        filter: parsed.data.filter,
+        patch: {
+          status: parsed.data.status,
+          visibility: parsed.data.visibility,
+        },
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      printOperationStatsHuman(payload, 'Bulk newsletter operation completed');
     });
 }

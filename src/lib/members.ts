@@ -164,11 +164,12 @@ export async function importMembersCsv(
 export async function bulkMembers(
   global: GlobalOptions,
   options: {
-    action: 'unsubscribe' | 'add-label' | 'remove-label' | 'delete';
+    action: 'unsubscribe' | 'add-label' | 'remove-label' | 'delete' | 'update-labels';
     all?: boolean;
     filter?: string;
     search?: string;
     labelId?: string;
+    labels?: string[];
   },
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
@@ -178,6 +179,72 @@ export async function bulkMembers(
     filter: options.filter,
     search: options.search,
   };
+
+  if (options.action === 'update-labels') {
+    const list = await listMembers(
+      global,
+      {
+        filter: options.filter,
+        search: options.search,
+        limit: 100,
+      },
+      true,
+    );
+
+    const members = Array.isArray(list.members) ? list.members : [];
+    const ids = members
+      .map((entry) => String((entry as Record<string, unknown>)?.id ?? '').trim())
+      .filter(Boolean);
+
+    if (ids.length === 0) {
+      return {
+        bulk: {
+          meta: {
+            stats: {
+              successful: 0,
+              unsuccessful: 0,
+            },
+          },
+          errors: [],
+        },
+      };
+    }
+
+    const labels = (options.labels ?? [])
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .map((name) => ({ name }));
+    let successful = 0;
+    let unsuccessful = 0;
+    const errors: Array<Record<string, string>> = [];
+
+    for (const id of ids) {
+      try {
+        await client.members.edit(id, {
+          labels,
+        });
+        successful += 1;
+      } catch (error) {
+        unsuccessful += 1;
+        errors.push({
+          id,
+          message: (error as Error).message,
+        });
+      }
+    }
+
+    return {
+      bulk: {
+        meta: {
+          stats: {
+            successful,
+            unsuccessful,
+          },
+        },
+        errors,
+      },
+    };
+  }
 
   if (options.action === 'delete') {
     return client.members.bulkDestroy(params);

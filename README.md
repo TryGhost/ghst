@@ -10,8 +10,9 @@ A modern Ghost CMS CLI.
   - Phase 1: auth + post/page/tag CRUD
   - Phase 2: member/newsletter/tier/offer/label
   - Phase 3: webhook/user/image/theme/site/setting/migrate/config/api/completion
-  - Phase 4: `mcp`, `webhook listen`, `theme dev --watch`, post/page/tag core bulk + copy/schedule actions
+  - Phase 4: `mcp`, `webhook listen`, `theme dev --watch`, post/page/tag parity actions, bulk operations across mutable phase 1-4 resources
 - Deferred: `snippet` remains intentionally deferred until Ghost Admin API contract is confirmed.
+  - Tracking doc: `docs/snippet-contract-tracker.md`
 
 ## Prerequisites
 
@@ -65,10 +66,10 @@ Credentials are stored in `~/.config/ghst/config.json`.
 - `ghst page list|get|create|update|delete|copy|bulk`
 - `ghst tag list|get|create|update|delete|bulk`
 - `ghst member list|get|create|update|delete|import|export|bulk`
-- `ghst newsletter list|get|create|update`
-- `ghst tier list|get|create|update`
-- `ghst offer list|get|create|update`
-- `ghst label list|get|create|update|delete`
+- `ghst newsletter list|get|create|update|bulk`
+- `ghst tier list|get|create|update|bulk`
+- `ghst offer list|get|create|update|bulk`
+- `ghst label list|get|create|update|delete|bulk`
 - `ghst webhook create|update|delete|events|listen`
 - `ghst user list|get|me`
 - `ghst image upload`
@@ -84,12 +85,21 @@ Credentials are stored in `~/.config/ghst/config.json`.
 ## Key Behaviors And Flags
 
 - `ghst member get [id] --email <email>` supports id or email lookup.
-- `ghst member bulk --action <unsubscribe|add-label|remove-label|delete> --all|--filter <nql> [--label-id <id>]` requires exactly one of `--all` or `--filter`.
+- `ghst member list --status <free|paid|comped>` adds a status convenience filter (composed with `--filter` when both are present).
+- `ghst member update [id] --tier <id> --expiry <datetime>` supports complimentary tier expiry updates.
+- `ghst member bulk --action <unsubscribe|add-label|remove-label|delete> --all|--filter <nql> [--label-id <id>]` keeps the action model and also supports PRD aliases: `--update --labels <csv>` and `--delete --yes`.
 - `ghst member import <filePath> --labels a,b` sends multipart field `membersfile`.
 - `ghst member export --output ./members.csv` writes CSV; without `--output` it prints CSV to stdout.
+- `ghst post create|update` supports content and payload ingestion via `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
+- `ghst post create|update` supports metadata/email fields including excerpt, meta/og fields, code injection fields, newsletter slug, email segment, and email-only toggles.
 - `ghst post schedule <id> --at <datetime>` and `ghst post unschedule <id>` support scheduled publishing control.
+- `ghst post delete [id] --filter <nql>` supports filtered deletion; non-interactive execution requires `--yes`.
 - `ghst post|page copy <id>` uses Ghost copy endpoints.
-- `ghst post|page|tag bulk --filter <nql> --action <update|delete>` applies core update/delete operations over matched resources.
+- `ghst post bulk --filter <nql> --action <update|delete>` supports aliases `--update`/`--delete` and update fields `--status`, `--tags`, `--add-tag`, `--authors`.
+- `ghst page|tag bulk --filter <nql> --action <update|delete>` applies update/delete operations over matched resources.
+- `ghst newsletter|tier|offer bulk --filter <nql> --action update` supports safe update-only bulk operations.
+- `ghst label bulk --filter <nql> --action <update|delete>` supports update/delete with delete confirmation via `--yes`.
+- `ghst tier list --include <relations>` is supported for relationship expansion.
 - `ghst label get [id] --slug <slug>` and `ghst label update [id] --slug <slug> ...` support slug lookup.
 - `ghst webhook listen --public-url <public url> --forward-to <local url>` creates temporary webhook subscriptions, forwards deliveries, and cleans up on exit.
 - `ghst theme dev <path> --watch [--activate] [--debounce-ms <ms>]` uploads once, then debounced uploads on file changes.
@@ -104,6 +114,8 @@ Credentials are stored in `~/.config/ghst/config.json`.
   - `--content-api` to target Content API instead of Admin API
 - `ghst mcp stdio|http --tools <csv|all>` supports tool-group filtering.
   - Available groups: `posts,pages,tags,members,site,settings,users,api,search`.
+  - Core tools include post/page/tag/member CRUD, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`, settings/site/user/api/search.
+  - `ghost_snippet_list` remains deferred until snippet contract confirmation.
 
 ## Examples
 
@@ -112,7 +124,10 @@ ghst post list --limit 5
 ghst post schedule 123 --at 2026-03-01T10:00:00Z
 ghst page copy 456
 ghst tag bulk --filter "visibility:public" --action update --visibility internal
-ghst member bulk --action add-label --filter "status:free" --label-id 789
+ghst post create --title "Launch" --markdown-file ./launch.md --newsletter weekly --email-segment all
+ghst post bulk --filter "status:draft" --update --add-tag release-notes --authors editor@example.com
+ghst member bulk --update --filter "status:free" --labels "trial,needs-follow-up"
+ghst newsletter bulk --filter "status:active" --action update --visibility members
 ghst webhook listen --public-url https://hooks.example.com/ghost --forward-to http://localhost:3000/webhooks
 ghst theme dev ./theme-dir --watch --activate
 ghst api /posts/ --paginate --include-headers

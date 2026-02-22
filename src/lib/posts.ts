@@ -127,11 +127,19 @@ export async function deletePost(
 export async function publishPost(
   global: GlobalOptions,
   id: string,
+  options?: {
+    newsletter?: string;
+    email_only?: boolean;
+    email_segment?: string;
+  },
 ): Promise<Record<string, unknown>> {
   return updatePost(global, {
     id,
     patch: {
       status: 'published',
+      newsletter: options?.newsletter,
+      email_only: options?.email_only,
+      email_segment: options?.email_segment,
     },
   });
 }
@@ -178,6 +186,12 @@ function extractPostIds(payload: GhostPaginatedResponse): string[] {
     .filter(Boolean);
 }
 
+function extractPostEntries(payload: GhostPaginatedResponse): Array<Record<string, unknown>> {
+  return Array.isArray(payload.posts)
+    ? payload.posts.map((entry) => (entry as Record<string, unknown>) ?? {})
+    : [];
+}
+
 export async function bulkPosts(
   global: GlobalOptions,
   options: {
@@ -185,6 +199,8 @@ export async function bulkPosts(
     delete?: boolean;
     status?: 'draft' | 'published' | 'scheduled';
     tags?: string[];
+    addTags?: string[];
+    authors?: string[];
   },
 ): Promise<Record<string, unknown>> {
   const list = await listPosts(
@@ -192,10 +208,15 @@ export async function bulkPosts(
     {
       filter: options.filter,
       limit: 100,
+      include: 'tags,authors',
     },
     true,
   );
   const ids = extractPostIds(list);
+  const posts = extractPostEntries(list);
+  const postsById = new Map<string, Record<string, unknown>>(
+    posts.map((post) => [String(post.id ?? ''), post]),
+  );
 
   if (ids.length === 0) {
     return {
@@ -220,11 +241,25 @@ export async function bulkPosts(
       if (options.delete) {
         await deletePost(global, id);
       } else {
+        const current = postsById.get(id) ?? {};
+        const existingTagNames = Array.isArray(current.tags)
+          ? current.tags
+              .map((tag) => String((tag as Record<string, unknown>)?.name ?? '').trim())
+              .filter(Boolean)
+          : [];
+
+        let mergedTags: string[] | undefined;
+        if (options.addTags && options.addTags.length > 0) {
+          const base = options.tags && options.tags.length > 0 ? options.tags : existingTagNames;
+          mergedTags = Array.from(new Set([...base, ...options.addTags]));
+        }
+
         await updatePost(global, {
           id,
           patch: {
             status: options.status,
-            tags: options.tags,
+            tags: mergedTags ?? options.tags,
+            authors: options.authors,
           },
         });
       }

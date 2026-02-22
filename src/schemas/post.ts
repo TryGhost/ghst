@@ -6,14 +6,20 @@ const VisibilitySchema = z.enum(['public', 'members', 'paid', 'tiers']);
 function withSingleContentSource<T extends z.ZodTypeAny>(schema: T): T {
   return schema.superRefine((value, ctx) => {
     const data = value as Record<string, unknown>;
-    const contentSources = [data.html, data.htmlFile, data.lexicalFile].filter(
-      (entry) => entry !== undefined,
-    );
+    const contentSources = [
+      data.html,
+      data.htmlFile,
+      data.lexicalFile,
+      data.markdownFile,
+      data.markdownStdin,
+      data.htmlRawFile,
+    ].filter((entry) => entry !== undefined && entry !== false);
 
     if (contentSources.length > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Use only one of --html, --html-file, or --lexical-file.',
+        message:
+          'Use only one content source: --html, --html-file, --lexical-file, --markdown-file, --markdown-stdin, or --html-raw-file.',
       });
     }
   }) as T;
@@ -42,16 +48,34 @@ export const PostGetInputSchema = z.object({
 export const PostCreateInputSchema = withSingleContentSource(
   z
     .object({
-      title: z.string().min(1),
-      status: StatusSchema.default('draft'),
+      title: z.string().min(1).optional(),
+      status: StatusSchema.optional(),
       publishAt: z.string().datetime().optional(),
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
+      markdownFile: z.string().min(1).optional(),
+      markdownStdin: z.boolean().optional(),
+      htmlRawFile: z.string().min(1).optional(),
+      fromJson: z.string().min(1).optional(),
       tags: z.string().optional(),
       authors: z.string().optional(),
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
+      tier: z.string().min(1).optional(),
+      excerpt: z.string().optional(),
+      metaTitle: z.string().optional(),
+      metaDescription: z.string().optional(),
+      ogTitle: z.string().optional(),
+      ogImage: z.string().url().optional(),
+      codeInjectionHead: z.string().optional(),
+      newsletter: z.string().optional(),
+      emailOnly: z.boolean().optional(),
+      emailSegment: z.string().optional(),
+    })
+    .refine((data) => Boolean(data.title || data.fromJson), {
+      message: 'Provide --title or --from-json.',
+      path: ['title'],
     })
     .refine((data) => !(data.status === 'scheduled' && !data.publishAt), {
       message: 'publish-at is required when status is scheduled',
@@ -70,10 +94,24 @@ export const PostUpdateInputSchema = withSingleContentSource(
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
+      markdownFile: z.string().min(1).optional(),
+      markdownStdin: z.boolean().optional(),
+      htmlRawFile: z.string().min(1).optional(),
+      fromJson: z.string().min(1).optional(),
       tags: z.string().optional(),
       authors: z.string().optional(),
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
+      tier: z.string().min(1).optional(),
+      excerpt: z.string().optional(),
+      metaTitle: z.string().optional(),
+      metaDescription: z.string().optional(),
+      ogTitle: z.string().optional(),
+      ogImage: z.string().url().optional(),
+      codeInjectionHead: z.string().optional(),
+      newsletter: z.string().optional(),
+      emailOnly: z.boolean().optional(),
+      emailSegment: z.string().optional(),
     })
     .refine((data) => Boolean(data.id || data.slug), {
       message: 'Provide an id argument or --slug.',
@@ -88,10 +126,24 @@ export const PostUpdateInputSchema = withSingleContentSource(
             data.html ||
             data.htmlFile ||
             data.lexicalFile ||
+            data.markdownFile ||
+            data.markdownStdin ||
+            data.htmlRawFile ||
+            data.fromJson ||
             data.tags ||
             data.authors ||
             data.featured !== undefined ||
-            data.visibility,
+            data.visibility ||
+            data.tier ||
+            data.excerpt ||
+            data.metaTitle ||
+            data.metaDescription ||
+            data.ogTitle ||
+            data.ogImage ||
+            data.codeInjectionHead ||
+            data.newsletter ||
+            data.emailOnly !== undefined ||
+            data.emailSegment,
         ),
       {
         message: 'Provide at least one update field.',
@@ -103,13 +155,26 @@ export const PostUpdateInputSchema = withSingleContentSource(
     }),
 );
 
-export const PostDeleteInputSchema = z.object({
-  id: z.string().min(1),
-  yes: z.boolean().optional(),
-});
+export const PostDeleteInputSchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    filter: z.string().min(1).optional(),
+    yes: z.boolean().optional(),
+  })
+  .refine((data) => Boolean(data.id || data.filter), {
+    message: 'Provide <id> or --filter.',
+    path: ['id'],
+  })
+  .refine((data) => !(data.id && data.filter), {
+    message: 'Use either <id> or --filter, not both.',
+    path: ['id'],
+  });
 
 export const PostPublishInputSchema = z.object({
   id: z.string().min(1),
+  newsletter: z.string().optional(),
+  emailOnly: z.boolean().optional(),
+  emailSegment: z.string().optional(),
 });
 
 export const PostScheduleInputSchema = z.object({
@@ -128,20 +193,53 @@ export const PostCopyInputSchema = z.object({
 export const PostBulkInputSchema = z
   .object({
     filter: z.string().min(1),
-    action: z.enum(['update', 'delete']),
+    action: z.enum(['update', 'delete']).optional(),
+    update: z.boolean().optional(),
+    delete: z.boolean().optional(),
     status: StatusSchema.optional(),
     tags: z.string().optional(),
+    addTag: z.string().optional(),
+    authors: z.string().optional(),
     yes: z.boolean().optional(),
   })
-  .refine((data) => data.action !== 'delete' || data.yes === true, {
-    message: 'Bulk delete requires --yes.',
-    path: ['yes'],
-  })
+  .refine(
+    (data) => {
+      const selected = [
+        data.action !== undefined,
+        data.update === true,
+        data.delete === true,
+      ].filter(Boolean);
+      return selected.length === 1;
+    },
+    {
+      message: 'Select exactly one action via --action, --update, or --delete.',
+      path: ['action'],
+    },
+  )
   .refine(
     (data) =>
-      data.action !== 'update' || Boolean(data.status !== undefined || data.tags !== undefined),
+      (data.action ?? (data.delete ? 'delete' : 'update')) !== 'delete' || data.yes === true,
     {
-      message: 'Bulk update requires at least one of --status or --tags.',
+      message: 'Bulk delete requires --yes.',
+      path: ['yes'],
+    },
+  )
+  .refine(
+    (data) => {
+      const action = data.action ?? (data.delete ? 'delete' : 'update');
+      if (action !== 'update') {
+        return true;
+      }
+
+      return Boolean(
+        data.status !== undefined ||
+          data.tags !== undefined ||
+          data.addTag !== undefined ||
+          data.authors !== undefined,
+      );
+    },
+    {
+      message: 'Bulk update requires at least one of --status, --tags, --add-tag, or --authors.',
       path: ['status'],
     },
   );

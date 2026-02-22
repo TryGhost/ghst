@@ -80,3 +80,14 @@ export const OfferUpdateInputSchema = z
       message: 'Provide at least one update field.',
     },
   );
+
+export const OfferBulkInputSchema = z
+  .object({
+    filter: z.string().min(1),
+    action: z.literal('update'),
+    status: OfferStatusSchema.optional(),
+  })
+  .refine((data) => Boolean(data.status !== undefined), {
+    message: 'Bulk update requires --status.',
+    path: ['status'],
+  });

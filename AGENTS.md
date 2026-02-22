@@ -5,7 +5,7 @@
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
 - Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
-- PRD parity status: action + core flags implemented through `v0.4.0`; `snippet` intentionally deferred pending confirmed Ghost Admin API contract.
+- PRD parity status: strict phase 1-4 command/action/flag parity in place with guard tests; only `snippet` remains intentionally deferred pending confirmed Ghost Admin API contract.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 
 ## Phase Timeline
@@ -13,7 +13,7 @@
 - `v0.1.x`: Phase 1 (`auth`, `post`, `page`, `tag`)
 - `v0.2.x`: Phase 2 (`member`, `newsletter`, `tier`, `offer`, `label`)
 - `v0.3.0`: Phase 3 (`webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `completion`)
-- `v0.4.0`: Phase 4 (`mcp`, `webhook listen`, `theme dev --watch`, post/page/tag parity actions)
+- `v0.4.0`: Phase 4 (`mcp`, `webhook listen`, `theme dev --watch`, post/page/tag parity actions, bulk coverage across mutable phase 1-4 resources)
 
 ## Runtime And Tooling
 
@@ -63,10 +63,10 @@ pnpm build
 - `ghst page list|get|create|update|delete|copy|bulk`
 - `ghst tag list|get|create|update|delete|bulk`
 - `ghst member list|get|create|update|delete|import|export|bulk`
-- `ghst newsletter list|get|create|update`
-- `ghst tier list|get|create|update`
-- `ghst offer list|get|create|update`
-- `ghst label list|get|create|update|delete`
+- `ghst newsletter list|get|create|update|bulk`
+- `ghst tier list|get|create|update|bulk`
+- `ghst offer list|get|create|update|bulk`
+- `ghst label list|get|create|update|delete|bulk`
 - `ghst webhook create|update|delete|events|listen`
 - `ghst user list|get|me`
 - `ghst image upload`
@@ -90,6 +90,22 @@ pnpm build
 - `users`
 - `api`
 - `search`
+
+## Parity Notes
+
+- `post create|update` supports `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
+- `post publish` supports `--newsletter`, `--email-segment`, and `--email-only`.
+- `post delete` supports either `<id>` or `--filter` (non-interactive delete requires `--yes`).
+- `post bulk` supports `--action` and PRD aliases `--update`/`--delete` plus update fields including `--add-tag` and `--authors`.
+- `member list --status` composes with `--filter`.
+- `member update --expiry` supports complimentary tier expiry when used with `--tier`.
+- `member bulk` keeps `--action` and supports PRD compatibility aliases `--update`, `--delete`, `--labels`, `--yes`.
+- `tier list --include` is supported.
+- `bulk` subcommands exist for all mutable phase 1-4 resources: `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`.
+- `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
+- MCP parity additions include `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
+- Deferred MCP/CLI blocker: `snippet` / `ghost_snippet_list`.
+- Deferred blocker tracker doc: `docs/snippet-contract-tracker.md`.
 
 ## Config Resolution Order
 

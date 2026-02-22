@@ -1,10 +1,16 @@
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
-import { createOffer, getOffer, listOffers, updateOffer } from '../lib/offers.js';
-import { printJson, printOfferHuman, printOfferListHuman } from '../lib/output.js';
+import { bulkOffers, createOffer, getOffer, listOffers, updateOffer } from '../lib/offers.js';
+import {
+  printJson,
+  printOfferHuman,
+  printOfferListHuman,
+  printOperationStatsHuman,
+} from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
 import {
+  OfferBulkInputSchema,
   OfferCreateInputSchema,
   OfferGetInputSchema,
   OfferListInputSchema,
@@ -211,5 +217,38 @@ export function registerOfferCommands(program: Command): void {
       }
 
       printOfferHuman(payload);
+    });
+
+  offer
+    .command('bulk')
+    .description('Run bulk offer operations')
+    .requiredOption('--filter <nql>', 'NQL filter to select offers')
+    .requiredOption('--action <action>', 'update')
+    .option('--status <status>', 'active|archived')
+    .action(async (options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = OfferBulkInputSchema.safeParse({
+        filter: options.filter,
+        action: options.action,
+        status: options.status,
+      });
+
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      const payload = await bulkOffers(global, {
+        filter: parsed.data.filter,
+        patch: {
+          status: parsed.data.status,
+        },
+      });
+
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+
+      printOperationStatsHuman(payload, 'Bulk offer operation completed');
     });
 }

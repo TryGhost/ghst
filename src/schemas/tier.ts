@@ -7,6 +7,7 @@ export const TierListInputSchema = z.object({
   limit: z.union([z.number().int().positive().max(100), z.literal('all')]).optional(),
   page: z.number().int().positive().optional(),
   filter: z.string().optional(),
+  include: z.string().optional(),
   fields: z.string().optional(),
   order: z.string().optional(),
 });
@@ -66,5 +67,24 @@ export const TierUpdateInputSchema = z
       ),
     {
       message: 'Provide at least one update field.',
+    },
+  );
+
+export const TierBulkInputSchema = z
+  .object({
+    filter: z.string().min(1),
+    action: z.literal('update'),
+    active: z.boolean().optional(),
+    visibility: TierVisibilitySchema.optional(),
+    trialDays: z.number().int().min(0).nullable().optional(),
+  })
+  .refine(
+    (data) =>
+      Boolean(
+        data.active !== undefined || data.visibility !== undefined || data.trialDays !== undefined,
+      ),
+    {
+      message: 'Bulk update requires at least one update field.',
+      path: ['active'],
     },
   );

@@ -33,6 +33,29 @@ function firstResource(payload: unknown, key: string): Record<string, unknown> {
   return asRecord(container[0]);
 }
 
+function setCopyReplacements(
+  replacements: Map<string, string>,
+  payload: Record<string, unknown>,
+  key: 'posts' | 'pages',
+  prefix: string,
+): void {
+  const container = payload[key];
+  if (!Array.isArray(container) || container.length === 0) {
+    return;
+  }
+
+  const first = asRecord(container[0]);
+  const id = String(first.id ?? '').trim();
+  const slug = String(first.slug ?? '').trim();
+  const uuid = String(first.uuid ?? '').trim();
+  const commentId = String(first.comment_id ?? '').trim();
+
+  if (id) replacements.set(id, `<${prefix}-id>`);
+  if (slug) replacements.set(slug, `<${prefix}-slug>`);
+  if (uuid) replacements.set(uuid, `<${prefix}-uuid>`);
+  if (commentId) replacements.set(commentId, `<${prefix}-comment-id>`);
+}
+
 function extractGhostError(error: unknown): Record<string, unknown> {
   if (error instanceof GhostApiError) {
     return {
@@ -759,6 +782,8 @@ async function buildFixtures(): Promise<FixtureDocument> {
     replacements.set(String(firstUser.name ?? ''), '<fixture-user-name>');
     replacements.set(`Fixture Webhook ${runId}`, '<fixture-webhook-name>');
     replacements.set(`Fixture Webhook Updated ${runId}`, '<fixture-webhook-name>');
+    setCopyReplacements(replacements, postCopy, 'posts', 'post-copy');
+    setCopyReplacements(replacements, pageCopy, 'pages', 'page-copy');
 
     for (const [key, value] of Object.entries(createdIds)) {
       if (value) {

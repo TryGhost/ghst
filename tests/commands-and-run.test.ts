@@ -104,6 +104,17 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'nope'])).resolves.toBe(ExitCode.USAGE_ERROR);
   });
 
+  test('completion output includes full command surface and global flags', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    await expect(run(['node', 'ghst', 'completion', 'bash'])).resolves.toBe(ExitCode.SUCCESS);
+
+    const script = String(logSpy.mock.calls.at(-1)?.[0] ?? '');
+    expect(script).toContain('newsletter');
+    expect(script).toContain('mcp');
+    expect(script).toContain('--debug');
+    expect(script).toContain('--no-color');
+  });
+
   test('covers auth flows including interactive switch branch', async () => {
     const openedUrls: string[] = [];
     setOpenUrlForTests(async (url) => {
@@ -201,6 +212,13 @@ describe('run + commands', () => {
 
     await fs.writeFile(path.join(workDir, 'post.html'), '<p>Hello</p>', 'utf8');
     await fs.writeFile(path.join(workDir, 'post.lexical.json'), '{"root":{}}', 'utf8');
+    await fs.writeFile(path.join(workDir, 'post.md'), '# Hello\n\nMarkdown body', 'utf8');
+    await fs.writeFile(path.join(workDir, 'post-raw.html'), '<section>Raw HTML</section>', 'utf8');
+    await fs.writeFile(
+      path.join(workDir, 'post-from.json'),
+      '{"posts":[{"title":"From JSON"}]}',
+      'utf8',
+    );
     await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
     await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
     await fs.writeFile(path.join(workDir, 'photo.jpg'), 'fake-image', 'utf8');
@@ -230,8 +248,22 @@ describe('run + commands', () => {
         'create',
         '--title',
         'Created',
-        '--html-file',
-        './post.html',
+        '--markdown-file',
+        './post.md',
+        '--meta-title',
+        'Meta',
+        '--meta-description',
+        'Meta description',
+        '--og-title',
+        'OG',
+        '--og-image',
+        'https://example.com/image.jpg',
+        '--code-injection-head',
+        '<style>body{}</style>',
+        '--excerpt',
+        'Excerpt',
+        '--from-json',
+        './post-from.json',
         '--tags',
         'One,Two',
         '--authors',
@@ -249,11 +281,26 @@ describe('run + commands', () => {
         'Updated',
         '--featured',
         'true',
+        '--from-json',
+        './post-from.json',
+        '--meta-title',
+        'Updated Meta',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'post', 'publish', fixtureIds.postId])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'post',
+        'publish',
+        fixtureIds.postId,
+        '--newsletter',
+        'weekly',
+        '--email-only',
+        '--email-segment',
+        'status:paid',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'post', 'schedule', fixtureIds.postId, '--at', '2026-03-01T10:00:00Z']),
     ).resolves.toBe(ExitCode.SUCCESS);
@@ -268,6 +315,18 @@ describe('run + commands', () => {
         'node',
         'ghst',
         'post',
+        'create',
+        '--title',
+        'Raw',
+        '--html-raw-file',
+        './post-raw.html',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'post',
         'bulk',
         '--filter',
         'status:draft',
@@ -275,6 +334,10 @@ describe('run + commands', () => {
         'update',
         '--status',
         'published',
+        '--authors',
+        'author@example.com',
+        '--add-tag',
+        'extra',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
@@ -289,6 +352,9 @@ describe('run + commands', () => {
         'delete',
         '--yes',
       ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'post', 'delete', '--filter', 'status:draft', '--yes']),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
@@ -395,7 +461,9 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
-    await expect(run(['node', 'ghst', 'member', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'member', 'list', '--status', 'paid'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
     await expect(run(['node', 'ghst', 'member', 'get', fixtureIds.memberId])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -418,10 +486,30 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'member', 'update', fixtureIds.memberId, '--name', 'Updated Member']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
+      run([
+        'node',
+        'ghst',
+        'member',
+        'update',
+        fixtureIds.memberId,
+        '--comp',
+        '--tier',
+        fixtureIds.tierId,
+        '--expiry',
+        '2027-01-01T00:00:00Z',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
       run(['node', 'ghst', 'member', 'bulk', '--action', 'unsubscribe', '--all']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'member', 'bulk', '--action', 'delete', '--all']),
+      run(['node', 'ghst', 'member', 'bulk', '--action', 'delete', '--all', '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--update', '--all', '--labels', 'VIP,Premium']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--delete', '--all', '--yes']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'member', 'import', './members.csv', '--labels', 'Imported']),
@@ -451,8 +539,24 @@ describe('run + commands', () => {
         'Updated Weekly',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'newsletter',
+        'bulk',
+        '--filter',
+        'status:active',
+        '--action',
+        'update',
+        '--status',
+        'archived',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
-    await expect(run(['node', 'ghst', 'tier', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'tier', 'list', '--include', 'benefits'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
     await expect(run(['node', 'ghst', 'tier', 'get', fixtureIds.tierId])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -461,6 +565,20 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'tier', 'update', fixtureIds.tierId, '--name', 'Premium Updated']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'tier',
+        'bulk',
+        '--filter',
+        'type:paid',
+        '--action',
+        'update',
+        '--active',
+        'true',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'offer', 'list'])).resolves.toBe(ExitCode.SUCCESS);
@@ -472,6 +590,20 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'offer', 'update', fixtureIds.offerId, '--name', 'Sale Updated']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'offer',
+        'bulk',
+        '--filter',
+        'status:active',
+        '--action',
+        'update',
+        '--status',
+        'archived',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'label', 'list'])).resolves.toBe(ExitCode.SUCCESS);
@@ -486,6 +618,33 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'label', 'delete', fixtureIds.labelId, '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'label',
+        'bulk',
+        '--filter',
+        "name:~'VIP'",
+        '--action',
+        'update',
+        '--name',
+        'VIP Updated',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'label',
+        'bulk',
+        '--filter',
+        "name:~'VIP'",
+        '--action',
+        'delete',
+        '--yes',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(
@@ -708,12 +867,30 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'newsletter', 'update', fixtureIds.newsletterId]),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'newsletter',
+        'bulk',
+        '--filter',
+        'status:active',
+        '--action',
+        'update',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(run(['node', 'ghst', 'tier', 'update', fixtureIds.tierId])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,
     );
+    await expect(
+      run(['node', 'ghst', 'tier', 'bulk', '--filter', 'type:paid', '--action', 'update']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(run(['node', 'ghst', 'offer', 'update', fixtureIds.offerId])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,
     );
+    await expect(
+      run(['node', 'ghst', 'offer', 'bulk', '--filter', 'status:active', '--action', 'update']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(run(['node', 'ghst', 'label', 'get'])).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(
       run(['node', 'ghst', 'label', 'get', fixtureIds.labelId, '--slug', fixtureIds.labelSlug]),
@@ -726,6 +903,32 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(
       run(['node', 'ghst', 'tag', 'bulk', '--filter', 'visibility:public', '--action', 'update']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'label', 'bulk', '--filter', "name:~'vip'", '--action', 'update']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'label', 'bulk', '--filter', "name:~'vip'", '--action', 'delete']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'member',
+        'update',
+        fixtureIds.memberId,
+        '--expiry',
+        '2027-01-01T00:00:00Z',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(run(['node', 'ghst', 'member', 'bulk', '--update', '--all'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    await expect(run(['node', 'ghst', 'member', 'bulk', '--delete', '--all'])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    await expect(
+      run(['node', 'ghst', 'member', 'bulk', '--action', 'delete', '--all']),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');

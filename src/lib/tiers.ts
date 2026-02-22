@@ -52,3 +52,67 @@ export async function updateTier(
   const client = await getClient(global);
   return client.tiers.edit(id, patch);
 }
+
+export async function bulkTiers(
+  global: GlobalOptions,
+  options: {
+    filter: string;
+    patch: Record<string, unknown>;
+  },
+): Promise<Record<string, unknown>> {
+  const list = await listTiers(
+    global,
+    {
+      filter: options.filter,
+      limit: 100,
+    },
+    true,
+  );
+  const tiers = Array.isArray(list.tiers) ? list.tiers : [];
+  const ids = tiers
+    .map((entry) => String((entry as Record<string, unknown>)?.id ?? '').trim())
+    .filter(Boolean);
+
+  if (ids.length === 0) {
+    return {
+      bulk: {
+        meta: {
+          stats: {
+            successful: 0,
+            unsuccessful: 0,
+          },
+        },
+        errors: [],
+      },
+    };
+  }
+
+  let successful = 0;
+  let unsuccessful = 0;
+  const errors: Array<Record<string, string>> = [];
+
+  for (const id of ids) {
+    try {
+      await updateTier(global, id, options.patch);
+      successful += 1;
+    } catch (error) {
+      unsuccessful += 1;
+      errors.push({
+        id,
+        message: (error as Error).message,
+      });
+    }
+  }
+
+  return {
+    bulk: {
+      meta: {
+        stats: {
+          successful,
+          unsuccessful,
+        },
+      },
+      errors,
+    },
+  };
+}

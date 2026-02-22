@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { ImageUploadInputSchema } from '../src/schemas/image.js';
 import {
+  LabelBulkInputSchema,
   LabelCreateInputSchema,
   LabelGetInputSchema,
   LabelListInputSchema,
@@ -22,12 +23,14 @@ import {
   MigrateWordpressInputSchema,
 } from '../src/schemas/migrate.js';
 import {
+  NewsletterBulkInputSchema,
   NewsletterCreateInputSchema,
   NewsletterGetInputSchema,
   NewsletterListInputSchema,
   NewsletterUpdateInputSchema,
 } from '../src/schemas/newsletter.js';
 import {
+  OfferBulkInputSchema,
   OfferCreateInputSchema,
   OfferGetInputSchema,
   OfferListInputSchema,
@@ -45,6 +48,7 @@ import {
   PostBulkInputSchema,
   PostCopyInputSchema,
   PostCreateInputSchema,
+  PostDeleteInputSchema,
   PostGetInputSchema,
   PostListInputSchema,
   PostScheduleInputSchema,
@@ -66,6 +70,7 @@ import {
   ThemeValidateInputSchema,
 } from '../src/schemas/theme.js';
 import {
+  TierBulkInputSchema,
   TierCreateInputSchema,
   TierGetInputSchema,
   TierListInputSchema,
@@ -93,6 +98,14 @@ describe('post schemas', () => {
     ).toBe('hello');
 
     expect(
+      PostCreateInputSchema.parse({
+        fromJson: './post.json',
+        markdownFile: './post.md',
+      }).fromJson,
+    ).toBe('./post.json');
+    expect(PostCreateInputSchema.parse({ fromJson: './post.json' }).status).toBeUndefined();
+
+    expect(
       PostUpdateInputSchema.parse({
         id: 'id1',
         title: 'new',
@@ -106,6 +119,9 @@ describe('post schemas', () => {
     expect(PostScheduleInputSchema.parse({ id: 'id1', at: '2026-03-01T10:00:00Z' }).id).toBe('id1');
     expect(PostUnscheduleInputSchema.parse({ id: 'id1' }).id).toBe('id1');
     expect(PostCopyInputSchema.parse({ id: 'id1' }).id).toBe('id1');
+    expect(PostDeleteInputSchema.parse({ filter: 'status:draft', yes: true }).filter).toBe(
+      'status:draft',
+    );
     expect(
       PostBulkInputSchema.parse({
         filter: 'status:draft',
@@ -114,6 +130,14 @@ describe('post schemas', () => {
       }).action,
     ).toBe('update');
     expect(() => PostBulkInputSchema.parse({ filter: 'status:draft', action: 'delete' })).toThrow();
+    expect(() =>
+      PostBulkInputSchema.parse({
+        filter: 'status:draft',
+        action: 'update',
+        delete: true,
+        status: 'published',
+      }),
+    ).toThrow();
   });
 });
 
@@ -178,6 +202,13 @@ describe('member schemas', () => {
         all: true,
       }).action,
     ).toBe('unsubscribe');
+    expect(
+      MemberBulkInputSchema.parse({
+        update: true,
+        all: true,
+        labels: 'VIP',
+      }).update,
+    ).toBe(true);
 
     expect(() => MemberGetInputSchema.parse({})).toThrow();
     expect(() =>
@@ -186,6 +217,25 @@ describe('member schemas', () => {
     expect(() =>
       MemberBulkInputSchema.parse({ action: 'add-label', filter: "id:'id1'" }),
     ).toThrow();
+    expect(() =>
+      MemberBulkInputSchema.parse({
+        delete: true,
+        all: true,
+      }),
+    ).toThrow();
+    expect(() =>
+      MemberBulkInputSchema.parse({
+        action: 'delete',
+        all: true,
+      }),
+    ).toThrow();
+    expect(
+      MemberBulkInputSchema.parse({
+        action: 'delete',
+        all: true,
+        yes: true,
+      }).action,
+    ).toBe('delete');
   });
 });
 
@@ -205,6 +255,13 @@ describe('newsletter schemas', () => {
         name: 'Updated',
       }).name,
     ).toBe('Updated');
+    expect(
+      NewsletterBulkInputSchema.parse({
+        filter: 'status:active',
+        action: 'update',
+        status: 'archived',
+      }).status,
+    ).toBe('archived');
   });
 });
 
@@ -224,6 +281,13 @@ describe('tier schemas', () => {
         trialDays: 14,
       }).trialDays,
     ).toBe(14);
+    expect(
+      TierBulkInputSchema.parse({
+        filter: 'type:paid',
+        action: 'update',
+        active: true,
+      }).active,
+    ).toBe(true);
   });
 });
 
@@ -243,6 +307,13 @@ describe('offer schemas', () => {
         status: 'archived',
       }).status,
     ).toBe('archived');
+    expect(
+      OfferBulkInputSchema.parse({
+        filter: 'status:active',
+        action: 'update',
+        status: 'archived',
+      }).status,
+    ).toBe('archived');
 
     expect(() => OfferUpdateInputSchema.parse({ id: 'id1' })).toThrow();
   });
@@ -254,11 +325,24 @@ describe('label schemas', () => {
     expect(LabelGetInputSchema.parse({ slug: 'vip' }).slug).toBe('vip');
     expect(LabelCreateInputSchema.parse({ name: 'VIP' }).name).toBe('VIP');
     expect(LabelUpdateInputSchema.parse({ id: 'id1', name: 'VIP 2' }).name).toBe('VIP 2');
+    expect(
+      LabelBulkInputSchema.parse({
+        filter: "name:'VIP'",
+        action: 'update',
+        name: 'VIP 2',
+      }).action,
+    ).toBe('update');
 
     expect(() => LabelGetInputSchema.parse({})).toThrow();
     expect(() => LabelGetInputSchema.parse({ id: 'id1', slug: 'vip' })).toThrow();
     expect(() =>
       LabelUpdateInputSchema.parse({ id: 'id1', slugLookup: 'vip', name: 'x' }),
+    ).toThrow();
+    expect(() =>
+      LabelBulkInputSchema.parse({
+        filter: "name:'VIP'",
+        action: 'delete',
+      }),
     ).toThrow();
   });
 });

@@ -94,3 +94,81 @@ export async function deleteLabel(
   const client = await getClient(global);
   return client.labels.delete(id);
 }
+
+function extractLabelIds(payload: GhostPaginatedResponse): string[] {
+  const labels = Array.isArray(payload.labels) ? payload.labels : [];
+  return labels
+    .map((entry) => String((entry as Record<string, unknown>)?.id ?? '').trim())
+    .filter(Boolean);
+}
+
+export async function bulkLabels(
+  global: GlobalOptions,
+  options: {
+    filter: string;
+    delete?: boolean;
+    name?: string;
+  },
+): Promise<Record<string, unknown>> {
+  const list = await listLabels(
+    global,
+    {
+      filter: options.filter,
+      limit: 100,
+    },
+    true,
+  );
+  const ids = extractLabelIds(list);
+
+  if (ids.length === 0) {
+    return {
+      bulk: {
+        meta: {
+          stats: {
+            successful: 0,
+            unsuccessful: 0,
+          },
+        },
+        errors: [],
+      },
+    };
+  }
+
+  let successful = 0;
+  let unsuccessful = 0;
+  const errors: Array<Record<string, string>> = [];
+
+  for (const id of ids) {
+    try {
+      if (options.delete) {
+        await deleteLabel(global, id);
+      } else {
+        await updateLabel(global, {
+          id,
+          patch: {
+            name: options.name,
+          },
+        });
+      }
+      successful += 1;
+    } catch (error) {
+      unsuccessful += 1;
+      errors.push({
+        id,
+        message: (error as Error).message,
+      });
+    }
+  }
+
+  return {
+    bulk: {
+      meta: {
+        stats: {
+          successful,
+          unsuccessful,
+        },
+      },
+      errors,
+    },
+  };
+}
