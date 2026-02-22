@@ -63,6 +63,7 @@ export const PostCreateInputSchema = withSingleContentSource(
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
       tier: z.string().min(1).optional(),
+      featureImage: z.string().url().optional(),
       excerpt: z.string().optional(),
       metaTitle: z.string().optional(),
       metaDescription: z.string().optional(),
@@ -103,6 +104,7 @@ export const PostUpdateInputSchema = withSingleContentSource(
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
       tier: z.string().min(1).optional(),
+      featureImage: z.string().url().optional(),
       excerpt: z.string().optional(),
       metaTitle: z.string().optional(),
       metaDescription: z.string().optional(),
@@ -135,6 +137,7 @@ export const PostUpdateInputSchema = withSingleContentSource(
             data.featured !== undefined ||
             data.visibility ||
             data.tier ||
+            data.featureImage ||
             data.excerpt ||
             data.metaTitle ||
             data.metaDescription ||

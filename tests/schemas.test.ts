@@ -111,6 +111,12 @@ describe('post schemas', () => {
         title: 'new',
       }).title,
     ).toBe('new');
+    expect(
+      PostUpdateInputSchema.parse({
+        id: 'id1',
+        featureImage: 'https://example.com/cat.jpg',
+      }).featureImage,
+    ).toBe('https://example.com/cat.jpg');
 
     expect(() =>
       PostCreateInputSchema.parse({ title: 'bad', html: 'x', lexicalFile: 'y' }),

@@ -124,6 +124,7 @@ describe('PRD parity guardrails', () => {
       '--markdown-stdin',
       '--html-raw-file',
       '--from-json',
+      '--feature-image',
       '--meta-title',
       '--meta-description',
       '--og-title',
@@ -135,7 +136,7 @@ describe('PRD parity guardrails', () => {
       expect(postCreateFlags).toContain(flag);
     }
 
-    for (const flag of ['--from-json', '--meta-title']) {
+    for (const flag of ['--from-json', '--feature-image', '--meta-title']) {
       expect(postUpdateFlags).toContain(flag);
     }
 

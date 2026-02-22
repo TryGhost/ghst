@@ -4,6 +4,21 @@ import { GhostClient } from './client.js';
 import { resolveConnectionConfig } from './config.js';
 import type { GlobalOptions } from './types.js';
 
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.avif': 'image/avif',
+};
+
+function inferImageMimeType(filePath: string): string {
+  const extension = path.extname(filePath).toLowerCase();
+  return IMAGE_MIME_BY_EXT[extension] ?? 'application/octet-stream';
+}
+
 async function getClient(global: GlobalOptions): Promise<GhostClient> {
   const connection = await resolveConnectionConfig(global);
   return new GhostClient({
@@ -23,9 +38,10 @@ export async function uploadImage(
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
   const bytes = await fs.readFile(options.filePath);
+  const mimeType = inferImageMimeType(options.filePath);
 
   const formData = new FormData();
-  formData.append('file', new Blob([bytes]), path.basename(options.filePath));
+  formData.append('file', new Blob([bytes], { type: mimeType }), path.basename(options.filePath));
 
   if (options.purpose) {
     formData.append('purpose', options.purpose);

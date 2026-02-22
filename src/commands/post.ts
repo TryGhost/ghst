@@ -232,6 +232,7 @@ export function registerPostCommands(program: Command): void {
     .option('--featured', 'Mark as featured')
     .option('--visibility <visibility>', 'public|members|paid|tiers')
     .option('--tier <slug>', 'Tier slug for tier visibility access')
+    .option('--feature-image <url>', 'Feature image URL')
     .option('--excerpt <excerpt>', 'Custom excerpt')
     .option('--meta-title <title>', 'Meta title')
     .option('--meta-description <description>', 'Meta description')
@@ -259,6 +260,7 @@ export function registerPostCommands(program: Command): void {
         featured: parseBooleanFlag(options.featured),
         visibility: options.visibility,
         tier: options.tier,
+        featureImage: options.featureImage,
         excerpt: options.excerpt,
         metaTitle: options.metaTitle,
         metaDescription: options.metaDescription,
@@ -312,6 +314,7 @@ export function registerPostCommands(program: Command): void {
           featured: parsed.data.featured,
           visibility: parsed.data.visibility,
           tiers: parsed.data.tier ? [{ slug: parsed.data.tier }] : undefined,
+          feature_image: parsed.data.featureImage,
           custom_excerpt: parsed.data.excerpt,
           meta_title: parsed.data.metaTitle,
           meta_description: parsed.data.metaDescription,
@@ -353,6 +356,7 @@ export function registerPostCommands(program: Command): void {
     .option('--featured <value>', 'true|false')
     .option('--visibility <visibility>', 'public|members|paid|tiers')
     .option('--tier <slug>', 'Tier slug for tier visibility access')
+    .option('--feature-image <url>', 'Feature image URL')
     .option('--excerpt <excerpt>', 'Custom excerpt')
     .option('--meta-title <title>', 'Meta title')
     .option('--meta-description <description>', 'Meta description')
@@ -382,6 +386,7 @@ export function registerPostCommands(program: Command): void {
         featured: parseBooleanFlag(options.featured),
         visibility: options.visibility,
         tier: options.tier,
+        featureImage: options.featureImage,
         excerpt: options.excerpt,
         metaTitle: options.metaTitle,
         metaDescription: options.metaDescription,
@@ -432,6 +437,7 @@ export function registerPostCommands(program: Command): void {
           featured: parsed.data.featured,
           visibility: parsed.data.visibility,
           tiers: parsed.data.tier ? [{ slug: parsed.data.tier }] : undefined,
+          feature_image: parsed.data.featureImage,
           custom_excerpt: parsed.data.excerpt,
           meta_title: parsed.data.metaTitle,
           meta_description: parsed.data.metaDescription,

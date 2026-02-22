@@ -706,6 +706,36 @@ describe('resource service helpers', () => {
     });
   });
 
+  test('image upload sends multipart file with image mime type', async () => {
+    let seenMimeType: string | null = null;
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, init }) => {
+        if (pathname.endsWith('/ghost/api/admin/images/upload/') && method === 'POST') {
+          const body = init?.body;
+          expect(body).toBeInstanceOf(FormData);
+          if (body instanceof FormData) {
+            const file = body.get('file');
+            expect(file).toBeInstanceOf(File);
+            if (file instanceof File) {
+              seenMimeType = file.type;
+            }
+          }
+          return jsonResponse(cloneFixture(ghostFixtures.images.upload));
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      uploadImage({}, { filePath: path.join(workDir, 'photo.jpg') }),
+    ).resolves.toMatchObject({
+      images: [{ url: expect.any(String) }],
+    });
+    expect(seenMimeType).toBe('image/jpeg');
+  });
+
   test('supports migrate helpers', async () => {
     installGhostFixtureFetchMock();
 
