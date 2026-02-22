@@ -7,6 +7,9 @@
 - Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD parity status: strict phase 1-4 command/action/flag parity in place with guard tests; only `snippet` remains intentionally deferred pending confirmed Ghost Admin API contract.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
+- Documentation split:
+  - `README.md`: install + usage only (end-user docs)
+  - `CONTRIBUTING.md`: cloning, local development, testing, and contribution workflow
 
 ## Phase Timeline
 
@@ -46,6 +49,16 @@ pnpm build
 - Lint: `pnpm lint` (Biome check: lint + formatting)
 - Refresh Ghost Admin fixtures: `pnpm fixtures:ghost:update`
 - Check Ghost Admin fixture drift: `pnpm fixtures:ghost:check`
+
+## Documentation Rules
+
+- Keep `README.md` focused on installing and using `ghst`; avoid repository development setup there.
+- Keep all contributor/source-development instructions in `CONTRIBUTING.md`.
+- Keep command/action/flag docs in sync across:
+  - `README.md`
+  - `AGENTS.md`
+  - parity tests (`tests/prd-parity.test.ts`, command/runtime tests)
+- When docs describe package installation UX, document intended published usage unless explicitly asked to note current publication status.
 
 ## Repository Layout
 
@@ -120,6 +133,8 @@ pnpm build
 - User config: `~/.config/ghst/config.json`
 - Project link file: `.ghst/config.json`
 - Example env vars: `.env.example`
+- Contributor guide: `CONTRIBUTING.md`
+- License: `LICENSE`
 
 ## Coding Guidelines
 
@@ -142,6 +157,12 @@ When changing Ghost API fixtures or fixture-backed mocks, also run:
 ```bash
 pnpm fixtures:ghost:check
 ```
+
+## Legal Alignment
+
+- Repository license file: MIT text copied from `TryGhost/Ghost` into `LICENSE`.
+- `README.md` ends with a `License & trademark` section aligned to Ghost wording/policy link.
+- `CONTRIBUTING.md` ends with the Ghost Contributor License Agreement text.
 
 ## Notes
 

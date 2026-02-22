@@ -1,158 +1,306 @@
-# ghst
+# ghst (beta)
 
-A modern Ghost CMS CLI.
+`ghst` is a CLI tool for managing Ghost instances from the terminal. Anything you can do with the Ghost Admin API, you can do with `ghst`. (And a bit more)
 
-## Release Status
+> [!IMPORTANT]
+> This tool is in active development beta, and is not yet stable. Use with caution, and back up critical data.
 
-- Current version target: `v0.4.0`
-- PRD source: [GitHub issue #1](https://github.com/TryGhost/ghst/issues/1)
-- Phase coverage:
-  - Phase 1: auth + post/page/tag CRUD
-  - Phase 2: member/newsletter/tier/offer/label
-  - Phase 3: webhook/user/image/theme/site/setting/migrate/config/api/completion
-  - Phase 4: `mcp`, `webhook listen`, `theme dev --watch`, post/page/tag parity actions, bulk operations across mutable phase 1-4 resources
-- Deferred: `snippet` remains intentionally deferred until Ghost Admin API contract is confirmed.
-  - Tracking doc: `docs/snippet-contract-tracker.md`
+- CRUD for Ghost resources
+- Full Admin API support
+- JSON-first scripting support (`--json`, `--jq`)
+- Built-in MCP server mode for editor/agent integration
+- Utility functions for development
 
-## Prerequisites
+## Contents
 
-- Node.js `24.x` (`.nvmrc` included)
-- `corepack` enabled
-- `pnpm` via `corepack` (`pnpm@10.28.1`)
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Authentication and Site Selection](#authentication-and-site-selection)
+- [Command Reference](#command-reference)
+- [Global Options](#global-options)
+- [Common Workflows](#common-workflows)
+- [Configuration and Environment Variables](#configuration-and-environment-variables)
+- [Output, Automation, and Exit Codes](#output-automation-and-exit-codes)
+- [MCP Server Mode](#mcp-server-mode)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [License & trademark](#license--trademark)
 
-## Setup
+## Install
 
-```bash
-nvm use
-corepack enable
-pnpm install
-pnpm build
-```
-
-## Local Usage
-
-```bash
-pnpm dev --help
-pnpm dev -- auth login
-pnpm dev -- post list
-```
-
-## Link Globally
+Install globally with npm:
 
 ```bash
-pnpm link --global
-ghst --help
+npm install -g ghst
 ```
 
-## First Authentication Flow
-
-1. Run `ghst auth login`.
-2. Press Enter when prompted to open Ghost Admin integration setup.
-3. Create a Custom Integration in Ghost Admin.
-4. Paste the `Ghost API URL` and `Ghost Admin API Key`.
-
-For CI/scripts:
+or run instantly without global install:
 
 ```bash
-ghst auth login --non-interactive --url https://myblog.ghost.io --key "{id}:{secret}" --json
+npx ghst
 ```
 
-Credentials are stored in `~/.config/ghst/config.json`.
+Other package managers:
 
-## Command Surface (`v0.4.0`)
+```bash
+pnpm add -g ghst
+```
 
-- `ghst auth login|logout|status|switch|list|link|token`
-- `ghst post list|get|create|update|delete|publish|schedule|unschedule|copy|bulk`
-- `ghst page list|get|create|update|delete|copy|bulk`
-- `ghst tag list|get|create|update|delete|bulk`
-- `ghst member list|get|create|update|delete|import|export|bulk`
-- `ghst newsletter list|get|create|update|bulk`
-- `ghst tier list|get|create|update|bulk`
-- `ghst offer list|get|create|update|bulk`
-- `ghst label list|get|create|update|delete|bulk`
-- `ghst webhook create|update|delete|events|listen`
-- `ghst user list|get|me`
-- `ghst image upload`
-- `ghst theme list|upload|activate|validate|dev`
-- `ghst site info`
-- `ghst setting list|get|set`
-- `ghst migrate wordpress|medium|substack|csv|json|export`
-- `ghst config show|path|list|get|set`
-- `ghst api [endpointPath]`
-- `ghst mcp stdio|http`
-- `ghst completion <bash|zsh|fish|powershell>`
+```bash
+yarn global add ghst
+```
 
-## Key Behaviors And Flags
+## Quick Start
 
-- `ghst member get [id] --email <email>` supports id or email lookup.
-- `ghst member list --status <free|paid|comped>` adds a status convenience filter (composed with `--filter` when both are present).
-- `ghst member update [id] --tier <id> --expiry <datetime>` supports complimentary tier expiry updates.
-- `ghst member bulk --action <unsubscribe|add-label|remove-label|delete> --all|--filter <nql> [--label-id <id>]` keeps the action model and also supports PRD aliases: `--update --labels <csv>` and `--delete --yes`.
-- `ghst member import <filePath> --labels a,b` sends multipart field `membersfile`.
-- `ghst member export --output ./members.csv` writes CSV; without `--output` it prints CSV to stdout.
-- `ghst post create|update` supports content and payload ingestion via `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
-- `ghst post create|update` supports metadata/email fields including excerpt, meta/og fields, code injection fields, newsletter slug, email segment, and email-only toggles.
-- `ghst post schedule <id> --at <datetime>` and `ghst post unschedule <id>` support scheduled publishing control.
-- `ghst post delete [id] --filter <nql>` supports filtered deletion; non-interactive execution requires `--yes`.
-- `ghst post|page copy <id>` uses Ghost copy endpoints.
-- `ghst post bulk --filter <nql> --action <update|delete>` supports aliases `--update`/`--delete` and update fields `--status`, `--tags`, `--add-tag`, `--authors`.
-- `ghst page|tag bulk --filter <nql> --action <update|delete>` applies update/delete operations over matched resources.
-- `ghst newsletter|tier|offer bulk --filter <nql> --action update` supports safe update-only bulk operations.
-- `ghst label bulk --filter <nql> --action <update|delete>` supports update/delete with delete confirmation via `--yes`.
-- `ghst tier list --include <relations>` is supported for relationship expansion.
-- `ghst label get [id] --slug <slug>` and `ghst label update [id] --slug <slug> ...` support slug lookup.
-- `ghst webhook listen --public-url <public url> --forward-to <local url>` creates temporary webhook subscriptions, forwards deliveries, and cleans up on exit.
-- `ghst theme dev <path> --watch [--activate] [--debounce-ms <ms>]` uploads once, then debounced uploads on file changes.
-- `ghst migrate csv` enforces canonical CSV headers: required `title` + exactly one of `html` or `markdown`; optional `slug,status,published_at,tags,authors,excerpt,feature_image`.
-- `ghst migrate substack --url <source>` requires explicit source URL; `--target-url` can override destination Ghost URL.
-- `ghst setting set` uses `PUT /settings` and surfaces explicit permission guidance for integration-token restrictions.
-- `ghst api` supports:
-  - `--method|-X`, `--query key=value`, `--body`, `--input`
-  - `--field|-f key=value` to build/merge request body fields
-  - `--paginate` to merge paginated list responses
-  - `--include-headers` to include status and headers with payload
-  - `--content-api` to target Content API instead of Admin API
-- `ghst mcp stdio|http --tools <csv|all>` supports tool-group filtering.
-  - Available groups: `posts,pages,tags,members,site,settings,users,api,search`.
-  - Core tools include post/page/tag/member CRUD, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`, settings/site/user/api/search.
-  - `ghost_snippet_list` remains deferred until snippet contract confirmation.
+1. Authenticate:
 
-## Examples
+```bash
+ghst auth login
+```
+
+2. Verify active auth:
+
+```bash
+ghst auth status
+```
+
+3. Fetch content:
 
 ```bash
 ghst post list --limit 5
-ghst post schedule 123 --at 2026-03-01T10:00:00Z
-ghst page copy 456
-ghst tag bulk --filter "visibility:public" --action update --visibility internal
-ghst post create --title "Launch" --markdown-file ./launch.md --newsletter weekly --email-segment all
-ghst post bulk --filter "status:draft" --update --add-tag release-notes --authors editor@example.com
-ghst member bulk --update --filter "status:free" --labels "trial,needs-follow-up"
-ghst newsletter bulk --filter "status:active" --action update --visibility members
-ghst webhook listen --public-url https://hooks.example.com/ghost --forward-to http://localhost:3000/webhooks
-ghst theme dev ./theme-dir --watch --activate
-ghst api /posts/ --paginate --include-headers
-ghst mcp http --host 127.0.0.1 --port 3100 --tools posts,tags,site
 ```
 
-## Config Resolution Order
+4. Create content:
+
+```bash
+ghst post create --title "Launch" --markdown-file ./launch.md
+```
+
+5. Get help:
+
+```bash
+ghst --help
+ghst <resource> --help
+ghst <resource> <action> --help
+```
+
+## Authentication and Site Selection
+
+Interactive auth flow:
+
+1. Run `ghst auth login`.
+2. Open Ghost Admin integration setup when prompted.
+3. Create a Custom Integration.
+4. Paste `Ghost API URL` and `Ghost Admin API Key`.
+
+Non-interactive auth for CI/scripts:
+
+```bash
+ghst auth login \
+  --non-interactive \
+  --url https://myblog.ghost.io \
+  --key "{id}:{secret}" \
+  --json
+```
+
+Site/profile management:
+
+```bash
+ghst auth list
+ghst auth switch <site-alias>
+ghst auth link --site <site-alias>
+ghst auth token
+```
+
+## Command Reference
+
+| Resource | Actions |
+| --- | --- |
+| `auth` | `login`, `status`, `list`, `switch`, `logout`, `link`, `token` |
+| `post` | `list`, `get`, `create`, `update`, `delete`, `publish`, `schedule`, `unschedule`, `copy`, `bulk` |
+| `page` | `list`, `get`, `create`, `update`, `delete`, `copy`, `bulk` |
+| `tag` | `list`, `get`, `create`, `update`, `delete`, `bulk` |
+| `member` | `list`, `get`, `create`, `update`, `delete`, `import`, `export`, `bulk` |
+| `newsletter` | `list`, `get`, `create`, `update`, `bulk` |
+| `tier` | `list`, `get`, `create`, `update`, `bulk` |
+| `offer` | `list`, `get`, `create`, `update`, `bulk` |
+| `label` | `list`, `get`, `create`, `update`, `delete`, `bulk` |
+| `webhook` | `create`, `update`, `delete`, `events`, `listen` |
+| `user` | `list`, `get`, `me` |
+| `image` | `upload` |
+| `theme` | `list`, `upload`, `activate`, `validate`, `dev` |
+| `site` | `info` |
+| `setting` | `list`, `get`, `set` |
+| `migrate` | `wordpress`, `medium`, `substack`, `csv`, `json`, `export` |
+| `config` | `show`, `path`, `list`, `get`, `set` |
+| `api` | raw Ghost request command (`ghst api [endpointPath]`) |
+| `mcp` | `stdio`, `http` |
+| `completion` | `<bash|zsh|fish|powershell>` |
+
+## Global Options
+
+| Flag | Purpose |
+| --- | --- |
+| `--json` | Emit JSON output for automation |
+| `--jq <filter>` | Apply jq-style extraction to JSON output |
+| `--site <alias>` | Use configured site alias |
+| `--url <url>` + `--key <key>` | Use direct credentials for this invocation |
+| `--debug [level]` | Enable debug output |
+| `--no-color` | Disable color output |
+
+## Common Workflows
+
+Create and publish:
+
+```bash
+ghst post create --title "Launch" --markdown-file ./launch.md --newsletter weekly --email-segment all
+ghst post publish <post-id>
+```
+
+Bulk updates:
+
+```bash
+ghst post bulk --filter "status:draft" --update --add-tag release-notes --authors editor@example.com
+ghst member bulk --update --filter "status:free" --labels "trial,needs-follow-up"
+ghst label bulk --filter "name:'legacy'" --action delete --yes
+```
+
+Scheduling:
+
+```bash
+ghst post schedule <post-id> --at 2026-03-01T10:00:00Z
+ghst post unschedule <post-id>
+```
+
+Theme development:
+
+```bash
+ghst theme validate ./theme-dir
+ghst theme dev ./theme-dir --watch --activate
+```
+
+Webhook relay for local development:
+
+```bash
+ghst webhook listen \
+  --public-url https://hooks.example.com/ghost \
+  --forward-to http://localhost:3000/webhooks
+```
+
+Direct API calls:
+
+```bash
+ghst api /posts/ --paginate --include-headers
+ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
+```
+
+## Configuration and Environment Variables
+
+Connection resolution order:
 
 1. `--site`
 2. `--url` + `--key`
 3. `GHOST_URL` + `GHOST_ADMIN_API_KEY`
 4. project link file `.ghst/config.json`
-5. active site in `~/.config/ghst/config.json`
+5. active site in user config
 
-## Validation And CI Commands
+Primary config/state files:
+
+| Path | Purpose |
+| --- | --- |
+| `~/.config/ghst/config.json` | User config (saved sites, active site) |
+| `.ghst/config.json` | Project-level linked site |
+| `.env.example` | Example environment configuration |
+
+Environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `GHOST_URL` | Ghost site URL override |
+| `GHOST_ADMIN_API_KEY` | Ghost Admin API key (`{id}:{secret}`) |
+| `GHOST_API_VERSION` | Admin API version override (default `v6.0`) |
+| `GHOST_SITE` | Site alias fallback lookup in user config |
+| `GHOST_CONTENT_API_KEY` | Required when using `ghst api --content-api` |
+| `GHST_CONFIG_DIR` | Override user config directory path |
+| `GHST_OUTPUT` | Force JSON output when set to `json` |
+| `GHST_FORCE_TTY` | Force TTY behavior for non-interactive environments |
+| `GHST_NO_COLOR` / `NO_COLOR` | Disable colorized output |
+
+## Output, Automation, and Exit Codes
+
+JSON + jq-style extraction:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
+ghst post list --json
+ghst post list --json --jq '.posts[].title'
 ```
 
-When fixture-backed Ghost API behavior changes:
+Common machine-safe practices:
+
+- Use `--json` for scripts.
+- Use `--non-interactive` for CI where prompts are invalid.
+- Pass explicit auth (`--url` and `--key`) or set env vars.
+
+Exit code mapping:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | General error |
+| `2` | Usage/argument error |
+| `3` | Authentication/authorization error |
+| `4` | Operation cancelled |
+| `5` | Not found |
+| `6` | Conflict |
+| `7` | Validation error |
+| `8` | Rate limited |
+
+## MCP Server Mode
+
+Run MCP over stdio or HTTP:
 
 ```bash
-pnpm fixtures:ghost:check
+ghst mcp stdio --tools all
+ghst mcp http --host 127.0.0.1 --port 3100 --tools posts,tags,site
 ```
+
+Supported tool groups:
+
+- `posts`
+- `pages`
+- `tags`
+- `members`
+- `site`
+- `settings`
+- `users`
+- `api`
+- `search`
+
+## Troubleshooting
+
+`No site configuration found`:
+
+- Run `ghst auth login`, or
+- Provide `--url` and `--key`, or
+- Set `GHOST_URL` and `GHOST_ADMIN_API_KEY`.
+
+`GHOST_CONTENT_API_KEY is required for --content-api requests`:
+
+- Export `GHOST_CONTENT_API_KEY` before `ghst api --content-api`.
+
+`Use --non-interactive when combining auth login with --json`:
+
+- Re-run auth with `--non-interactive` and explicit credentials.
+
+Commands and flags drift:
+
+- Re-check current command docs with `ghst <resource> --help`.
+
+## Development
+
+For cloning, testing, and developing the repository from source, see CONTRIBUTING.md
+
+## License & trademark
+
+Copyright (c) 2013-2026 Ghost Foundation - Released under the [MIT license](LICENSE).
+Ghost and the Ghost Logo are trademarks of Ghost Foundation Ltd. Please see our [trademark policy](https://ghost.org/trademark/) for info on acceptable usage.
