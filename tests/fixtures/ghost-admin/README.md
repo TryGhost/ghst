@@ -19,6 +19,7 @@ This command will:
 6. Capture representative error responses (`409`, `404`, and `422` when returned).
 7. Sanitize volatile fields and write `fixtures.json`.
 8. Delete temporary resources.
+9. Redact secret-like values (for example Stripe keys and API tokens). Fixture generation fails if secret-like values remain after sanitization.
 
 ## Check Fixtures In CI
 
@@ -32,3 +33,4 @@ This regenerates fixtures in-memory and compares with the committed file. It exi
 
 - Fixture generation performs real writes and deletes in the configured Ghost site.
 - Use a development/staging site for fixture refreshes.
+- `tests/fixtures-secrets.test.ts` enforces that committed fixtures do not contain secret-like values.

@@ -790,20 +790,20 @@ export function registerCoreTools(
 }
 
 export function parseToolGroups(toolsArg: string | undefined): Set<McpToolGroup> {
-  if (!toolsArg || toolsArg === 'all') {
+  if (toolsArg === undefined || toolsArg === 'all') {
     return new Set(MCP_TOOL_GROUPS);
   }
 
   const requested = parseCsv(toolsArg) ?? [];
+  if (requested.length === 0) {
+    return new Set();
+  }
+
   const result = new Set<McpToolGroup>();
   for (const value of requested) {
     if ((MCP_TOOL_GROUPS as readonly string[]).includes(value)) {
       result.add(value as McpToolGroup);
     }
-  }
-
-  if (result.size === 0) {
-    return new Set(MCP_TOOL_GROUPS);
   }
 
   return result;

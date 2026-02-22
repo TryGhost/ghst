@@ -215,6 +215,8 @@ describe('mcp core tool registration', () => {
     expect(parseToolGroups('all')).toEqual(new Set(MCP_TOOL_GROUPS));
     expect(parseToolGroups('posts,tags')).toEqual(new Set(['posts', 'tags']));
     expect(parseToolGroups('posts,unknown')).toEqual(new Set(['posts']));
-    expect(parseToolGroups('unknown')).toEqual(new Set(MCP_TOOL_GROUPS));
+    expect(parseToolGroups('unknown')).toEqual(new Set());
+    expect(parseToolGroups('')).toEqual(new Set());
+    expect(parseToolGroups(',')).toEqual(new Set());
   });
 });

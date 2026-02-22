@@ -19,6 +19,20 @@ const CHECK_MODE = process.argv.includes('--check');
 const ISO_DATE_REGEX = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g;
 const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const EXACT_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const STRIPE_KEY_REGEX = /\b(?:pk|sk|rk)_(?:live|test)_[A-Za-z0-9]+\b/g;
+const STRIPE_WEBHOOK_SECRET_REGEX = /\bwhsec_[A-Za-z0-9]+\b/g;
+const GHOST_ADMIN_KEY_REGEX = /\b[0-9a-f]{24}:[0-9a-f]{64}\b/gi;
+const PRIVATE_KEY_BLOCK_REGEX =
+  /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/g;
+const LEAK_GUARD_PATTERNS: Array<{ name: string; regex: RegExp }> = [
+  { name: 'Stripe key', regex: /\b(?:pk|sk|rk)_(?:live|test)_[A-Za-z0-9]+\b/ },
+  { name: 'Stripe webhook secret', regex: /\bwhsec_[A-Za-z0-9]+\b/ },
+  { name: 'Ghost Admin API key', regex: /\b[0-9a-f]{24}:[0-9a-f]{64}\b/i },
+  {
+    name: 'Private key block',
+    regex: /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/,
+  },
+];
 
 function asRecord(value: unknown): Record<string, unknown> {
   return (value ?? {}) as Record<string, unknown>;
@@ -106,6 +120,32 @@ function trySanitizeJsonString(value: string, replacements: Map<string, string>)
   }
 }
 
+function redactSensitiveValue(value: string): string {
+  return value
+    .replace(STRIPE_KEY_REGEX, '<stripe-key>')
+    .replace(STRIPE_WEBHOOK_SECRET_REGEX, '<stripe-webhook-secret>')
+    .replace(GHOST_ADMIN_KEY_REGEX, '<ghost-admin-key>')
+    .replace(PRIVATE_KEY_BLOCK_REGEX, '<private-key>');
+}
+
+function assertNoSecretLikeTokens(doc: FixtureDocument): void {
+  const payload = JSON.stringify(doc);
+  const leaks = LEAK_GUARD_PATTERNS.flatMap((entry) => {
+    const match = payload.match(entry.regex);
+    if (!match) {
+      return [];
+    }
+
+    return [`${entry.name}: ${match[0]}`];
+  });
+
+  if (leaks.length > 0) {
+    throw new Error(
+      `Sensitive token(s) detected in fixtures after sanitization:\n${leaks.join('\n')}`,
+    );
+  }
+}
+
 function sanitizeValue(
   value: unknown,
   replacements: Map<string, string>,
@@ -170,6 +210,7 @@ function sanitizeValue(
 
   nextValue = nextValue.replace(/([?&]key=)[^&]+/g, '$1<token>');
   nextValue = nextValue.replace(/([?&]token=)[^&]+/g, '$1<token>');
+  nextValue = redactSensitiveValue(nextValue);
 
   const sanitizedJson = trySanitizeJsonString(nextValue, replacements);
   if (sanitizedJson !== null) {
@@ -953,6 +994,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
 async function main(): Promise<void> {
   const outputDir = path.dirname(OUTPUT_PATH);
   const nextDoc = await buildFixtures();
+  assertNoSecretLikeTokens(nextDoc);
   const nextJson = `${JSON.stringify(nextDoc, null, 2)}\n`;
 
   if (CHECK_MODE) {

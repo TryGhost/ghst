@@ -8,10 +8,108 @@ import {
   ProjectConfigSchema,
   UserConfigSchema,
 } from '../schemas/config.js';
+import { credentialRefForAlias, getCredentialStore } from './credentials.js';
 import { ExitCode, GhstError } from './errors.js';
 import type { ConnectionConfig, GlobalOptions } from './types.js';
 
 const DEFAULT_API_VERSION = 'v6.0';
+const CURRENT_CONFIG_VERSION = 2;
+let warnedLegacyPlaintext = false;
+
+function isPosixPlatform(): boolean {
+  return process.platform !== 'win32';
+}
+
+async function enforceSecureUserConfigPermissions(configPath: string): Promise<void> {
+  if (!isPosixPlatform()) {
+    return;
+  }
+
+  let stat: Awaited<ReturnType<typeof fs.stat>> | null = null;
+  try {
+    stat = await fs.stat(configPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+
+  const mode = stat.mode & 0o777;
+  if ((mode & 0o077) !== 0) {
+    await fs.chmod(configPath, 0o600);
+  }
+}
+
+function withCurrentConfigVersion(config: GhstUserConfig): GhstUserConfig {
+  return {
+    ...config,
+    version: Math.max(config.version, CURRENT_CONFIG_VERSION),
+  };
+}
+
+function hasLegacyPlaintextCredentials(config: GhstUserConfig): boolean {
+  return Object.values(config.sites).some((site) =>
+    Boolean(site.adminApiKey && !site.credentialRef),
+  );
+}
+
+function warnLegacyCredentialFallback(): void {
+  if (warnedLegacyPlaintext || process.env.VITEST) {
+    return;
+  }
+
+  warnedLegacyPlaintext = true;
+  console.error(
+    'Warning: secure credential storage is unavailable; legacy plaintext credentials remain in config. Re-login once secure storage is available.',
+  );
+}
+
+async function migrateLegacyPlaintextCredentials(
+  config: GhstUserConfig,
+  env: NodeJS.ProcessEnv,
+): Promise<GhstUserConfig> {
+  if (!hasLegacyPlaintextCredentials(config)) {
+    return config;
+  }
+
+  const store = getCredentialStore();
+  let available = false;
+  try {
+    available = await store.isAvailable();
+  } catch {
+    available = false;
+  }
+
+  if (!available) {
+    warnLegacyCredentialFallback();
+    return config;
+  }
+
+  let changed = false;
+  const next = structuredClone(config);
+
+  for (const [alias, site] of Object.entries(next.sites)) {
+    const legacyKey = site.adminApiKey;
+    if (!legacyKey || site.credentialRef) {
+      continue;
+    }
+
+    const ref = credentialRefForAlias(alias);
+    await store.set(ref, legacyKey);
+    site.credentialRef = ref;
+    delete site.adminApiKey;
+    changed = true;
+  }
+
+  if (changed) {
+    const normalized = withCurrentConfigVersion(next);
+    await writeUserConfig(normalized, env);
+    return normalized;
+  }
+
+  return config;
+}
 
 export function deriveSiteAlias(url: string): string {
   const hostname = new URL(url).hostname.replace(/^www\./, '');
@@ -39,10 +137,12 @@ export async function readUserConfig(
   try {
     const raw = await fs.readFile(configPath, 'utf8');
     const json = JSON.parse(raw) as unknown;
-    return UserConfigSchema.parse(json);
+    const parsed = UserConfigSchema.parse(json);
+    await enforceSecureUserConfigPermissions(configPath);
+    return await migrateLegacyPlaintextCredentials(parsed, env);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return UserConfigSchema.parse({ version: 1, sites: {} });
+      return UserConfigSchema.parse({ version: CURRENT_CONFIG_VERSION, sites: {} });
     }
 
     if (error instanceof SyntaxError) {
@@ -61,8 +161,16 @@ export async function writeUserConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<void> {
   const configPath = getUserConfigPath(env);
-  await fs.mkdir(path.dirname(configPath), { recursive: true });
-  await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  const normalized = withCurrentConfigVersion(UserConfigSchema.parse(config));
+  await fs.mkdir(path.dirname(configPath), {
+    recursive: true,
+    ...(isPosixPlatform() ? { mode: 0o700 } : {}),
+  });
+  await fs.writeFile(configPath, `${JSON.stringify(normalized, null, 2)}\n`, {
+    encoding: 'utf8',
+    ...(isPosixPlatform() ? { mode: 0o600 } : {}),
+  });
+  await enforceSecureUserConfigPermissions(configPath);
 }
 
 export async function readProjectConfig(cwd = process.cwd()): Promise<GhstProjectConfig | null> {
@@ -97,11 +205,11 @@ export async function writeProjectConfig(
   await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 }
 
-function resolveSiteFromConfig(
+async function resolveSiteFromConfig(
   alias: string,
   config: GhstUserConfig,
   source: ConnectionConfig['source'],
-): ConnectionConfig {
+): Promise<ConnectionConfig> {
   const site = config.sites[alias];
   if (!site) {
     throw new GhstError(`Site alias not found: ${alias}`, {
@@ -110,9 +218,36 @@ function resolveSiteFromConfig(
     });
   }
 
+  let key = site.adminApiKey;
+  if (!key && site.credentialRef) {
+    const store = getCredentialStore();
+    const available = await store.isAvailable().catch(() => false);
+    if (!available) {
+      throw new GhstError(
+        `Secure credential storage is unavailable for site alias: ${alias}. Re-login with --insecure-storage or enable system keychain integration.`,
+        {
+          exitCode: ExitCode.AUTH_ERROR,
+          code: 'AUTH_REQUIRED',
+        },
+      );
+    }
+
+    key = (await store.get(site.credentialRef)) ?? undefined;
+  }
+
+  if (!key) {
+    throw new GhstError(
+      `Credentials for site alias '${alias}' are unavailable. Run ghst auth login.`,
+      {
+        exitCode: ExitCode.AUTH_ERROR,
+        code: 'AUTH_REQUIRED',
+      },
+    );
+  }
+
   return {
     url: site.url,
-    key: site.adminApiKey,
+    key,
     apiVersion: site.apiVersion,
     siteAlias: alias,
     source,
@@ -136,7 +271,7 @@ export async function resolveConnectionConfig(
 
   if (global.site) {
     SiteAliasSchema.parse(global.site);
-    return resolveSiteFromConfig(global.site, userConfig, 'site');
+    return await resolveSiteFromConfig(global.site, userConfig, 'site');
   }
 
   const hasUrlFlag = global.url !== undefined;
@@ -177,15 +312,15 @@ export async function resolveConnectionConfig(
   }
 
   if (env.GHOST_SITE) {
-    return resolveSiteFromConfig(env.GHOST_SITE, userConfig, 'site');
+    return await resolveSiteFromConfig(env.GHOST_SITE, userConfig, 'site');
   }
 
   if (projectConfig?.site) {
-    return resolveSiteFromConfig(projectConfig.site, userConfig, 'project');
+    return await resolveSiteFromConfig(projectConfig.site, userConfig, 'project');
   }
 
   if (userConfig.active) {
-    return resolveSiteFromConfig(userConfig.active, userConfig, 'active');
+    return await resolveSiteFromConfig(userConfig.active, userConfig, 'active');
   }
 
   throw new GhstError(

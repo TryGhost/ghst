@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-02-21T21:41:55.193Z",
+  "generatedAt": "2026-02-22T13:06:50.696Z",
   "source": {
     "siteAlias": "ghst",
     "apiVersion": "v6.0"
@@ -2046,7 +2046,7 @@
           "errors": []
         }
       },
-      "exportCsv": "id,email,name,note,subscribed_to_emails,complimentary_plan,stripe_customer_id,created_at,deleted_at,labels,tiers\r\n6999d123e5e8560001f39b3f,<userSlug>@onolan.org,<fixture-user-name>,This is a note,true,,cus_U1MkTku8Khlkf2,<datetime>,,Test,ghst\r\n<memberId>,<memberEmail>,<fixture-member-updated-name>,Fixture note updated,false,,,<datetime>,,,",
+      "exportCsv": "id,email,name,note,subscribed_to_emails,complimentary_plan,stripe_customer_id,created_at,deleted_at,labels,tiers\r\n6999d123e5e8560001f39b3f,<userSlug>@onolan.org,<fixture-user-name>,This is a note,true,,cus_U1MkTku8Khlkf2,<datetime>,,Test,ghst\r\n699ab960b2d17e0001f292e1,<email>,,,true,true,,<datetime>,,special,ghst\r\n<memberId>,<memberEmail>,<fixture-member-updated-name>,Fixture note updated,false,,,<datetime>,,,",
       "importCsv": {
         "members": [
           {
@@ -3232,7 +3232,7 @@
           },
           {
             "key": "stripe_connect_publishable_key",
-            "value": "pk_test_51T3JxwBATzDJmjGyoxCCy6LJB1knm0JElobMUsp65KkkEPwz9HKwNrPuI12nPpPQQVCIoPrt2tTnhszs8b7vVUqP00K2JHP5mD"
+            "value": "<stripe-key>"
           },
           {
             "key": "stripe_connect_secret_key",
@@ -3757,7 +3757,7 @@
             },
             {
               "key": "stripe_connect_publishable_key",
-              "value": "pk_test_51T3JxwBATzDJmjGyoxCCy6LJB1knm0JElobMUsp65KkkEPwz9HKwNrPuI12nPpPQQVCIoPrt2tTnhszs8b7vVUqP00K2JHP5mD"
+              "value": "<stripe-key>"
             },
             {
               "key": "stripe_connect_secret_key",

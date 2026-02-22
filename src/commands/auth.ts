@@ -12,6 +12,7 @@ import {
   writeUserConfig,
 } from '../lib/config.js';
 import { getGlobalOptions } from '../lib/context.js';
+import { credentialRefForAlias, getCredentialStore } from '../lib/credentials.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 
 type PromptFn = (question: string) => Promise<string>;
@@ -100,6 +101,33 @@ function getIntegrationSetupUrl(url: string): string {
   }
 }
 
+async function persistSiteCredential(
+  alias: string,
+  keyInput: string,
+  allowInsecureStorage: boolean,
+): Promise<{ credentialRef?: string; adminApiKey?: string }> {
+  const store = getCredentialStore();
+  const available = await store.isAvailable().catch(() => false);
+
+  if (available) {
+    const credentialRef = credentialRefForAlias(alias);
+    await store.set(credentialRef, keyInput);
+    return { credentialRef };
+  }
+
+  if (!allowInsecureStorage) {
+    throw new GhstError(
+      'Secure credential storage is unavailable. Re-run with --insecure-storage to store credentials in config.json.',
+      {
+        exitCode: ExitCode.USAGE_ERROR,
+        code: 'USAGE_ERROR',
+      },
+    );
+  }
+
+  return { adminApiKey: keyInput };
+}
+
 export function registerAuthCommands(program: Command): void {
   const auth = program.command('auth').description('Authentication management');
 
@@ -110,6 +138,10 @@ export function registerAuthCommands(program: Command): void {
     .option('--key <key>', 'Admin API key in {id}:{secret} format')
     .option('--key-env <name>', 'Read key from env var name')
     .option('--non-interactive', 'Disable prompts and require explicit credentials')
+    .option(
+      '--insecure-storage',
+      'Allow plaintext credential storage when secure storage is unavailable',
+    )
     .option('--site <alias>', 'Optional site alias')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
@@ -158,9 +190,15 @@ export function registerAuthCommands(program: Command): void {
 
       const config = await readUserConfig();
       const alias = options.site ?? deriveSiteAlias(urlInput);
+      const persisted = await persistSiteCredential(
+        alias,
+        keyInput,
+        Boolean(options.insecureStorage),
+      );
       config.sites[alias] = {
         url: urlInput,
-        adminApiKey: keyInput,
+        ...(persisted.credentialRef ? { credentialRef: persisted.credentialRef } : {}),
+        ...(persisted.adminApiKey ? { adminApiKey: persisted.adminApiKey } : {}),
         apiVersion: process.env.GHOST_API_VERSION ?? 'v6.0',
         addedAt: new Date().toISOString(),
       };
@@ -291,15 +329,20 @@ export function registerAuthCommands(program: Command): void {
       const global = getGlobalOptions(command);
       const config = await readUserConfig();
       const targetSite = options.site ?? global.site;
+      const store = getCredentialStore();
 
       if (targetSite) {
-        if (!config.sites[targetSite]) {
+        const site = config.sites[targetSite];
+        if (!site) {
           throw new GhstError(`Unknown site alias: ${targetSite}`, {
             exitCode: ExitCode.NOT_FOUND,
             code: 'SITE_NOT_FOUND',
           });
         }
 
+        if (site.credentialRef) {
+          await store.delete(site.credentialRef).catch(() => undefined);
+        }
         delete config.sites[targetSite];
         if (config.active === targetSite) {
           config.active = Object.keys(config.sites)[0];
@@ -309,6 +352,11 @@ export function registerAuthCommands(program: Command): void {
         return;
       }
 
+      for (const site of Object.values(config.sites)) {
+        if (site.credentialRef) {
+          await store.delete(site.credentialRef).catch(() => undefined);
+        }
+      }
       config.active = undefined;
       config.sites = {};
       await writeUserConfig(config);

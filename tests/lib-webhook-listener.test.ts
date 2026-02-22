@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import http from 'node:http';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -12,6 +13,19 @@ vi.mock('../src/lib/webhooks.js', () => ({
 }));
 
 import { runWebhookListener } from '../src/lib/webhook-listener.js';
+
+function signWebhookPayload(secret: string, body: string, timestamp?: string): string {
+  const digest = createHmac('sha256', secret)
+    .update(body)
+    .update(timestamp ?? '')
+    .digest('hex');
+
+  if (timestamp) {
+    return `t=${timestamp},sha256=${digest}`;
+  }
+
+  return `sha256=${digest}`;
+}
 
 async function getFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -57,10 +71,14 @@ describe.sequential('webhook listener runtime', () => {
   });
 
   test('creates webhooks, forwards payloads, and cleans up on signal', async () => {
+    let listenerSecret = '';
     webhookMocks.createWebhook.mockImplementation(
-      async (_global: unknown, payload: { event?: string }) => ({
-        webhooks: [{ id: `hook-${payload.event ?? 'unknown'}` }],
-      }),
+      async (_global: unknown, payload: { event?: string; secret?: string }) => {
+        listenerSecret = String(payload.secret ?? listenerSecret);
+        return {
+          webhooks: [{ id: `hook-${payload.event ?? 'unknown'}` }],
+        };
+      },
     );
     webhookMocks.deleteWebhook.mockResolvedValue({});
 
@@ -103,12 +121,14 @@ describe.sequential('webhook listener runtime', () => {
 
     await waitFor(() => events.some((event) => event.type === 'ready'));
 
+    const payload = JSON.stringify({ id: 'evt-1', type: 'post.published' });
     const postResponse = await fetch(`http://127.0.0.1:${listenPort}/`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
+        'x-ghost-signature': signWebhookPayload(listenerSecret, payload),
       },
-      body: JSON.stringify({ id: 'evt-1', type: 'post.published' }),
+      body: payload,
     });
     expect(postResponse.status).toBe(200);
 
@@ -139,7 +159,13 @@ describe.sequential('webhook listener runtime', () => {
   });
 
   test('returns 502 when forwarding fails and still shuts down', async () => {
-    webhookMocks.createWebhook.mockResolvedValue({ webhooks: [{}] });
+    let listenerSecret = '';
+    webhookMocks.createWebhook.mockImplementation(
+      async (_global: unknown, payload: { secret?: string }) => {
+        listenerSecret = String(payload.secret ?? listenerSecret);
+        return { webhooks: [{}] };
+      },
+    );
     webhookMocks.deleteWebhook.mockResolvedValue({});
 
     const unavailablePort = await getFreePort();
@@ -160,12 +186,14 @@ describe.sequential('webhook listener runtime', () => {
 
     await waitFor(() => events.some((event) => event.type === 'ready'));
 
+    const payload = JSON.stringify({ id: 'evt-2' });
     const response = await fetch(`http://127.0.0.1:${listenPort}/`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
+        'x-ghost-signature': signWebhookPayload(listenerSecret, payload),
       },
-      body: JSON.stringify({ id: 'evt-2' }),
+      body: payload,
     });
 
     expect(response.status).toBe(502);
@@ -179,7 +207,13 @@ describe.sequential('webhook listener runtime', () => {
   });
 
   test('handles aborted request streams per-request without crashing listener', async () => {
-    webhookMocks.createWebhook.mockResolvedValue({ webhooks: [{ id: 'hook-post' }] });
+    let listenerSecret = '';
+    webhookMocks.createWebhook.mockImplementation(
+      async (_global: unknown, payload: { secret?: string }) => {
+        listenerSecret = String(payload.secret ?? listenerSecret);
+        return { webhooks: [{ id: 'hook-post' }] };
+      },
+    );
     webhookMocks.deleteWebhook.mockResolvedValue({});
 
     const forwardServer = http.createServer((req, res) => {
@@ -239,7 +273,10 @@ describe.sequential('webhook listener runtime', () => {
 
     const okResponse = await fetch(`http://127.0.0.1:${listenPort}/`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'x-ghost-signature': signWebhookPayload(listenerSecret, JSON.stringify({ id: 'evt-ok' })),
+      },
       body: JSON.stringify({ id: 'evt-ok' }),
     });
     expect(okResponse.status).toBe(200);
@@ -282,6 +319,132 @@ describe.sequential('webhook listener runtime', () => {
     expect(webhookMocks.deleteWebhook).toHaveBeenCalledWith({}, 'hook-post');
     expect(events.some((event) => event.type === 'ready')).toBe(false);
     expect(events.some((event) => event.type === 'cleanup')).toBe(true);
+  });
+
+  test('rejects missing or invalid webhook signatures', async () => {
+    let listenerSecret = '';
+    webhookMocks.createWebhook.mockImplementation(
+      async (_global: unknown, payload: { secret?: string }) => {
+        listenerSecret = String(payload.secret ?? listenerSecret);
+        return { webhooks: [{ id: 'hook-post' }] };
+      },
+    );
+    webhookMocks.deleteWebhook.mockResolvedValue({});
+
+    const forwardServer = http.createServer((_req, res) => {
+      res.statusCode = 204;
+      res.end();
+    });
+    const forwardPort = await getFreePort();
+    await new Promise<void>((resolve, reject) => {
+      forwardServer.once('error', reject);
+      forwardServer.listen(forwardPort, '127.0.0.1', () => {
+        forwardServer.off('error', reject);
+        resolve();
+      });
+    });
+
+    const listenPort = await getFreePort();
+    const events: Array<Record<string, unknown>> = [];
+    const listenerPromise = runWebhookListener(
+      {},
+      {
+        publicUrl: 'https://hooks.example.com/ghost',
+        forwardTo: `http://127.0.0.1:${forwardPort}/webhooks`,
+        events: ['post.published'],
+        host: '127.0.0.1',
+        port: listenPort,
+        onEvent: (event) => events.push(event),
+      },
+    );
+
+    await waitFor(() => events.some((event) => event.type === 'ready'));
+
+    const unsigned = await fetch(`http://127.0.0.1:${listenPort}/`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"id":"evt-missing"}',
+    });
+    expect(unsigned.status).toBe(401);
+
+    const invalid = await fetch(`http://127.0.0.1:${listenPort}/`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-ghost-signature': 'sha256=deadbeef',
+      },
+      body: '{"id":"evt-invalid"}',
+    });
+    expect(invalid.status).toBe(401);
+
+    const timestamp = `${Math.floor(Date.now() / 1000)}`;
+    const validBody = '{"id":"evt-valid"}';
+    const valid = await fetch(`http://127.0.0.1:${listenPort}/`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-ghost-signature': signWebhookPayload(listenerSecret, validBody, timestamp),
+      },
+      body: validBody,
+    });
+    expect(valid.status).toBe(200);
+
+    process.emit('SIGINT');
+    await listenerPromise;
+
+    await new Promise<void>((resolve, reject) => {
+      forwardServer.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+  });
+
+  test('rejects oversized webhook payloads', async () => {
+    let listenerSecret = '';
+    webhookMocks.createWebhook.mockImplementation(
+      async (_global: unknown, payload: { secret?: string }) => {
+        listenerSecret = String(payload.secret ?? listenerSecret);
+        return { webhooks: [{ id: 'hook-post' }] };
+      },
+    );
+    webhookMocks.deleteWebhook.mockResolvedValue({});
+
+    const forwardPort = await getFreePort();
+    const listenPort = await getFreePort();
+    const events: Array<Record<string, unknown>> = [];
+
+    const listenerPromise = runWebhookListener(
+      {},
+      {
+        publicUrl: 'https://hooks.example.com/ghost',
+        forwardTo: `http://127.0.0.1:${forwardPort}/webhooks`,
+        events: ['post.published'],
+        host: '127.0.0.1',
+        port: listenPort,
+        maxBodyBytes: 10,
+        onEvent: (event) => events.push(event),
+      },
+    );
+
+    await waitFor(() => events.some((event) => event.type === 'ready'));
+
+    const body = '{"id":"way-too-large"}';
+    const response = await fetch(`http://127.0.0.1:${listenPort}/`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-ghost-signature': signWebhookPayload(listenerSecret, body),
+      },
+      body,
+    });
+    expect(response.status).toBe(413);
+
+    process.emit('SIGTERM');
+    await listenerPromise;
   });
 
   test('cleans up created webhooks when listener bind fails', async () => {

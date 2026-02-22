@@ -7,10 +7,12 @@ import { setMcpRunnersForTests } from '../src/commands/mcp.js';
 import { setThemeDevRunnerForTests, setThemeValidatorForTests } from '../src/commands/theme.js';
 import { setWebhookListenRunnerForTests } from '../src/commands/webhook.js';
 import { run } from '../src/index.js';
+import { setCredentialStoreForTests } from '../src/lib/credentials.js';
 import { ExitCode } from '../src/lib/errors.js';
 import { setMigrateSourceLoaderForTests } from '../src/lib/migrate.js';
 import { setPromptHandlerForTests } from '../src/lib/prompts.js';
 import { fixtureIds } from './helpers/ghost-fixtures.js';
+import { createMemoryCredentialStore } from './helpers/mock-credentials.js';
 import {
   createGhostFixtureFetchHandler,
   installGhostFixtureFetchMock,
@@ -49,6 +51,8 @@ describe('run + commands', () => {
     process.env.GHOST_CONTENT_API_KEY = 'content-key';
     delete process.env.GHOST_SITE;
     delete process.env.GHST_OUTPUT;
+    delete process.env.GHST_MCP_AUTH_TOKEN;
+    setCredentialStoreForTests(createMemoryCredentialStore());
 
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -65,6 +69,7 @@ describe('run + commands', () => {
     setThemeValidatorForTests(null);
     setWebhookListenRunnerForTests(null);
     setMigrateSourceLoaderForTests(null);
+    setCredentialStoreForTests(null);
     vi.restoreAllMocks();
     process.chdir(previousCwd);
 
@@ -821,9 +826,43 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'mcp', 'stdio', '--tools', 'posts,tags'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
-    await expect(run(['node', 'ghst', 'mcp', 'http', '--port', '3100'])).resolves.toBe(
-      ExitCode.SUCCESS,
+    await expect(run(['node', 'ghst', 'mcp', 'stdio', '--tools', ''])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
     );
+    await expect(run(['node', 'ghst', 'mcp', 'stdio', '--tools', ','])).resolves.toBe(
+      ExitCode.VALIDATION_ERROR,
+    );
+    await expect(
+      run(['node', 'ghst', 'mcp', 'http', '--port', '3100', '--tools', 'posts,tags']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'mcp',
+        'http',
+        '--port',
+        '3100',
+        '--tools',
+        'posts,tags',
+        '--auth-token',
+        'token-123',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'mcp',
+        'http',
+        '--port',
+        '3100',
+        '--tools',
+        ',',
+        '--auth-token',
+        'token-123',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
 
     await expect(run(['node', 'ghst', 'completion'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'completion', 'bash'])).resolves.toBe(ExitCode.SUCCESS);

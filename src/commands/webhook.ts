@@ -35,6 +35,8 @@ let webhookListenRunnerForTests:
         events: string[];
         host?: string;
         port?: number;
+        maxBodyBytes?: number;
+        signatureMaxSkewMs?: number;
         onEvent?: (event: Record<string, unknown>) => void;
       },
     ) => Promise<void>)
@@ -50,6 +52,8 @@ export function setWebhookListenRunnerForTests(
           events: string[];
           host?: string;
           port?: number;
+          maxBodyBytes?: number;
+          signatureMaxSkewMs?: number;
           onEvent?: (event: Record<string, unknown>) => void;
         },
       ) => Promise<void>)
@@ -203,6 +207,12 @@ export function registerWebhookCommands(program: Command): void {
     .option('--events <events>', 'Comma-separated event names (defaults to post.published)')
     .option('--host <host>', 'Bind host for local listener', '127.0.0.1')
     .option('--port <port>', 'Bind port for local listener', '8787')
+    .option('--max-body-bytes <bytes>', 'Maximum inbound webhook payload size', '1048576')
+    .option(
+      '--signature-max-skew-ms <ms>',
+      'Maximum signature timestamp skew in milliseconds',
+      '300000',
+    )
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const parsed = WebhookListenInputSchema.safeParse({
@@ -211,6 +221,8 @@ export function registerWebhookCommands(program: Command): void {
         events: options.events,
         host: options.host,
         port: parseInteger(options.port, 'port'),
+        maxBodyBytes: parseInteger(options.maxBodyBytes, 'max-body-bytes'),
+        signatureMaxSkewMs: parseInteger(options.signatureMaxSkewMs, 'signature-max-skew-ms'),
       });
 
       if (!parsed.success) {
@@ -234,6 +246,8 @@ export function registerWebhookCommands(program: Command): void {
         events: selectedEvents,
         host: parsed.data.host,
         port: parsed.data.port,
+        maxBodyBytes: parsed.data.maxBodyBytes,
+        signatureMaxSkewMs: parsed.data.signatureMaxSkewMs,
         onEvent: (event) => {
           if (global.json) {
             console.log(JSON.stringify(event));

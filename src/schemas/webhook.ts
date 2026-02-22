@@ -42,4 +42,6 @@ export const WebhookListenInputSchema = z.object({
   events: z.string().optional(),
   host: z.string().min(1).optional(),
   port: z.number().int().positive().optional(),
+  maxBodyBytes: z.number().int().positive().optional(),
+  signatureMaxSkewMs: z.number().int().positive().optional(),
 });

@@ -1,7 +1,9 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import { resolveConnectionConfig } from '../src/lib/config.js';
+import { setCredentialStoreForTests } from '../src/lib/credentials.js';
 import { ExitCode } from '../src/lib/errors.js';
 import type { GlobalOptions } from '../src/lib/types.js';
+import { createMemoryCredentialStore } from './helpers/mock-credentials.js';
 
 const baseConfig = {
   version: 1,
@@ -23,6 +25,10 @@ const baseConfig = {
 } as const;
 
 describe('resolveConnectionConfig precedence', () => {
+  afterEach(() => {
+    setCredentialStoreForTests(null);
+  });
+
   test('prefers explicit flags over env and config', async () => {
     const global: GlobalOptions = {
       url: 'https://flags.ghost.io',
@@ -174,5 +180,36 @@ describe('resolveConnectionConfig precedence', () => {
       code: 'AUTH_REQUIRED',
       exitCode: ExitCode.AUTH_ERROR,
     });
+  });
+
+  test('resolves keys from secure store when credentialRef is configured', async () => {
+    setCredentialStoreForTests(
+      createMemoryCredentialStore({
+        'site:secure-site': 'secureid:0011223344556677',
+      }),
+    );
+
+    const resolved = await resolveConnectionConfig(
+      {},
+      {
+        env: {},
+        userConfig: {
+          version: 2,
+          active: 'secure-site',
+          sites: {
+            'secure-site': {
+              url: 'https://secure.ghost.io',
+              credentialRef: 'site:secure-site',
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        projectConfig: null,
+      },
+    );
+
+    expect(resolved.key).toBe('secureid:0011223344556677');
+    expect(resolved.source).toBe('active');
   });
 });

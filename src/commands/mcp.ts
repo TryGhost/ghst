@@ -13,7 +13,16 @@ let runMcpStdioForTests:
 let runMcpHttpForTests:
   | ((
       server: ReturnType<typeof createGhostMcpServer>,
-      options: { host: string; port: number; corsOrigin?: string },
+      options: {
+        host: string;
+        port: number;
+        corsOrigin?: string;
+        authToken: string;
+        maxBodyBytes: number;
+        headersTimeoutMs: number;
+        requestTimeoutMs: number;
+        keepAliveTimeoutMs: number;
+      },
     ) => Promise<void>)
   | null = null;
 
@@ -23,7 +32,16 @@ export function setMcpRunnersForTests(
     http?:
       | ((
           server: ReturnType<typeof createGhostMcpServer>,
-          options: { host: string; port: number; corsOrigin?: string },
+          options: {
+            host: string;
+            port: number;
+            corsOrigin?: string;
+            authToken: string;
+            maxBodyBytes: number;
+            headersTimeoutMs: number;
+            requestTimeoutMs: number;
+            keepAliveTimeoutMs: number;
+          },
         ) => Promise<void>)
       | null;
   } | null,
@@ -33,11 +51,24 @@ export function setMcpRunnersForTests(
 }
 
 function assertToolsFilter(toolsArg: string | undefined): void {
-  if (!toolsArg || toolsArg === 'all') {
+  if (toolsArg === undefined || toolsArg === 'all') {
     return;
   }
 
+  if (toolsArg.trim().length === 0) {
+    throw new GhstError('MCP tool groups cannot be empty.', {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
+
   const requested = parseCsv(toolsArg) ?? [];
+  if (requested.length === 0) {
+    throw new GhstError('MCP tool groups cannot be empty.', {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
   const allowed = new Set(MCP_TOOL_GROUPS);
   const invalid = requested.filter(
     (value) => !allowed.has(value as (typeof MCP_TOOL_GROUPS)[number]),
@@ -48,6 +79,18 @@ function assertToolsFilter(toolsArg: string | undefined): void {
       exitCode: ExitCode.VALIDATION_ERROR,
     });
   }
+}
+
+function parsePositiveIntegerOption(value: string | undefined, label: string): number {
+  const parsed = parseInteger(value, label);
+  if (parsed === undefined || parsed <= 0) {
+    throw new GhstError(`${label} must be a positive integer`, {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
+
+  return parsed;
 }
 
 export function registerMcpCommands(program: Command): void {
@@ -76,16 +119,35 @@ export function registerMcpCommands(program: Command): void {
     .option('--host <host>', 'Bind host', '127.0.0.1')
     .option('--port <port>', 'Bind port', '3100')
     .option('--cors-origin <origin>', 'Allow CORS origin')
-    .option(
+    .option('--max-body-bytes <bytes>', 'Maximum HTTP MCP request body size in bytes', '1048576')
+    .option('--headers-timeout-ms <ms>', 'HTTP headers timeout in milliseconds', '15000')
+    .option('--request-timeout-ms <ms>', 'HTTP request timeout in milliseconds', '15000')
+    .option('--keepalive-timeout-ms <ms>', 'HTTP keep-alive timeout in milliseconds', '5000')
+    .requiredOption(
       '--tools <tools>',
       `Tool groups to expose (comma-separated or all). Available: ${MCP_TOOL_GROUPS.join(', ')}`,
-      'all',
     )
+    .option('--auth-token <token>', 'Bearer auth token for HTTP MCP requests')
     .action(async (options, command) => {
       assertToolsFilter(options.tools);
-      const port = parseInteger(options.port, 'port');
-      if (!port) {
-        throw new GhstError('port is required', {
+      const port = parsePositiveIntegerOption(options.port, 'port');
+      const maxBodyBytes = parsePositiveIntegerOption(options.maxBodyBytes, 'max-body-bytes');
+      const headersTimeoutMs = parsePositiveIntegerOption(
+        options.headersTimeoutMs,
+        'headers-timeout-ms',
+      );
+      const requestTimeoutMs = parsePositiveIntegerOption(
+        options.requestTimeoutMs,
+        'request-timeout-ms',
+      );
+      const keepAliveTimeoutMs = parsePositiveIntegerOption(
+        options.keepaliveTimeoutMs,
+        'keepalive-timeout-ms',
+      );
+      const authToken =
+        (options.authToken as string | undefined) ?? process.env.GHST_MCP_AUTH_TOKEN;
+      if (!authToken) {
+        throw new GhstError('mcp http requires --auth-token or GHST_MCP_AUTH_TOKEN.', {
           code: 'USAGE_ERROR',
           exitCode: ExitCode.USAGE_ERROR,
         });
@@ -100,6 +162,11 @@ export function registerMcpCommands(program: Command): void {
         host: options.host,
         port,
         corsOrigin: options.corsOrigin,
+        authToken,
+        maxBodyBytes,
+        headersTimeoutMs,
+        requestTimeoutMs,
+        keepAliveTimeoutMs,
       });
     });
 }

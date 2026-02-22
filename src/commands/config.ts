@@ -4,6 +4,38 @@ import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { UserConfigSchema } from '../schemas/config.js';
 
+const REDACTED = '<redacted>';
+const SENSITIVE_KEY_PATTERN = /(key|token|secret|password)/i;
+
+function isSensitivePath(path: string): boolean {
+  return path
+    .split('.')
+    .some(
+      (segment) => segment.toLowerCase() === 'adminapikey' || SENSITIVE_KEY_PATTERN.test(segment),
+    );
+}
+
+function redactValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => redactValue(entry));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const output: Record<string, unknown> = {};
+  for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
+    if (key === 'adminApiKey' || SENSITIVE_KEY_PATTERN.test(key)) {
+      output[key] = REDACTED;
+      continue;
+    }
+    output[key] = redactValue(entryValue);
+  }
+
+  return output;
+}
+
 function getByPath(source: Record<string, unknown>, keyPath: string): unknown {
   return keyPath.split('.').reduce<unknown>((acc, key) => {
     if (typeof acc !== 'object' || acc === null) {
@@ -83,16 +115,18 @@ export function registerConfigCommands(program: Command): void {
   config
     .command('show')
     .description('Show current user config')
-    .action(async (_, command) => {
+    .option('--show-secrets', 'Display sensitive values in plaintext')
+    .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const userConfig = await readUserConfig();
+      const payload = options.showSecrets ? userConfig : redactValue(userConfig);
 
       if (global.json) {
-        console.log(JSON.stringify(userConfig, null, 2));
+        console.log(JSON.stringify(payload, null, 2));
         return;
       }
 
-      console.log(JSON.stringify(userConfig, null, 2));
+      console.log(JSON.stringify(payload, null, 2));
     });
 
   config
@@ -125,12 +159,16 @@ export function registerConfigCommands(program: Command): void {
   config
     .command('get <path>')
     .description('Read a config value by dot path')
-    .action(async (path: string, _options, command) => {
+    .option('--show-secrets', 'Display sensitive values in plaintext')
+    .action(async (path: string, options, command) => {
       const global = getGlobalOptions(command);
       const userConfig = await readUserConfig();
-      const value = getByPath(userConfig as unknown as Record<string, unknown>, path);
+      let value = getByPath(userConfig as unknown as Record<string, unknown>, path);
 
       if (global.json) {
+        if (!options.showSecrets && isSensitivePath(path)) {
+          value = REDACTED;
+        }
         console.log(JSON.stringify({ path, value: value ?? null }, null, 2));
         return;
       }
@@ -142,6 +180,9 @@ export function registerConfigCommands(program: Command): void {
         });
       }
 
+      if (!options.showSecrets && isSensitivePath(path)) {
+        value = REDACTED;
+      }
       console.log(typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value));
     });
 

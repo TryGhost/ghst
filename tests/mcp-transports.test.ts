@@ -72,6 +72,46 @@ async function waitForServer(url: string, timeoutMs = 1000): Promise<void> {
   }
 }
 
+async function requestRaw(
+  options: {
+    host: string;
+    port: number;
+    method: string;
+    headers?: Record<string, string>;
+  },
+  body?: string,
+): Promise<{ status: number; body: string }> {
+  return await new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        host: options.host,
+        port: options.port,
+        path: '/',
+        method: options.method,
+        headers: options.headers,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+        });
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      },
+    );
+
+    req.once('error', reject);
+    if (body !== undefined) {
+      req.write(body);
+    }
+    req.end();
+  });
+}
+
 describe.sequential('mcp transports', () => {
   test('stdio transport connects and waits for onclose', async () => {
     mcpTransportMocks.stdioInstances.length = 0;
@@ -99,6 +139,7 @@ describe.sequential('mcp transports', () => {
       host: '127.0.0.1',
       port,
       corsOrigin: 'https://app.example.com',
+      authToken: 'test-token',
     });
 
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -110,7 +151,22 @@ describe.sequential('mcp transports', () => {
       'https://app.example.com',
     );
 
-    const getResponse = await fetch(baseUrl, { method: 'GET' });
+    const unauthorized = await fetch(baseUrl, { method: 'GET' });
+    expect(unauthorized.status).toBe(401);
+    const invalidToken = await fetch(baseUrl, {
+      method: 'GET',
+      headers: {
+        authorization: 'Bearer wrong-token',
+      },
+    });
+    expect(invalidToken.status).toBe(401);
+
+    const getResponse = await fetch(baseUrl, {
+      method: 'GET',
+      headers: {
+        authorization: 'Bearer test-token',
+      },
+    });
     expect(getResponse.status).toBe(200);
     expect(await getResponse.text()).toBe('ok');
     expect(mcpTransportMocks.handleRequest).toHaveBeenCalled();
@@ -120,5 +176,52 @@ describe.sequential('mcp transports', () => {
 
     expect(connect).toHaveBeenCalledTimes(1);
     expect(mcpTransportMocks.httpInstances).toHaveLength(1);
+  });
+
+  test('http transport enforces request body limits for POST', async () => {
+    mcpTransportMocks.handleRequest.mockClear();
+
+    const connect = vi.fn(async () => undefined);
+    const port = await getFreePort();
+
+    const runPromise = runMcpHttp({ connect } as never, {
+      host: '127.0.0.1',
+      port,
+      authToken: 'test-token',
+      maxBodyBytes: 8,
+    });
+
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForServer(baseUrl);
+
+    const tooLarge = await fetch(baseUrl, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer test-token',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ value: '1234567890' }),
+    });
+    expect(tooLarge.status).toBe(413);
+
+    const noLength = await requestRaw(
+      {
+        host: '127.0.0.1',
+        port,
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer test-token',
+          'transfer-encoding': 'chunked',
+          'content-type': 'application/json',
+        },
+      },
+      '{"ok":true}',
+    );
+    expect(noLength.status).toBe(411);
+
+    expect(mcpTransportMocks.handleRequest).not.toHaveBeenCalled();
+
+    process.emit('SIGINT');
+    await runPromise;
   });
 });

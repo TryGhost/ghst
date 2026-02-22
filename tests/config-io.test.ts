@@ -55,13 +55,39 @@ describe('config io helpers', () => {
     expect(readBack.sites.myblog?.url).toBe('https://myblog.ghost.io');
   });
 
+  test('writes user config with secure file permissions on posix', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-config-mode-'));
+    const env = { GHST_CONFIG_DIR: path.join(tempRoot, 'cfg') } as NodeJS.ProcessEnv;
+    await writeUserConfig(
+      {
+        version: 2,
+        active: 'myblog',
+        sites: {
+          myblog: {
+            url: 'https://myblog.ghost.io',
+            adminApiKey: 'abc123:0011223344556677',
+            apiVersion: 'v6.0',
+            addedAt: '2026-01-01T00:00:00.000Z',
+          },
+        },
+      },
+      env,
+    );
+
+    if (process.platform !== 'win32') {
+      const stat = await fs.stat(path.join(tempRoot, 'cfg', 'config.json'));
+      const mode = stat.mode & 0o777;
+      expect(mode & 0o077).toBe(0);
+    }
+  });
+
   test('returns default user config when missing', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-config-empty-'));
     const env = { GHST_CONFIG_DIR: path.join(tempRoot, 'cfg') } as NodeJS.ProcessEnv;
 
     const config = await readUserConfig(env);
 
-    expect(config.version).toBe(1);
+    expect(config.version).toBe(2);
     expect(config.sites).toEqual({});
   });
 
