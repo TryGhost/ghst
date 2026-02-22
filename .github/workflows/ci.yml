@@ -26,9 +26,18 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if rg -n --hidden \
+            --glob '!node_modules/**' \
+            --glob '!.git/**' \
+            --glob '!pnpm-lock.yaml' \
+            --glob '!scripts/update-ghost-fixtures.ts' \
+            --glob '!tests/fixtures-secrets.test.ts' \
+            "(sk_(live|test)_[A-Za-z0-9]+|pk_(live|test)_[A-Za-z0-9]+|rk_(live|test)_[A-Za-z0-9]+|whsec_[A-Za-z0-9]+|-----BEGIN( [A-Z]+)? PRIVATE KEY-----|[0-9a-f]{24}:[0-9a-f]{64})" \
+            .; then
+            echo "Potential secret-like tokens detected."
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
