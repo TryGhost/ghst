@@ -1,15 +1,15 @@
-# ghst (beta)
+# ghst cli (beta)
 
 `ghst` is a CLI tool for managing Ghost instances from the terminal. Anything you can do with the Ghost Admin API, you can do with `ghst`. (And a bit more)
-
-> [!IMPORTANT]
-> This tool is in active development beta, and is not yet stable. Use with caution, and back up critical data.
 
 - CRUD for Ghost resources
 - Full Admin API support
 - JSON-first scripting support (`--json`, `--jq`)
 - Built-in MCP server mode for editor/agent integration
 - Utility functions for development
+
+> [!IMPORTANT]
+> This tool is in active development beta, and is not yet stable. Use with caution, and back up critical data.
 
 ## Contents
 
