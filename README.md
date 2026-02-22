@@ -298,7 +298,7 @@ Commands and flags drift:
 
 ## Development
 
-For cloning, testing, and developing the repository from source, see CONTRIBUTING.md
+For cloning, testing, and developing the repository from source, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License & trademark
 
