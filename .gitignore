@@ -9,3 +9,5 @@ coverage
 *.key
 *.p12
 *.pfx
+.tmp/
+.claude/
