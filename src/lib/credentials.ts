@@ -107,14 +107,16 @@ function createMacOsAdapter(): CredentialStoreAdapter {
       }
     },
     set: async (ref, secret) => {
-      const result = await runSecurity(
-        ['add-generic-password', '-a', sanitizeRef(ref), '-s', MACOS_SERVICE, '-U', '-w'],
-        {
-          // Avoid exposing secrets in argv by using security's prompt mode.
-          // The command expects password + confirmation on stdin.
-          input: `${secret}\n${secret}\n`,
-        },
-      );
+      const result = await runSecurity([
+        'add-generic-password',
+        '-a',
+        sanitizeRef(ref),
+        '-s',
+        MACOS_SERVICE,
+        '-U',
+        '-w',
+        secret,
+      ]);
       if (result.code !== 0) {
         throw new Error(
           `Failed to store credential in macOS Keychain: ${result.stderr || result.stdout}`,

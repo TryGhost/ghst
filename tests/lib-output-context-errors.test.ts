@@ -41,7 +41,7 @@ describe('context helper', () => {
         jq: '.posts[].title',
         site: 'myblog',
         url: 'https://example.com',
-        key: 'id:00',
+        staffToken: 'id:00',
         debug: 'api',
         color: true,
       }),
@@ -54,7 +54,7 @@ describe('context helper', () => {
       jq: '.posts[].title',
       site: 'myblog',
       url: 'https://example.com',
-      key: 'id:00',
+      staffToken: 'id:00',
       debug: 'api',
       color: false,
     });

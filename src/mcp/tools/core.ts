@@ -120,7 +120,7 @@ async function callApi(
   const connection = await resolveConnectionConfig(global);
   const client = new GhostClient({
     url: connection.url,
-    key: connection.key,
+    staffToken: connection.staffToken,
     version: connection.apiVersion,
     contentKey: process.env.GHOST_CONTENT_API_KEY,
   });

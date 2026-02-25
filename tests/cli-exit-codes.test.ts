@@ -43,7 +43,7 @@ describe('CLI exit codes', () => {
           sites: {
             myblog: {
               url: 'https://myblog.ghost.io',
-              adminApiKey: 'abc123:0011223344556677',
+              staffAccessToken: 'abc123:0011223344556677',
               apiVersion: 'v6.0',
               addedAt: '2026-01-01T00:00:00.000Z',
             },

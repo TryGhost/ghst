@@ -11,13 +11,13 @@ const baseConfig = {
   sites: {
     'active-site': {
       url: 'https://active.ghost.io',
-      adminApiKey: 'activeid:0011223344556677',
+      staffAccessToken: 'activeid:0011223344556677',
       apiVersion: 'v6.0',
       addedAt: '2026-01-01T00:00:00.000Z',
     },
     'project-site': {
       url: 'https://project.ghost.io',
-      adminApiKey: 'projectid:0011223344556677',
+      staffAccessToken: 'projectid:0011223344556677',
       apiVersion: 'v6.0',
       addedAt: '2026-01-01T00:00:00.000Z',
     },
@@ -32,13 +32,13 @@ describe('resolveConnectionConfig precedence', () => {
   test('prefers explicit flags over env and config', async () => {
     const global: GlobalOptions = {
       url: 'https://flags.ghost.io',
-      key: 'flagid:0011223344556677',
+      staffToken: 'flagid:0011223344556677',
     };
 
     const resolved = await resolveConnectionConfig(global, {
       env: {
         GHOST_URL: 'https://env.ghost.io',
-        GHOST_ADMIN_API_KEY: 'envid:0011223344556677',
+        GHOST_STAFF_ACCESS_TOKEN: 'envid:0011223344556677',
       },
       userConfig: baseConfig,
       projectConfig: { site: 'project-site' },
@@ -56,7 +56,7 @@ describe('resolveConnectionConfig precedence', () => {
         },
         {
           env: {
-            GHOST_ADMIN_API_KEY: 'envid:0011223344556677',
+            GHOST_STAFF_ACCESS_TOKEN: 'envid:0011223344556677',
             GHOST_URL: 'https://env.ghost.io',
           },
           userConfig: baseConfig,
@@ -75,7 +75,7 @@ describe('resolveConnectionConfig precedence', () => {
       {
         env: {
           GHOST_URL: 'https://env.ghost.io',
-          GHOST_ADMIN_API_KEY: 'envid:0011223344556677',
+          GHOST_STAFF_ACCESS_TOKEN: 'envid:0011223344556677',
         },
         userConfig: baseConfig,
         projectConfig: { site: 'project-site' },
@@ -86,13 +86,35 @@ describe('resolveConnectionConfig precedence', () => {
     expect(resolved.source).toBe('env');
   });
 
+  test('ignores legacy admin env var and fails auth resolution', async () => {
+    await expect(
+      resolveConnectionConfig(
+        {},
+        {
+          env: {
+            GHOST_URL: 'https://env.ghost.io',
+            GHOST_ADMIN_API_KEY: 'legacyid:0011223344556677',
+          } as NodeJS.ProcessEnv,
+          userConfig: {
+            version: 1,
+            sites: {},
+          },
+          projectConfig: null,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'AUTH_REQUIRED',
+      exitCode: ExitCode.AUTH_ERROR,
+    });
+  });
+
   test('prefers --site over env direct credentials', async () => {
     const resolved = await resolveConnectionConfig(
       { site: 'project-site' },
       {
         env: {
           GHOST_URL: 'https://env.ghost.io',
-          GHOST_ADMIN_API_KEY: 'envid:0011223344556677',
+          GHOST_STAFF_ACCESS_TOKEN: 'envid:0011223344556677',
         },
         userConfig: baseConfig,
         projectConfig: null,
@@ -209,7 +231,7 @@ describe('resolveConnectionConfig precedence', () => {
       },
     );
 
-    expect(resolved.key).toBe('secureid:0011223344556677');
+    expect(resolved.staffToken).toBe('secureid:0011223344556677');
     expect(resolved.source).toBe('active');
   });
 });

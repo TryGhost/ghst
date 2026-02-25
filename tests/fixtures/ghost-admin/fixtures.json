@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-02-22T13:06:50.696Z",
+  "generatedAt": "2026-02-25T17:16:20.770Z",
   "source": {
     "siteAlias": "ghst",
     "apiVersion": "v6.0"
@@ -364,6 +364,42 @@
                 "updated_at": "<datetime>",
                 "monthly_price_id": null,
                 "yearly_price_id": null
+              },
+              {
+                "id": "699d8c7031256d00018d14b2",
+                "name": "Cat Special",
+                "slug": "cat-special",
+                "active": false,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": null,
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699dc4389240650001ebd07a",
+                "name": "Majestic Premium Cats",
+                "slug": "majestic-premium-cats",
+                "active": true,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 10000,
+                "created_at": "<datetime>",
+                "updated_at": "<datetime>",
+                "monthly_price_id": null,
+                "yearly_price_id": null
               }
             ],
             "count": {
@@ -547,6 +583,42 @@
                 "updated_at": "<datetime>",
                 "monthly_price_id": null,
                 "yearly_price_id": null
+              },
+              {
+                "id": "699d8c7031256d00018d14b2",
+                "name": "Cat Special",
+                "slug": "cat-special",
+                "active": false,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": null,
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699dc4389240650001ebd07a",
+                "name": "Majestic Premium Cats",
+                "slug": "majestic-premium-cats",
+                "active": true,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 10000,
+                "created_at": "<datetime>",
+                "updated_at": "<datetime>",
+                "monthly_price_id": null,
+                "yearly_price_id": null
               }
             ],
             "count": {
@@ -726,6 +798,42 @@
                 "currency": "usd",
                 "monthly_price": 500,
                 "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": "<datetime>",
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699d8c7031256d00018d14b2",
+                "name": "Cat Special",
+                "slug": "cat-special",
+                "active": false,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": null,
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699dc4389240650001ebd07a",
+                "name": "Majestic Premium Cats",
+                "slug": "majestic-premium-cats",
+                "active": true,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 10000,
                 "created_at": "<datetime>",
                 "updated_at": "<datetime>",
                 "monthly_price_id": null,
@@ -1232,6 +1340,42 @@
                 "updated_at": "<datetime>",
                 "monthly_price_id": null,
                 "yearly_price_id": null
+              },
+              {
+                "id": "699d8c7031256d00018d14b2",
+                "name": "Cat Special",
+                "slug": "cat-special",
+                "active": false,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": null,
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699dc4389240650001ebd07a",
+                "name": "Majestic Premium Cats",
+                "slug": "majestic-premium-cats",
+                "active": true,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 10000,
+                "created_at": "<datetime>",
+                "updated_at": "<datetime>",
+                "monthly_price_id": null,
+                "yearly_price_id": null
               }
             ],
             "count": {
@@ -1412,6 +1556,42 @@
                 "updated_at": "<datetime>",
                 "monthly_price_id": null,
                 "yearly_price_id": null
+              },
+              {
+                "id": "699d8c7031256d00018d14b2",
+                "name": "Cat Special",
+                "slug": "cat-special",
+                "active": false,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": null,
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699dc4389240650001ebd07a",
+                "name": "Majestic Premium Cats",
+                "slug": "majestic-premium-cats",
+                "active": true,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 10000,
+                "created_at": "<datetime>",
+                "updated_at": "<datetime>",
+                "monthly_price_id": null,
+                "yearly_price_id": null
               }
             ],
             "count": {
@@ -1588,6 +1768,42 @@
                 "currency": "usd",
                 "monthly_price": 500,
                 "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": "<datetime>",
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699d8c7031256d00018d14b2",
+                "name": "Cat Special",
+                "slug": "cat-special",
+                "active": false,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 5000,
+                "created_at": "<datetime>",
+                "updated_at": null,
+                "monthly_price_id": null,
+                "yearly_price_id": null
+              },
+              {
+                "id": "699dc4389240650001ebd07a",
+                "name": "Majestic Premium Cats",
+                "slug": "majestic-premium-cats",
+                "active": true,
+                "welcome_page_url": null,
+                "visibility": "public",
+                "trial_days": 0,
+                "description": null,
+                "type": "paid",
+                "currency": "usd",
+                "monthly_price": 2000,
+                "yearly_price": 10000,
                 "created_at": "<datetime>",
                 "updated_at": "<datetime>",
                 "monthly_price_id": null,
@@ -2046,7 +2262,7 @@
           "errors": []
         }
       },
-      "exportCsv": "id,email,name,note,subscribed_to_emails,complimentary_plan,stripe_customer_id,created_at,deleted_at,labels,tiers\r\n6999d123e5e8560001f39b3f,<userSlug>@onolan.org,<fixture-user-name>,This is a note,true,,cus_U1MkTku8Khlkf2,<datetime>,,Test,ghst\r\n699ab960b2d17e0001f292e1,<email>,,,true,true,,<datetime>,,special,ghst\r\n<memberId>,<memberEmail>,<fixture-member-updated-name>,Fixture note updated,false,,,<datetime>,,,",
+      "exportCsv": "id,email,name,note,subscribed_to_emails,complimentary_plan,stripe_customer_id,created_at,deleted_at,labels,tiers\r\n6999d123e5e8560001f39b3f,<userSlug>@onolan.org,<fixture-user-name>,This is a note,true,,cus_U1MkTku8Khlkf2,<datetime>,,Test,ghst\r\n699ab960b2d17e0001f292e1,<email>,,,true,true,,<datetime>,,special,ghst\r\n699dc4519240650001ebd07f,<email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd087,<email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd08e,<email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd095,<email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd09c,<email>,Aaditya Malhotra,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd0a3,<email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd0aa,<userSlug><email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n699dc4519240650001ebd0b1,<email>,,,true,true,,<datetime>,,Import 2026-02-24 15:31,Majestic Premium Cats\r\n<memberId>,<memberEmail>,<fixture-member-updated-name>,Fixture note updated,false,,,<datetime>,,,",
       "importCsv": {
         "members": [
           {
@@ -2378,14 +2594,48 @@
             "monthly_price": 500,
             "yearly_price": 5000,
             "trial_days": 0
+          },
+          {
+            "id": "699d8c7031256d00018d14b2",
+            "name": "Cat Special",
+            "description": null,
+            "slug": "cat-special",
+            "active": false,
+            "type": "paid",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": null,
+            "visibility": "public",
+            "benefits": [],
+            "currency": "USD",
+            "monthly_price": 2000,
+            "yearly_price": 5000,
+            "trial_days": 0
+          },
+          {
+            "id": "699dc4389240650001ebd07a",
+            "name": "Majestic Premium Cats",
+            "description": null,
+            "slug": "majestic-premium-cats",
+            "active": true,
+            "type": "paid",
+            "welcome_page_url": null,
+            "created_at": "<datetime>",
+            "updated_at": "<datetime>",
+            "visibility": "public",
+            "benefits": [],
+            "currency": "USD",
+            "monthly_price": 2000,
+            "yearly_price": 10000,
+            "trial_days": 0
           }
         ],
         "meta": {
           "pagination": {
             "page": 1,
             "pages": 1,
-            "limit": 2,
-            "total": 2,
+            "limit": 4,
+            "total": 4,
             "prev": null,
             "next": null
           }
@@ -3108,7 +3358,7 @@
           },
           {
             "key": "cover_image",
-            "value": "https://static.ghost.org/v5.0.0/images/publication-cover.jpg"
+            "value": null
           },
           {
             "key": "icon",
@@ -3116,7 +3366,7 @@
           },
           {
             "key": "accent_color",
-            "value": "#FF1A75"
+            "value": "#000000"
           },
           {
             "key": "locale",
@@ -3328,7 +3578,7 @@
           },
           {
             "key": "email_verification_required",
-            "value": true
+            "value": false
           },
           {
             "key": "firstpromoter",
@@ -3340,7 +3590,7 @@
           },
           {
             "key": "labs",
-            "value": "{\"audienceFeedback\":true,\"announcementBar\":true,\"customFonts\":true,\"explore\":true,\"inboxlinks\":true,\"commentModeration\":true,\"featurebaseFeedback\":true,\"welcomeEmails\":true,\"placeholder\":false,\"members\":true}"
+            "value": "{\"announcementBar\":true,\"customFonts\":true,\"explore\":true,\"commentModeration\":true,\"featurebaseFeedback\":true,\"welcomeEmails\":true,\"placeholder\":false,\"members\":true}"
           },
           {
             "key": "slack_url",
@@ -3598,8 +3848,8 @@
             "description": "Thoughts, stories and ideas.",
             "logo": null,
             "icon": null,
-            "cover_image": "https://static.ghost.org/v5.0.0/images/publication-cover.jpg",
-            "accent_color": "#FF1A75",
+            "cover_image": null,
+            "accent_color": "#000000",
             "locale": "en",
             "url": "https://ghst.ghost.io/",
             "version": "6.19",
@@ -3633,7 +3883,7 @@
             },
             {
               "key": "cover_image",
-              "value": "https://static.ghost.org/v5.0.0/images/publication-cover.jpg"
+              "value": null
             },
             {
               "key": "icon",
@@ -3641,7 +3891,7 @@
             },
             {
               "key": "accent_color",
-              "value": "#FF1A75"
+              "value": "#000000"
             },
             {
               "key": "locale",
@@ -3853,7 +4103,7 @@
             },
             {
               "key": "email_verification_required",
-              "value": true
+              "value": false
             },
             {
               "key": "firstpromoter",
@@ -3865,7 +4115,7 @@
             },
             {
               "key": "labs",
-              "value": "{\"audienceFeedback\":true,\"announcementBar\":true,\"customFonts\":true,\"explore\":true,\"inboxlinks\":true,\"commentModeration\":true,\"featurebaseFeedback\":true,\"welcomeEmails\":true,\"placeholder\":false,\"members\":true}"
+              "value": "{\"announcementBar\":true,\"customFonts\":true,\"explore\":true,\"commentModeration\":true,\"featurebaseFeedback\":true,\"welcomeEmails\":true,\"placeholder\":false,\"members\":true}"
             },
             {
               "key": "slack_url",

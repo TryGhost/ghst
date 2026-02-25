@@ -202,7 +202,7 @@ export function registerApiCommands(program: Command): void {
       const connection = await resolveConnectionConfig(global);
       const client = new GhostClient({
         url: connection.url,
-        key: connection.key,
+        staffToken: connection.staffToken,
         contentKey: process.env.GHOST_CONTENT_API_KEY,
         version: connection.apiVersion,
       });

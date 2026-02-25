@@ -14,7 +14,7 @@ import type { ConnectionConfig, GlobalOptions } from './types.js';
 
 const DEFAULT_API_VERSION = 'v6.0';
 const CURRENT_CONFIG_VERSION = 2;
-let warnedLegacyPlaintext = false;
+let warnedPlaintextStaffTokens = false;
 
 function isPosixPlatform(): boolean {
   return process.platform !== 'win32';
@@ -48,41 +48,35 @@ function withCurrentConfigVersion(config: GhstUserConfig): GhstUserConfig {
   };
 }
 
-function hasLegacyPlaintextCredentials(config: GhstUserConfig): boolean {
+function hasPlaintextStaffTokens(config: GhstUserConfig): boolean {
   return Object.values(config.sites).some((site) =>
-    Boolean(site.adminApiKey && !site.credentialRef),
+    Boolean(site.staffAccessToken && !site.credentialRef),
   );
 }
 
-function warnLegacyCredentialFallback(): void {
-  if (warnedLegacyPlaintext || process.env.VITEST) {
+function warnPlaintextCredentialFallback(): void {
+  if (warnedPlaintextStaffTokens || process.env.VITEST) {
     return;
   }
 
-  warnedLegacyPlaintext = true;
+  warnedPlaintextStaffTokens = true;
   console.error(
-    'Warning: secure credential storage is unavailable; legacy plaintext credentials remain in config. Re-login once secure storage is available.',
+    'Warning: secure credential storage is unavailable; plaintext staff access tokens remain in config. Re-login once secure storage is available.',
   );
 }
 
-async function migrateLegacyPlaintextCredentials(
+async function migratePlaintextStaffTokens(
   config: GhstUserConfig,
   env: NodeJS.ProcessEnv,
 ): Promise<GhstUserConfig> {
-  if (!hasLegacyPlaintextCredentials(config)) {
+  if (!hasPlaintextStaffTokens(config)) {
     return config;
   }
 
   const store = getCredentialStore();
-  let available = false;
-  try {
-    available = await store.isAvailable();
-  } catch {
-    available = false;
-  }
-
+  const available = await store.isAvailable().catch(() => false);
   if (!available) {
-    warnLegacyCredentialFallback();
+    warnPlaintextCredentialFallback();
     return config;
   }
 
@@ -90,25 +84,25 @@ async function migrateLegacyPlaintextCredentials(
   const next = structuredClone(config);
 
   for (const [alias, site] of Object.entries(next.sites)) {
-    const legacyKey = site.adminApiKey;
-    if (!legacyKey || site.credentialRef) {
+    const staffToken = site.staffAccessToken;
+    if (!staffToken || site.credentialRef) {
       continue;
     }
 
-    const ref = credentialRefForAlias(alias);
-    await store.set(ref, legacyKey);
-    site.credentialRef = ref;
-    delete site.adminApiKey;
+    const credentialRef = credentialRefForAlias(alias);
+    await store.set(credentialRef, staffToken);
+    site.credentialRef = credentialRef;
+    delete site.staffAccessToken;
     changed = true;
   }
 
-  if (changed) {
-    const normalized = withCurrentConfigVersion(next);
-    await writeUserConfig(normalized, env);
-    return normalized;
+  if (!changed) {
+    return config;
   }
 
-  return config;
+  const normalized = withCurrentConfigVersion(next);
+  await writeUserConfig(normalized, env);
+  return normalized;
 }
 
 export function deriveSiteAlias(url: string): string {
@@ -139,7 +133,7 @@ export async function readUserConfig(
     const json = JSON.parse(raw) as unknown;
     const parsed = UserConfigSchema.parse(json);
     await enforceSecureUserConfigPermissions(configPath);
-    return await migrateLegacyPlaintextCredentials(parsed, env);
+    return await migratePlaintextStaffTokens(parsed, env);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return UserConfigSchema.parse({ version: CURRENT_CONFIG_VERSION, sites: {} });
@@ -218,8 +212,8 @@ async function resolveSiteFromConfig(
     });
   }
 
-  let key = site.adminApiKey;
-  if (!key && site.credentialRef) {
+  let staffToken = site.staffAccessToken;
+  if (!staffToken && site.credentialRef) {
     const store = getCredentialStore();
     const available = await store.isAvailable().catch(() => false);
     if (!available) {
@@ -232,10 +226,10 @@ async function resolveSiteFromConfig(
       );
     }
 
-    key = (await store.get(site.credentialRef)) ?? undefined;
+    staffToken = (await store.get(site.credentialRef)) ?? undefined;
   }
 
-  if (!key) {
+  if (!staffToken) {
     throw new GhstError(
       `Credentials for site alias '${alias}' are unavailable. Run ghst auth login.`,
       {
@@ -247,7 +241,7 @@ async function resolveSiteFromConfig(
 
   return {
     url: site.url,
-    key,
+    staffToken,
     apiVersion: site.apiVersion,
     siteAlias: alias,
     source,
@@ -275,37 +269,40 @@ export async function resolveConnectionConfig(
   }
 
   const hasUrlFlag = global.url !== undefined;
-  const hasKeyFlag = global.key !== undefined;
-  const hasDirectFlags = hasUrlFlag || hasKeyFlag;
+  const hasStaffTokenFlag = global.staffToken !== undefined;
+  const hasDirectFlags = hasUrlFlag || hasStaffTokenFlag;
   const directVersion = env.GHOST_API_VERSION ?? DEFAULT_API_VERSION;
 
   if (hasDirectFlags) {
     const directUrl = global.url;
-    const directKey = global.key;
+    const directStaffToken = global.staffToken;
 
-    if (directUrl === undefined || directKey === undefined) {
-      throw new GhstError('Both --url and --key are required when using direct credential flags.', {
-        exitCode: ExitCode.USAGE_ERROR,
-        code: 'USAGE_ERROR',
-      });
+    if (directUrl === undefined || directStaffToken === undefined) {
+      throw new GhstError(
+        'Both --url and --staff-token are required when using direct credential flags.',
+        {
+          exitCode: ExitCode.USAGE_ERROR,
+          code: 'USAGE_ERROR',
+        },
+      );
     }
 
     UrlSchema.parse(directUrl);
     ApiVersionSchema.parse(directVersion);
     return {
       url: directUrl,
-      key: directKey,
+      staffToken: directStaffToken,
       apiVersion: directVersion,
       source: 'flags',
     };
   }
 
-  if (env.GHOST_URL && env.GHOST_ADMIN_API_KEY) {
+  if (env.GHOST_URL && env.GHOST_STAFF_ACCESS_TOKEN) {
     UrlSchema.parse(env.GHOST_URL);
     ApiVersionSchema.parse(directVersion);
     return {
       url: env.GHOST_URL,
-      key: env.GHOST_ADMIN_API_KEY,
+      staffToken: env.GHOST_STAFF_ACCESS_TOKEN,
       apiVersion: directVersion,
       source: 'env',
     };
@@ -324,7 +321,7 @@ export async function resolveConnectionConfig(
   }
 
   throw new GhstError(
-    'No site configuration found. Use ghst auth login, set env vars, or pass --url and --key.',
+    'No site configuration found. Use ghst auth login, set env vars, or pass --url and --staff-token.',
     {
       exitCode: ExitCode.AUTH_ERROR,
       code: 'AUTH_REQUIRED',

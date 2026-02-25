@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { generateAdminToken } from '../src/lib/auth.js';
+import { generateStaffJwt } from '../src/lib/auth.js';
 import { GhostApiError, GhostClient } from '../src/lib/client.js';
 import { resolveConnectionConfig } from '../src/lib/config.js';
 
@@ -21,13 +21,13 @@ const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const EXACT_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 const STRIPE_KEY_REGEX = /\b(?:pk|sk|rk)_(?:live|test)_[A-Za-z0-9]+\b/g;
 const STRIPE_WEBHOOK_SECRET_REGEX = /\bwhsec_[A-Za-z0-9]+\b/g;
-const GHOST_ADMIN_KEY_REGEX = /\b[0-9a-f]{24}:[0-9a-f]{64}\b/gi;
+const GHOST_STAFF_TOKEN_REGEX = /\b[0-9a-f]{24}:[0-9a-f]{64}\b/gi;
 const PRIVATE_KEY_BLOCK_REGEX =
   /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/g;
 const LEAK_GUARD_PATTERNS: Array<{ name: string; regex: RegExp }> = [
   { name: 'Stripe key', regex: /\b(?:pk|sk|rk)_(?:live|test)_[A-Za-z0-9]+\b/ },
   { name: 'Stripe webhook secret', regex: /\bwhsec_[A-Za-z0-9]+\b/ },
-  { name: 'Ghost Admin API key', regex: /\b[0-9a-f]{24}:[0-9a-f]{64}\b/i },
+  { name: 'Ghost staff access token', regex: /\b[0-9a-f]{24}:[0-9a-f]{64}\b/i },
   {
     name: 'Private key block',
     regex: /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/,
@@ -124,7 +124,7 @@ function redactSensitiveValue(value: string): string {
   return value
     .replace(STRIPE_KEY_REGEX, '<stripe-key>')
     .replace(STRIPE_WEBHOOK_SECRET_REGEX, '<stripe-webhook-secret>')
-    .replace(GHOST_ADMIN_KEY_REGEX, '<ghost-admin-key>')
+    .replace(GHOST_STAFF_TOKEN_REGEX, '<ghost-staff-token>')
     .replace(PRIVATE_KEY_BLOCK_REGEX, '<private-key>');
 }
 
@@ -250,10 +250,10 @@ function fallbackOffer(): Record<string, unknown> {
 
 async function captureImportValidation(
   url: string,
-  key: string,
+  staffToken: string,
   version: string,
 ): Promise<Record<string, unknown>> {
-  const token = await generateAdminToken(key);
+  const token = await generateStaffJwt(staffToken);
   const formData = new FormData();
   const response = await fetch(`${url.replace(/\/$/, '')}/ghost/api/admin/members/upload/`, {
     method: 'POST',
@@ -283,10 +283,10 @@ async function captureImportValidation(
 
 async function captureDbImportValidation(
   url: string,
-  key: string,
+  staffToken: string,
   version: string,
 ): Promise<Record<string, unknown>> {
-  const token = await generateAdminToken(key);
+  const token = await generateStaffJwt(staffToken);
   const formData = new FormData();
   const response = await fetch(`${url.replace(/\/$/, '')}/ghost/api/admin/db/`, {
     method: 'POST',
@@ -318,7 +318,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
   const connection = await resolveConnectionConfig({});
   const client = new GhostClient({
     url: connection.url,
-    key: connection.key,
+    staffToken: connection.staffToken,
     version: connection.apiVersion,
   });
 
@@ -526,7 +526,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
     const memberExportCsv = await client.members.exportCsv({ limit: 1 });
     const memberImportValidation = await captureImportValidation(
       connection.url,
-      connection.key,
+      connection.staffToken,
       connection.apiVersion,
     );
 
@@ -800,7 +800,7 @@ async function buildFixtures(): Promise<FixtureDocument> {
 
     const dbImportValidation = await captureDbImportValidation(
       connection.url,
-      connection.key,
+      connection.staffToken,
       connection.apiVersion,
     );
 

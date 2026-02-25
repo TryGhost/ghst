@@ -11,7 +11,8 @@ function isSensitivePath(path: string): boolean {
   return path
     .split('.')
     .some(
-      (segment) => segment.toLowerCase() === 'adminapikey' || SENSITIVE_KEY_PATTERN.test(segment),
+      (segment) =>
+        segment.toLowerCase() === 'staffaccesstoken' || SENSITIVE_KEY_PATTERN.test(segment),
     );
 }
 
@@ -26,7 +27,7 @@ function redactValue(value: unknown): unknown {
 
   const output: Record<string, unknown> = {};
   for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
-    if (key === 'adminApiKey' || SENSITIVE_KEY_PATTERN.test(key)) {
+    if (key === 'staffAccessToken' || SENSITIVE_KEY_PATTERN.test(key)) {
       output[key] = REDACTED;
       continue;
     }

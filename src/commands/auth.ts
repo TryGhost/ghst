@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline/promises';
 import chalk from 'chalk';
 import type { Command } from 'commander';
-import { generateAdminToken, parseAdminApiKey } from '../lib/auth.js';
+import { generateStaffJwt, parseStaffAccessToken } from '../lib/auth.js';
 import { GhostClient } from '../lib/client.js';
 import {
   deriveSiteAlias,
@@ -18,11 +18,10 @@ import { ExitCode, GhstError } from '../lib/errors.js';
 type PromptFn = (question: string) => Promise<string>;
 type OpenUrlFn = (url: string) => Promise<void>;
 
-const NEW_INTEGRATION_URL = 'https://account.ghost.org/?r=settings/integrations/new';
 const LOGIN_GUIDANCE_BORDER = '------------------------------------------------------------';
-const LOGIN_GUIDANCE_TITLE = 'Authenticate with Ghost';
-const LOGIN_GUIDANCE_LINE_ONE =
-  'You will now be taken to your Ghost Admin panel, where you will create a new integration';
+const LOGIN_GUIDANCE_TITLE = 'Continue In Ghost Admin';
+const LOGIN_GUIDANCE_LINE =
+  'Copy the staff access token from your profile, then return here to continue.';
 
 /* c8 ignore start */
 async function prompt(question: string): Promise<string> {
@@ -38,32 +37,92 @@ async function prompt(question: string): Promise<string> {
   }
 }
 
-function getBrowserOpenCommand(url: string): { command: string; args: string[] } {
+function getBrowserOpenCommands(url: string): Array<{ command: string; args: string[] }> {
   if (process.platform === 'darwin') {
-    return { command: 'open', args: [url] };
+    return [{ command: 'open', args: [url] }];
   }
 
   if (process.platform === 'win32') {
-    return { command: 'cmd', args: ['/c', 'start', '', url] };
+    return [
+      { command: 'cmd', args: ['/c', 'start', '', url] },
+      {
+        command: 'powershell',
+        args: ['-NoProfile', '-NonInteractive', '-Command', `Start-Process '${url}'`],
+      },
+    ];
   }
 
-  return { command: 'xdg-open', args: [url] };
+  return [
+    { command: 'xdg-open', args: [url] },
+    { command: 'gio', args: ['open', url] },
+  ];
 }
 
 async function openExternalUrl(url: string): Promise<void> {
-  const { command, args } = getBrowserOpenCommand(url);
+  const commands = getBrowserOpenCommands(url);
+  let lastError: Error | null = null;
 
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'ignore' });
-    child.once('error', reject);
-    child.once('close', (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(`Failed to open browser (exit ${code ?? 'unknown'})`));
-    });
-  });
+  for (const { command, args } of commands) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(command, args, { stdio: 'ignore' });
+        child.once('error', reject);
+        child.once('close', (code) => {
+          if (code === 0) {
+            resolve();
+            return;
+          }
+          reject(new Error(`Failed to open browser with '${command}' (exit ${code ?? 'unknown'})`));
+        });
+      });
+      return;
+    } catch (error) {
+      lastError = error as Error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error('Failed to open browser: no launch command available.');
+}
+
+function formatOpenError(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  try {
+    return String(error);
+  } catch {
+    return 'unknown error';
+  }
+}
+
+function printOpenWarning(adminUrl: string, useColor: boolean, reason: string): void {
+  const warning = `Warning: could not open browser automatically. Open this URL manually: ${adminUrl}`;
+  if (reason) {
+    const message = `${warning}\nReason: ${reason}`;
+    console.error(useColor ? chalk.yellow(message) : message);
+    return;
+  }
+
+  console.error(useColor ? chalk.yellow(warning) : warning);
+}
+
+async function openGhostAdminForLogin(adminOrigin: string, useColor: boolean): Promise<void> {
+  const staffSettingsUrl = getGhostStaffSettingsUrl(adminOrigin);
+  const preflight = `Opening Ghost Admin in your browser: ${staffSettingsUrl}`;
+  console.log('');
+  console.log(useColor ? chalk.cyan(preflight) : preflight);
+  console.log('');
+  try {
+    await openUrlFn(staffSettingsUrl);
+  } catch (error) {
+    const detail = formatOpenError(error);
+    printOpenWarning(staffSettingsUrl, useColor, detail);
+  }
 }
 /* c8 ignore stop */
 
@@ -79,39 +138,110 @@ export function setOpenUrlForTests(nextOpenUrl: OpenUrlFn | null): void {
 }
 
 function printLoginGuidance(useColor: boolean): void {
-  const apiUrlText = useColor ? chalk.cyan('API URL') : 'API URL';
-  const adminApiKeyText = useColor ? chalk.yellow('Admin API Key') : 'Admin API Key';
-  const lineTwo = `You will need to copy the ${apiUrlText} and ${adminApiKeyText} and paste them here to authenticate.`;
-
   console.log('');
   console.log(LOGIN_GUIDANCE_BORDER);
   console.log(LOGIN_GUIDANCE_TITLE);
   console.log(LOGIN_GUIDANCE_BORDER);
-  console.log(LOGIN_GUIDANCE_LINE_ONE);
-  console.log(lineTwo);
+  console.log(
+    useColor
+      ? LOGIN_GUIDANCE_LINE.replace('staff access token', chalk.yellow('staff access token'))
+      : LOGIN_GUIDANCE_LINE,
+  );
   console.log('');
 }
 
-function getIntegrationSetupUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return `${parsed.origin}/ghost/#/settings/integrations/new`;
-  } catch {
-    return NEW_INTEGRATION_URL;
+const URL_PROTOCOL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:\/\//;
+
+function normalizeGhostUrl(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    throw new GhstError('Ghost URL is required.', {
+      exitCode: ExitCode.USAGE_ERROR,
+      code: 'USAGE_ERROR',
+    });
   }
+
+  const candidate = URL_PROTOCOL_PATTERN.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new GhstError('Ghost URL must be valid (e.g. https://example.com).', {
+      exitCode: ExitCode.USAGE_ERROR,
+      code: 'USAGE_ERROR',
+    });
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new GhstError('Ghost URL must use http:// or https://.', {
+      exitCode: ExitCode.USAGE_ERROR,
+      code: 'USAGE_ERROR',
+    });
+  }
+
+  return parsed.origin;
+}
+
+function getGhostAdminEntryUrl(url: string): string {
+  const normalizedUrl = normalizeGhostUrl(url);
+  return `${normalizedUrl}/ghost`;
+}
+
+function getGhostStaffSettingsUrl(url: string): string {
+  const normalizedUrl = normalizeGhostUrl(url);
+  return `${normalizedUrl}/ghost/#/settings/staff`;
+}
+
+async function resolveGhostAdminOrigin(inputUrl: string): Promise<string> {
+  const maxRedirects = 5;
+  let probeUrl = getGhostAdminEntryUrl(inputUrl);
+
+  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    let response: Response;
+    try {
+      response = await fetch(probeUrl, {
+        method: 'GET',
+        redirect: 'manual',
+      });
+    } catch (error) {
+      throw new GhstError(
+        `Unable to reach Ghost Admin URL '${probeUrl}': ${(error as Error).message}`,
+        {
+          exitCode: ExitCode.GENERAL_ERROR,
+          code: 'NETWORK_ERROR',
+        },
+      );
+    }
+
+    const location = response.headers.get('location');
+    const isRedirect = response.status >= 300 && response.status < 400;
+    if (isRedirect && location) {
+      probeUrl = new URL(location, probeUrl).toString();
+      continue;
+    }
+
+    const finalUrl = response.url || probeUrl;
+    return normalizeGhostUrl(finalUrl);
+  }
+
+  throw new GhstError(`Too many redirects while resolving Ghost Admin URL from '${inputUrl}'.`, {
+    exitCode: ExitCode.GENERAL_ERROR,
+    code: 'NETWORK_ERROR',
+  });
 }
 
 async function persistSiteCredential(
   alias: string,
-  keyInput: string,
+  staffTokenInput: string,
   allowInsecureStorage: boolean,
-): Promise<{ credentialRef?: string; adminApiKey?: string }> {
+): Promise<{ credentialRef?: string; staffAccessToken?: string }> {
   const store = getCredentialStore();
   const available = await store.isAvailable().catch(() => false);
 
   if (available) {
     const credentialRef = credentialRefForAlias(alias);
-    await store.set(credentialRef, keyInput);
+    await store.set(credentialRef, staffTokenInput);
     return { credentialRef };
   }
 
@@ -125,7 +255,7 @@ async function persistSiteCredential(
     );
   }
 
-  return { adminApiKey: keyInput };
+  return { staffAccessToken: staffTokenInput };
 }
 
 export function registerAuthCommands(program: Command): void {
@@ -135,8 +265,8 @@ export function registerAuthCommands(program: Command): void {
     .command('login')
     .description('Authenticate and store site credentials')
     .option('--url <url>', 'Ghost site URL')
-    .option('--key <key>', 'Admin API key in {id}:{secret} format')
-    .option('--key-env <name>', 'Read key from env var name')
+    .option('--staff-token <token>', 'Staff access token in {id}:{secret} format')
+    .option('--staff-token-env <name>', 'Read staff token from env var name')
     .option('--non-interactive', 'Disable prompts and require explicit credentials')
     .option(
       '--insecure-storage',
@@ -154,14 +284,16 @@ export function registerAuthCommands(program: Command): void {
         });
       }
 
-      const envKeyInput = options.keyEnv ? process.env[options.keyEnv] : undefined;
+      const envStaffTokenInput = options.staffTokenEnv
+        ? process.env[options.staffTokenEnv]
+        : undefined;
       let urlInput = options.url || global.url;
-      let keyInput = options.key || global.key || envKeyInput;
+      let staffTokenInput = options.staffToken || global.staffToken || envStaffTokenInput;
 
       if (nonInteractive) {
-        if (!urlInput || !keyInput) {
+        if (!urlInput || !staffTokenInput) {
           throw new GhstError(
-            'Non-interactive login requires both --url and --key (or --key-env).',
+            'Non-interactive login requires both --url and --staff-token (or --staff-token-env).',
             {
               exitCode: ExitCode.USAGE_ERROR,
               code: 'USAGE_ERROR',
@@ -169,20 +301,26 @@ export function registerAuthCommands(program: Command): void {
           );
         }
       } else {
+        urlInput = urlInput || (await promptFn('Ghost URL (e.g. https://example.com): '));
+      }
+
+      urlInput = normalizeGhostUrl(urlInput ?? '');
+      urlInput = await resolveGhostAdminOrigin(urlInput);
+
+      if (!nonInteractive) {
         printLoginGuidance(global.color !== false);
         await promptFn('Press Enter to Continue...');
-        urlInput = urlInput || (await promptFn('Ghost API URL: '));
-        await openUrlFn(getIntegrationSetupUrl(urlInput));
-        if (!keyInput) {
-          keyInput = await promptFn('Ghost Admin API Key: ');
+        await openGhostAdminForLogin(urlInput, global.color !== false);
+        if (!staffTokenInput) {
+          staffTokenInput = await promptFn('Ghost Staff Access Token: ');
         }
       }
 
-      parseAdminApiKey(keyInput);
+      parseStaffAccessToken(staffTokenInput);
 
       const client = new GhostClient({
         url: urlInput,
-        key: keyInput,
+        staffToken: staffTokenInput,
         version: process.env.GHOST_API_VERSION ?? 'v6.0',
       });
 
@@ -192,13 +330,13 @@ export function registerAuthCommands(program: Command): void {
       const alias = options.site ?? deriveSiteAlias(urlInput);
       const persisted = await persistSiteCredential(
         alias,
-        keyInput,
+        staffTokenInput,
         Boolean(options.insecureStorage),
       );
       config.sites[alias] = {
         url: urlInput,
         ...(persisted.credentialRef ? { credentialRef: persisted.credentialRef } : {}),
-        ...(persisted.adminApiKey ? { adminApiKey: persisted.adminApiKey } : {}),
+        ...(persisted.staffAccessToken ? { staffAccessToken: persisted.staffAccessToken } : {}),
         apiVersion: process.env.GHOST_API_VERSION ?? 'v6.0',
         addedAt: new Date().toISOString(),
       };
@@ -388,11 +526,11 @@ export function registerAuthCommands(program: Command): void {
 
   auth
     .command('token')
-    .description('Print a short-lived admin JWT for the active connection')
+    .description('Print a short-lived staff JWT for the active connection')
     .action(async (_, command) => {
       const global = getGlobalOptions(command);
       const connection = await resolveConnectionConfig(global);
-      const token = await generateAdminToken(connection.key);
+      const token = await generateStaffJwt(connection.staffToken);
       console.log(token);
     });
 }

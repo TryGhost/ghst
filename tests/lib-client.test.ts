@@ -18,9 +18,9 @@ describe('GhostClient', () => {
     vi.restoreAllMocks();
   });
 
-  test('requires at least one key in constructor', () => {
+  test('requires at least one credential in constructor', () => {
     expect(() => new GhostClient({ url: 'https://myblog.ghost.io' })).toThrowError(
-      'Ghost client requires an admin key or content key.',
+      'Ghost client requires a staff access token or content key.',
     );
   });
 
@@ -31,7 +31,7 @@ describe('GhostClient', () => {
 
     const client = new GhostClient({
       url: 'https://myblog.ghost.io/',
-      key: KEY,
+      staffToken: KEY,
     });
 
     await client.siteInfo();
@@ -52,7 +52,11 @@ describe('GhostClient', () => {
       },
     });
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY, version: 'v6.0' });
+    const client = new GhostClient({
+      url: 'https://myblog.ghost.io',
+      staffToken: KEY,
+      version: 'v6.0',
+    });
 
     await client.posts.browse({ limit: 5, filter: 'status:draft', include: undefined });
     await client.posts.read('welcome', { bySlug: true, params: { include: 'tags,authors' } });
@@ -149,7 +153,7 @@ describe('GhostClient', () => {
 
     const client = new GhostClient({
       url: 'https://myblog.ghost.io',
-      key: KEY,
+      staffToken: KEY,
       contentKey: 'content-key',
     });
 
@@ -160,7 +164,7 @@ describe('GhostClient', () => {
   test('returns empty object for 204 response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
     const result = await client.posts.delete('id-3');
 
     expect(result).toEqual({});
@@ -174,7 +178,7 @@ describe('GhostClient', () => {
       }),
     );
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
     const result = await client.rawRequest<string>('/members/', 'OPTIONS');
 
     expect(result).toBe('GET,HEAD,POST');
@@ -197,7 +201,7 @@ describe('GhostClient', () => {
       });
     });
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
     await client.posts.browse();
     expect(attempt).toBe(3);
   });
@@ -221,7 +225,7 @@ describe('GhostClient', () => {
       });
     });
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
 
     await client.posts.browse();
     await expect(client.posts.add({ title: 'no retry' })).rejects.toMatchObject({
@@ -250,7 +254,7 @@ describe('GhostClient', () => {
 
     const contentless = new GhostClient({
       url: 'https://myblog.ghost.io',
-      key: KEY,
+      staffToken: KEY,
     });
     await expect(
       contentless.rawRequest('/posts/', 'GET', undefined, undefined, { api: 'content' }),
@@ -273,7 +277,7 @@ describe('GhostClient', () => {
       ),
     );
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
 
     await expect(client.posts.browse()).rejects.toMatchObject({
       message: String(validationFixture.message),
@@ -290,7 +294,7 @@ describe('GhostClient', () => {
       }),
     );
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
 
     await expect(client.posts.browse()).rejects.toMatchObject({
       message: 'Ghost API request failed (500)',
@@ -318,7 +322,7 @@ describe('GhostClient', () => {
       ),
     );
 
-    const client = new GhostClient({ url: 'https://myblog.ghost.io', key: KEY });
+    const client = new GhostClient({ url: 'https://myblog.ghost.io', staffToken: KEY });
 
     await expect(client.tiers.read('missing-tier')).rejects.toMatchObject({
       message: 'Tier not found',

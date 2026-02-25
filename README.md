@@ -89,9 +89,9 @@ ghst <resource> <action> --help
 Interactive auth flow:
 
 1. Run `ghst auth login`.
-2. Open Ghost Admin integration setup when prompted.
-3. Create a Custom Integration.
-4. Paste `Ghost API URL` and `Ghost Admin API Key`.
+2. Open Ghost Admin when prompted.
+3. Create or copy a staff access token from your user profile.
+4. Paste `Ghost API URL` and `Ghost Staff Access Token`.
 
 Non-interactive auth for CI/scripts:
 
@@ -99,7 +99,7 @@ Non-interactive auth for CI/scripts:
 ghst auth login \
   --non-interactive \
   --url https://myblog.ghost.io \
-  --key "{id}:{secret}" \
+  --staff-token "{id}:{secret}" \
   --json
 ```
 
@@ -144,7 +144,7 @@ ghst auth token
 | `--json` | Emit JSON output for automation |
 | `--jq <filter>` | Apply jq-style extraction to JSON output |
 | `--site <alias>` | Use configured site alias |
-| `--url <url>` + `--key <key>` | Use direct credentials for this invocation |
+| `--url <url>` + `--staff-token <token>` | Use direct credentials for this invocation |
 | `--debug [level]` | Enable debug output |
 | `--no-color` | Disable color output |
 
@@ -199,8 +199,8 @@ ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New ti
 Connection resolution order:
 
 1. `--site`
-2. `--url` + `--key`
-3. `GHOST_URL` + `GHOST_ADMIN_API_KEY`
+2. `--url` + `--staff-token`
+3. `GHOST_URL` + `GHOST_STAFF_ACCESS_TOKEN`
 4. project link file `.ghst/config.json`
 5. active site in user config
 
@@ -217,7 +217,7 @@ Environment variables:
 | Variable | Purpose |
 | --- | --- |
 | `GHOST_URL` | Ghost site URL override |
-| `GHOST_ADMIN_API_KEY` | Ghost Admin API key (`{id}:{secret}`) |
+| `GHOST_STAFF_ACCESS_TOKEN` | Ghost staff access token (`{id}:{secret}`) |
 | `GHOST_API_VERSION` | Admin API version override (default `v6.0`) |
 | `GHOST_SITE` | Site alias fallback lookup in user config |
 | `GHOST_CONTENT_API_KEY` | Required when using `ghst api --content-api` |
@@ -239,7 +239,7 @@ Common machine-safe practices:
 
 - Use `--json` for scripts.
 - Use `--non-interactive` for CI where prompts are invalid.
-- Pass explicit auth (`--url` and `--key`) or set env vars.
+- Pass explicit auth (`--url` and `--staff-token`) or set env vars.
 
 Exit code mapping:
 
@@ -281,8 +281,8 @@ Supported tool groups:
 `No site configuration found`:
 
 - Run `ghst auth login`, or
-- Provide `--url` and `--key`, or
-- Set `GHOST_URL` and `GHOST_ADMIN_API_KEY`.
+- Provide `--url` and `--staff-token`, or
+- Set `GHOST_URL` and `GHOST_STAFF_ACCESS_TOKEN`.
 
 `GHOST_CONTENT_API_KEY is required for --content-api requests`:
 

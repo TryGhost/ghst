@@ -101,7 +101,7 @@ Non-interactive:
 pnpm dev auth login \
   --non-interactive \
   --url https://your-site.ghost.io \
-  --key "{id}:{secret}" \
+  --staff-token "{id}:{secret}" \
   --json
 ```
 
@@ -114,8 +114,8 @@ Config and site linkage:
 Connection resolution order:
 
 1. `--site`
-2. `--url` + `--key`
-3. `GHOST_URL` + `GHOST_ADMIN_API_KEY`
+2. `--url` + `--staff-token`
+3. `GHOST_URL` + `GHOST_STAFF_ACCESS_TOKEN`
 4. `.ghst/config.json`
 5. active site in user config
 

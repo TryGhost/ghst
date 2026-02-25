@@ -1,9 +1,9 @@
-import { generateAdminToken, parseAdminApiKey } from './auth.js';
+import { generateStaffJwt, parseStaffAccessToken } from './auth.js';
 import { ExitCode, GhstError, mapHttpStatusToExitCode } from './errors.js';
 
 export interface GhostClientConfig {
   url: string;
-  key?: string;
+  staffToken?: string;
   contentKey?: string;
   version?: string;
 }
@@ -85,24 +85,24 @@ async function wait(ms: number): Promise<void> {
 
 export class GhostClient {
   private readonly url: string;
-  private readonly key?: string;
+  private readonly staffToken?: string;
   private readonly contentKey?: string;
   private readonly version: string;
 
   constructor(config: GhostClientConfig) {
-    if (!config.key && !config.contentKey) {
-      throw new GhstError('Ghost client requires an admin key or content key.', {
+    if (!config.staffToken && !config.contentKey) {
+      throw new GhstError('Ghost client requires a staff access token or content key.', {
         exitCode: ExitCode.USAGE_ERROR,
         code: 'USAGE_ERROR',
       });
     }
 
-    if (config.key) {
-      parseAdminApiKey(config.key);
+    if (config.staffToken) {
+      parseStaffAccessToken(config.staffToken);
     }
 
     this.url = config.url.replace(/\/$/, '');
-    this.key = config.key;
+    this.staffToken = config.staffToken;
     this.contentKey = config.contentKey;
     this.version = config.version ?? 'v6.0';
   }
@@ -169,14 +169,14 @@ export class GhostClient {
       };
 
       if (api === 'admin') {
-        if (!this.key) {
-          throw new GhstError('Admin API key is required for this request.', {
+        if (!this.staffToken) {
+          throw new GhstError('Staff access token is required for this request.', {
             code: 'AUTH_REQUIRED',
             exitCode: ExitCode.AUTH_ERROR,
           });
         }
 
-        const token = await generateAdminToken(this.key);
+        const token = await generateStaffJwt(this.staffToken);
         headers.Authorization = `Ghost ${token}`;
       } else {
         if (!this.contentKey) {

@@ -34,7 +34,7 @@ export function buildProgram(): Command {
     .option('--jq <filter>', 'Apply jq-style field extraction to JSON output')
     .option('--site <site>', 'Configured site alias')
     .option('--url <url>', 'Ghost site URL override')
-    .option('--key <key>', 'Ghost Admin API key override')
+    .option('--staff-token <token>', 'Ghost staff access token override')
     .option('--debug [level]', 'Enable debug output')
     .option('--no-color', 'Disable color output');
 

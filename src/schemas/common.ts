@@ -9,9 +9,9 @@ export const SiteAliasSchema = z
 
 export const ApiVersionSchema = z.string().regex(/^v\d+\.\d+$/, 'api version must look like v6.0');
 
-export const AdminApiKeySchema = z
+export const StaffAccessTokenSchema = z
   .string()
-  .regex(/^[A-Za-z0-9]+:[A-Fa-f0-9]+$/, 'key must use the format {id}:{hex-secret}')
+  .regex(/^[A-Za-z0-9]+:[A-Fa-f0-9]+$/, 'staff token must use the format {id}:{hex-secret}')
   .refine((value) => {
     const secret = value.split(':')[1] ?? '';
     return secret.length % 2 === 0;

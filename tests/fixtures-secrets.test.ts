@@ -7,7 +7,7 @@ const FIXTURE_PATH = path.resolve(process.cwd(), 'tests/fixtures/ghost-admin/fix
 const blockedPatterns: Array<{ name: string; regex: RegExp }> = [
   { name: 'Stripe key', regex: /\b(?:pk|sk|rk)_(?:live|test)_[A-Za-z0-9]+\b/ },
   { name: 'Stripe webhook secret', regex: /\bwhsec_[A-Za-z0-9]+\b/ },
-  { name: 'Ghost Admin API key', regex: /\b[0-9a-f]{24}:[0-9a-f]{64}\b/i },
+  { name: 'Ghost staff access token', regex: /\b[0-9a-f]{24}:[0-9a-f]{64}\b/i },
   {
     name: 'Private key block',
     regex: /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/,

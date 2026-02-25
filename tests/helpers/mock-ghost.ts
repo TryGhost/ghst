@@ -57,6 +57,10 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       return overridden;
     }
 
+    if ((pathname === '/ghost' || pathname === '/ghost/') && method === 'GET') {
+      return textResponse('<html><body>Ghost Admin</body></html>', 200, 'text/html; charset=utf-8');
+    }
+
     if (pathname.endsWith('/ghost/api/admin/site/') && method === 'GET') {
       return jsonResponse(cloneFixture(ghostFixtures.api.admin.site));
     }

@@ -123,8 +123,8 @@ pnpm build
 ## Config Resolution Order
 
 1. Explicit `--site`
-2. Explicit `--url` + `--key`
-3. Env `GHOST_URL` + `GHOST_ADMIN_API_KEY`
+2. Explicit `--url` + `--staff-token`
+3. Env `GHOST_URL` + `GHOST_STAFF_ACCESS_TOKEN`
 4. Project link `.ghst/config.json`
 5. Active site in `~/.config/ghst/config.json`
 
@@ -167,7 +167,7 @@ pnpm fixtures:ghost:check
 ## Notes
 
 - Ghost Admin API version defaults to `v6.0`.
-- JWT auth uses `{id}:{secret}` Admin key with `aud: /admin/` and 5-minute expiry.
+- JWT auth uses `{id}:{secret}` staff access token with `aud: /admin/` and 5-minute expiry.
 - Fixture capture/check scripts target Ghost Admin API responses only.
 - Fixture coverage includes phase 4 copy/bulk/listen endpoint usage used by command and runtime tests.
 - Source migration commands use Ghost-maintained `@tryghost/mg-*` packages and build Ghost JSON imports uploaded via `/db`.

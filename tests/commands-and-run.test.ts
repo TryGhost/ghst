@@ -143,7 +143,19 @@ describe('run + commands', () => {
         'https://myblog.ghost.io',
       ]),
     ).resolves.toBe(ExitCode.USAGE_ERROR);
-
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--key',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
     await expect(
       run([
         'node',
@@ -154,6 +166,20 @@ describe('run + commands', () => {
         '--url',
         'https://myblog.ghost.io',
         '--key-env',
+        'MY_GHOST_KEY',
+      ]),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token-env',
         'MY_GHOST_KEY',
         '--site',
         'myblog',
@@ -190,12 +216,134 @@ describe('run + commands', () => {
     );
     await expect(run(['node', 'ghst', 'auth', 'logout'])).resolves.toBe(ExitCode.SUCCESS);
 
-    const promptAnswers = ['', 'https://prompted.ghost.io', KEY];
+    const promptAnswers = ['https://prompted.ghost.io', '', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual(['https://prompted.ghost.io/ghost/#/settings/integrations/new']);
+    expect(openedUrls).toEqual(['https://prompted.ghost.io/ghost/#/settings/staff']);
 
     delete process.env.MY_GHOST_KEY;
+  });
+
+  test('continues interactive auth when browser auto-open fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error');
+    setOpenUrlForTests(async () => {
+      throw new Error('simulated open failure');
+    });
+
+    const promptAnswers = ['https://prompted.ghost.io', '', KEY];
+    setPromptForTests(async () => promptAnswers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(errorSpy.mock.calls[0]?.[0] ?? '')).toContain(
+      'could not open browser automatically',
+    );
+  });
+
+  test('normalizes bare-domain URL during interactive auth login', async () => {
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+
+    const promptAnswers = ['ghst.ghost.io', '', KEY];
+    setPromptForTests(async () => promptAnswers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual(['https://ghst.ghost.io/ghost/#/settings/staff']);
+
+    const configPath = path.join(configDir, 'config.json');
+    const configRaw = await fs.readFile(configPath, 'utf8');
+    const config = JSON.parse(configRaw) as { sites: Record<string, { url: string }> };
+    expect(config.sites.ghst?.url).toBe('https://ghst.ghost.io');
+  });
+
+  test('resolves redirected admin origin and stores resolved base URL', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        postConflictOnce: true,
+        onRequest: async ({ pathname, method }) => {
+          if (pathname === '/ghost' && method === 'GET') {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: 'https://john.ghost.io/ghost/',
+              },
+            });
+          }
+          return undefined;
+        },
+      }),
+    );
+
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+
+    const promptAnswers = ['john.onolan.org', '', KEY];
+    setPromptForTests(async () => promptAnswers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual(['https://john.ghost.io/ghost/#/settings/staff']);
+
+    const configPath = path.join(configDir, 'config.json');
+    const configRaw = await fs.readFile(configPath, 'utf8');
+    const config = JSON.parse(configRaw) as { sites: Record<string, { url: string }> };
+    expect(config.sites.john?.url).toBe('https://john.ghost.io');
+  });
+
+  test('prints updated staff access token guidance copy', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    setOpenUrlForTests(async () => undefined);
+
+    const promptAnswers = ['https://prompted.ghost.io', '', KEY];
+    setPromptForTests(async () => promptAnswers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', '--no-color', 'auth', 'login'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    const output = logSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(output).toContain(
+      'Copy the staff access token from your profile, then return here to continue.',
+    );
+    expect(output).not.toContain('staff user token');
+  });
+
+  test('fails login when ghost admin origin resolution request fails', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        postConflictOnce: true,
+        onRequest: async ({ pathname, method }) => {
+          if (pathname === '/ghost' && method === 'GET') {
+            throw new Error('network down');
+          }
+          return undefined;
+        },
+      }),
+    );
+
+    const errorSpy = vi.spyOn(console, 'error');
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
+
+    const errorOutput = errorSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(errorOutput).toContain('Unable to reach Ghost Admin URL');
   });
 
   test('covers post/page/tag/member/newsletter/tier/offer/label/webhook/user/image/theme/site/setting/migrate/config/api/completion command flows', async () => {
@@ -208,7 +356,7 @@ describe('run + commands', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',
@@ -889,7 +1037,7 @@ describe('run + commands', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',
@@ -994,7 +1142,7 @@ describe('run + commands', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',

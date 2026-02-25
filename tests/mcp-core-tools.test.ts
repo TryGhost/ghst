@@ -72,7 +72,7 @@ describe('mcp core tool registration', () => {
           sites: {
             myblog: {
               url: 'https://myblog.ghost.io',
-              adminApiKey: KEY,
+              staffAccessToken: KEY,
               apiVersion: 'v6.0',
               addedAt: '2026-01-01T00:00:00.000Z',
             },

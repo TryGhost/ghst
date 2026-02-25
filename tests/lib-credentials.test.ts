@@ -155,8 +155,9 @@ describe.sequential('credential store adapters', () => {
             'ghst',
             '-U',
             '-w',
+            'shhh',
           ]);
-          expect(stdin).toBe('shhh\nshhh\n');
+          expect(stdin).toBe('');
         },
       },
       { code: 0, stdout: 'secret-value\n' },

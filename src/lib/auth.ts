@@ -1,15 +1,15 @@
 import { SignJWT } from 'jose';
-import { AdminApiKeySchema } from '../schemas/common.js';
+import { StaffAccessTokenSchema } from '../schemas/common.js';
 import { ExitCode, GhstError } from './errors.js';
 
-export interface ParsedAdminKey {
+export interface ParsedStaffAccessToken {
   id: string;
   secretHex: string;
   secret: Uint8Array;
 }
 
-export function parseAdminApiKey(value: string): ParsedAdminKey {
-  const parsed = AdminApiKeySchema.safeParse(value);
+export function parseStaffAccessToken(value: string): ParsedStaffAccessToken {
+  const parsed = StaffAccessTokenSchema.safeParse(value);
   if (!parsed.success) {
     throw new GhstError(parsed.error.issues.map((issue) => issue.message).join('; '), {
       exitCode: ExitCode.VALIDATION_ERROR,
@@ -26,8 +26,8 @@ export function parseAdminApiKey(value: string): ParsedAdminKey {
   };
 }
 
-export async function generateAdminToken(key: string): Promise<string> {
-  const parsed = parseAdminApiKey(key);
+export async function generateStaffJwt(staffToken: string): Promise<string> {
+  const parsed = parseStaffAccessToken(staffToken);
 
   return new SignJWT({})
     .setProtectedHeader({ alg: 'HS256', kid: parsed.id, typ: 'JWT' })

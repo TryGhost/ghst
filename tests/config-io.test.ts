@@ -41,7 +41,7 @@ describe('config io helpers', () => {
       sites: {
         myblog: {
           url: 'https://myblog.ghost.io',
-          adminApiKey: 'abc123:0011223344556677',
+          staffAccessToken: 'abc123:0011223344556677',
           apiVersion: 'v6.0',
           addedAt: '2026-01-01T00:00:00.000Z',
         },
@@ -65,7 +65,7 @@ describe('config io helpers', () => {
         sites: {
           myblog: {
             url: 'https://myblog.ghost.io',
-            adminApiKey: 'abc123:0011223344556677',
+            staffAccessToken: 'abc123:0011223344556677',
             apiVersion: 'v6.0',
             addedAt: '2026-01-01T00:00:00.000Z',
           },
@@ -89,6 +89,36 @@ describe('config io helpers', () => {
 
     expect(config.version).toBe(2);
     expect(config.sites).toEqual({});
+  });
+
+  test('rejects legacy config using adminApiKey field', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-config-legacy-field-'));
+    const configDir = path.join(tempRoot, 'cfg');
+    await fs.mkdir(configDir, { recursive: true });
+    await fs.writeFile(
+      path.join(configDir, 'config.json'),
+      JSON.stringify(
+        {
+          version: 2,
+          active: 'myblog',
+          sites: {
+            myblog: {
+              url: 'https://myblog.ghost.io',
+              adminApiKey: 'abc123:0011223344556677',
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    await expect(
+      readUserConfig({ GHST_CONFIG_DIR: configDir } as NodeJS.ProcessEnv),
+    ).rejects.toBeDefined();
   });
 
   test('throws structured errors on invalid user/project json', async () => {

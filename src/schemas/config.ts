@@ -1,16 +1,16 @@
 import { z } from 'zod';
-import { AdminApiKeySchema, ApiVersionSchema, SiteAliasSchema, UrlSchema } from './common.js';
+import { ApiVersionSchema, SiteAliasSchema, StaffAccessTokenSchema, UrlSchema } from './common.js';
 
 export const SiteConfigSchema = z
   .object({
     url: UrlSchema,
-    adminApiKey: AdminApiKeySchema.optional(),
+    staffAccessToken: StaffAccessTokenSchema.optional(),
     credentialRef: z.string().min(1).optional(),
     apiVersion: ApiVersionSchema.default('v6.0'),
     addedAt: z.string().datetime(),
   })
-  .refine((site) => Boolean(site.adminApiKey || site.credentialRef), {
-    message: 'site config must include adminApiKey or credentialRef',
+  .refine((site) => Boolean(site.staffAccessToken || site.credentialRef), {
+    message: 'site config must include staffAccessToken or credentialRef',
   });
 
 export const UserConfigSchema = z.object({

@@ -75,7 +75,7 @@ describe('credential storage and security defaults', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',
@@ -83,11 +83,11 @@ describe('credential storage and security defaults', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
 
     const raw = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
-      sites?: Record<string, { adminApiKey?: string; credentialRef?: string }>;
+      sites?: Record<string, { staffAccessToken?: string; credentialRef?: string }>;
     };
     const site = raw.sites?.myblog;
     expect(site?.credentialRef).toBe('site:myblog');
-    expect(site?.adminApiKey).toBeUndefined();
+    expect(site?.staffAccessToken).toBeUndefined();
     await expect(store.get('site:myblog')).resolves.toBe(KEY);
 
     await expect(run(['node', 'ghst', 'auth', 'token'])).resolves.toBe(ExitCode.SUCCESS);
@@ -105,7 +105,7 @@ describe('credential storage and security defaults', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',
@@ -121,7 +121,7 @@ describe('credential storage and security defaults', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',
@@ -130,13 +130,13 @@ describe('credential storage and security defaults', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
 
     const raw = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
-      sites?: Record<string, { adminApiKey?: string; credentialRef?: string }>;
+      sites?: Record<string, { staffAccessToken?: string; credentialRef?: string }>;
     };
-    expect(raw.sites?.myblog?.adminApiKey).toBe(KEY);
+    expect(raw.sites?.myblog?.staffAccessToken).toBe(KEY);
     expect(raw.sites?.myblog?.credentialRef).toBeUndefined();
   });
 
-  test('migrates legacy plaintext credentials into secure store on read', async () => {
+  test('migrates plaintext staff tokens into secure store on read', async () => {
     const store = createMemoryCredentialStore();
     setCredentialStoreForTests(store);
 
@@ -149,7 +149,7 @@ describe('credential storage and security defaults', () => {
           sites: {
             myblog: {
               url: 'https://myblog.ghost.io',
-              adminApiKey: KEY,
+              staffAccessToken: KEY,
               apiVersion: 'v6.0',
               addedAt: '2026-01-01T00:00:00.000Z',
             },
@@ -163,16 +163,16 @@ describe('credential storage and security defaults', () => {
 
     const config = await readUserConfig();
     expect(config.sites.myblog?.credentialRef).toBe('site:myblog');
-    expect(config.sites.myblog?.adminApiKey).toBeUndefined();
+    expect(config.sites.myblog?.staffAccessToken).toBeUndefined();
     await expect(store.get('site:myblog')).resolves.toBe(KEY);
 
     const persisted = JSON.parse(
       await fs.readFile(path.join(configDir, 'config.json'), 'utf8'),
     ) as {
-      sites?: Record<string, { adminApiKey?: string; credentialRef?: string }>;
+      sites?: Record<string, { staffAccessToken?: string; credentialRef?: string }>;
     };
     expect(persisted.sites?.myblog?.credentialRef).toBe('site:myblog');
-    expect(persisted.sites?.myblog?.adminApiKey).toBeUndefined();
+    expect(persisted.sites?.myblog?.staffAccessToken).toBeUndefined();
   });
 
   test('redacts sensitive config output unless --show-secrets is used', async () => {
@@ -186,7 +186,7 @@ describe('credential storage and security defaults', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
+        '--staff-token',
         KEY,
         '--site',
         'myblog',
@@ -202,14 +202,14 @@ describe('credential storage and security defaults', () => {
     expect(shown).not.toContain(KEY);
 
     logSpy.mockClear();
-    await expect(run(['node', 'ghst', 'config', 'get', 'sites.myblog.adminApiKey'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
+    await expect(
+      run(['node', 'ghst', 'config', 'get', 'sites.myblog.staffAccessToken']),
+    ).resolves.toBe(ExitCode.SUCCESS);
     expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toBe('<redacted>');
 
     logSpy.mockClear();
     await expect(
-      run(['node', 'ghst', 'config', 'get', 'sites.myblog.adminApiKey', '--show-secrets']),
+      run(['node', 'ghst', 'config', 'get', 'sites.myblog.staffAccessToken', '--show-secrets']),
     ).resolves.toBe(ExitCode.SUCCESS);
     expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toBe(KEY);
   });

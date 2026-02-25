@@ -23,7 +23,7 @@ async function getClient(global: GlobalOptions): Promise<GhostClient> {
   const connection = await resolveConnectionConfig(global);
   return new GhostClient({
     url: connection.url,
-    key: connection.key,
+    staffToken: connection.staffToken,
     version: connection.apiVersion,
   });
 }

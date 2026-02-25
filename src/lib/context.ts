@@ -10,7 +10,7 @@ export function getGlobalOptions(command: Command): GlobalOptions {
     jq: options.jq,
     site: options.site,
     url: options.url,
-    key: options.key,
+    staffToken: options.staffToken,
     debug: options.debug,
     color: options.color !== false && !noColorFromEnv,
   };
