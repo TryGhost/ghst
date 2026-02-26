@@ -19,7 +19,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=24 <25"
+    "node": "^20.0.0 || ^22.0.0 || ^24.0.0"
   },
   "publishConfig": {
     "access": "public"

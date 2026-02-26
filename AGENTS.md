@@ -20,7 +20,7 @@
 
 ## Runtime And Tooling
 
-- Node: `24.x` (enforced via `.nvmrc` and `package.json` engines `>=24 <25`)
+- Node: `20.x`, `22.x`, `24.x` (`.nvmrc` defaults to `24`; `package.json` engines allow all three)
 - Package manager: `pnpm@10.28.1`
 - Language: TypeScript (ESM)
 - Build: `tsup`
