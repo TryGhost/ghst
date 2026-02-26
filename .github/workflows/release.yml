@@ -8,6 +8,15 @@ on:
         type: boolean
         default: false
         required: false
+      bump:
+        description: Version bump strategy
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+        default: auto
+        required: false
   schedule:
     - cron: "0 15 * * 1"
 
@@ -49,6 +58,7 @@ jobs:
         id: gate
         shell: bash
         run: |
+          INPUT_BUMP="${{ github.event_name == 'workflow_dispatch' && inputs.bump || 'auto' }}"
           FORCE="false"
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.force }}" == "true" ]]; then
             FORCE="true"
@@ -67,7 +77,9 @@ jobs:
             exit 0
           fi
 
-          if [[ "${COMMIT_COUNT}" -eq 0 ]]; then
+          if [[ "${INPUT_BUMP}" == "patch" || "${INPUT_BUMP}" == "minor" ]]; then
+            BUMP_KIND="${INPUT_BUMP}"
+          elif [[ "${COMMIT_COUNT}" -eq 0 ]]; then
             BUMP_KIND="patch"
           else
             NON_RENOVATE_COUNT=$(git log --format='%an <%ae>' "${RANGE}" | awk 'BEGIN{IGNORECASE=1} !/renovate/ {count++} END {print count+0}')
