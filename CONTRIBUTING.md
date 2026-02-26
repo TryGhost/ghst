@@ -244,6 +244,7 @@ The Ghost Foundation acknowledges that, except as explicitly described in this A
 
 ## Releases
 
+- Package: `@tryghost/ghst`
 - Automatic: `.github/workflows/release.yml` runs every Monday at `15:00 UTC` and publishes only when there are commits since the last release tag (`vX.Y.Z`).
 - Manual: run the `Release` GitHub Actions workflow with `workflow_dispatch`; set `force=true` to publish even with no new commits.
 - Versioning: if all commits since the last release tag are by Renovate (`renovate[bot]`), the workflow uses `patch`; otherwise it uses `minor`.

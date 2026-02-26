@@ -1,5 +1,5 @@
 {
-  "name": "ghst",
+  "name": "@tryghost/ghst",
   "version": "0.4.0",
   "description": "A modern Ghost CMS CLI",
   "type": "module",
@@ -20,6 +20,9 @@
   ],
   "engines": {
     "node": ">=24 <25"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "packageManager": "pnpm@10.28.1",
   "scripts": {

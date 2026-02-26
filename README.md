@@ -1,4 +1,4 @@
-# ghst cli (beta)
+# ghst cli
 
 `ghst` is a CLI tool for managing Ghost instances from the terminal. Anything you can do with the Ghost Admin API, you can do with `ghst`. (And a bit more)
 
@@ -9,7 +9,7 @@
 - Utility functions for development
 
 > [!IMPORTANT]
-> This tool is in active development beta, and is not yet stable. Use with caution, and back up critical data.
+> This tool is pre-1.0 and not yet stable. Use with caution, and back up critical data.
 
 ## Contents
 
@@ -31,23 +31,23 @@
 Install globally with npm:
 
 ```bash
-npm install -g ghst
+npm install -g @tryghost/ghst
 ```
 
 or run instantly without global install:
 
 ```bash
-npx ghst
+npx @tryghost/ghst
 ```
 
 Other package managers:
 
 ```bash
-pnpm add -g ghst
+pnpm add -g @tryghost/ghst
 ```
 
 ```bash
-yarn global add ghst
+yarn global add @tryghost/ghst
 ```
 
 ## Quick Start

@@ -102,7 +102,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.gate.outputs.publish == 'true'
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
 
       - name: Commit and tag release version
         if: steps.gate.outputs.publish == 'true'
