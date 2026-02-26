@@ -102,7 +102,11 @@ jobs:
 
       - name: Publish to npm
         if: steps.gate.outputs.publish == 'true'
-        run: npm publish --provenance --access public
+        shell: bash
+        run: |
+          # Force npm trusted publishing (OIDC) path instead of token auth.
+          unset NODE_AUTH_TOKEN
+          npm publish --provenance --access public
 
       - name: Commit and tag release version
         if: steps.gate.outputs.publish == 'true'
