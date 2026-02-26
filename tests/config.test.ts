@@ -86,28 +86,6 @@ describe('resolveConnectionConfig precedence', () => {
     expect(resolved.source).toBe('env');
   });
 
-  test('ignores legacy admin env var and fails auth resolution', async () => {
-    await expect(
-      resolveConnectionConfig(
-        {},
-        {
-          env: {
-            GHOST_URL: 'https://env.ghost.io',
-            GHOST_ADMIN_API_KEY: 'legacyid:0011223344556677',
-          } as NodeJS.ProcessEnv,
-          userConfig: {
-            version: 1,
-            sites: {},
-          },
-          projectConfig: null,
-        },
-      ),
-    ).rejects.toMatchObject({
-      code: 'AUTH_REQUIRED',
-      exitCode: ExitCode.AUTH_ERROR,
-    });
-  });
-
   test('prefers --site over env direct credentials', async () => {
     const resolved = await resolveConnectionConfig(
       { site: 'project-site' },

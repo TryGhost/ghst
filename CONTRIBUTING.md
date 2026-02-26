@@ -19,6 +19,7 @@ This guide is the complete contributor workflow for cloning, installing, running
 - [Submitting a Pull Request](#submitting-a-pull-request)
 - [Getting Help](#getting-help)
 - [Contributor License Agreement](#contributor-license-agreement)
+- [Releases](#releases)
 
 ## Before You Start
 
@@ -240,3 +241,10 @@ You confirm that you are able to grant us these rights. You represent that You a
 You represent that the Contributions are Your original works of authorship, and to Your knowledge, no other person claims, or has the right to claim, any right in any invention or patent related to the Contributions. You also represent that You are not legally obligated, whether by entering into an agreement or otherwise, in any way that conflicts with the terms of this license.
 
 The Ghost Foundation acknowledges that, except as explicitly described in this Agreement, any Contribution which you provide is on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+
+## Releases
+
+- Automatic: `.github/workflows/release.yml` runs every Monday at `15:00 UTC` and publishes only when there are commits since the last release tag (`vX.Y.Z`).
+- Manual: run the `Release` GitHub Actions workflow with `workflow_dispatch`; set `force=true` to publish even with no new commits.
+- Versioning: if all commits since the last release tag are by Renovate (`renovate[bot]`), the workflow uses `patch`; otherwise it uses `minor`.
+- Prerequisites: npm trusted publishing must be configured for this repository/workflow.

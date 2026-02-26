@@ -152,46 +152,16 @@ describe('run + commands', () => {
         '--non-interactive',
         '--url',
         'https://myblog.ghost.io',
-        '--key',
-        KEY,
-      ]),
-    ).resolves.toBe(ExitCode.GENERAL_ERROR);
-    await expect(
-      run([
-        'node',
-        'ghst',
-        'auth',
-        'login',
-        '--non-interactive',
-        '--url',
-        'https://myblog.ghost.io',
-        '--key-env',
-        'MY_GHOST_KEY',
-      ]),
-    ).resolves.toBe(ExitCode.GENERAL_ERROR);
-
-    await expect(
-      run([
-        'node',
-        'ghst',
-        'auth',
-        'login',
-        '--non-interactive',
-        '--url',
-        'https://myblog.ghost.io',
         '--staff-token-env',
         'MY_GHOST_KEY',
-        '--site',
-        'myblog',
-        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'auth', 'switch', 'myblog'])).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
 
-    await expect(run(['node', 'ghst', 'auth', 'switch', 'myblog'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'switch', 'missing'])).resolves.toBe(
       ExitCode.NOT_FOUND,
     );

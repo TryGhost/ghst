@@ -4,6 +4,14 @@
   "description": "A modern Ghost CMS CLI",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TryGhost/ghst.git"
+  },
+  "homepage": "https://github.com/TryGhost/ghst#readme",
+  "bugs": {
+    "url": "https://github.com/TryGhost/ghst/issues"
+  },
   "bin": {
     "ghst": "dist/index.js"
   },
