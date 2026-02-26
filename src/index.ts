@@ -1,4 +1,5 @@
-import { pathToFileURL } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Command, CommanderError } from 'commander';
 import { registerApiCommands } from './commands/api.js';
 import { registerAuthCommands } from './commands/auth.js';
@@ -95,18 +96,26 @@ export async function main(argv: string[]): Promise<void> {
   process.exit(exitCode);
 }
 
-/* c8 ignore start */
-function isMainModule(): boolean {
-  const entry = process.argv[1];
+export function isMainModule(
+  moduleUrl: string = import.meta.url,
+  argvEntry: string | undefined = process.argv[1],
+): boolean {
+  const entry = argvEntry;
   if (!entry) {
     return false;
   }
 
-  return import.meta.url === pathToFileURL(entry).href;
+  try {
+    const modulePath = realpathSync(fileURLToPath(moduleUrl));
+    const entryPath = realpathSync(entry);
+    return modulePath === entryPath;
+  } catch {
+    // Fall back to URL equality when realpath resolution fails.
+    return moduleUrl === pathToFileURL(entry).href;
+  }
 }
 
 /* c8 ignore next 3 */
 if (isMainModule()) {
   void main(process.argv);
 }
-/* c8 ignore stop */

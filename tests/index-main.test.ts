@@ -1,5 +1,9 @@
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { main } from '../src/index.js';
+import { isMainModule, main } from '../src/index.js';
 import { ExitCode } from '../src/lib/errors.js';
 
 describe('main entrypoint', () => {
@@ -21,5 +25,21 @@ describe('main entrypoint', () => {
     await main(['node', 'ghst', 'unknown-command']);
 
     expect(exitSpy).toHaveBeenCalledWith(ExitCode.USAGE_ERROR);
+  });
+
+  test('treats symlinked CLI path as main module', () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'ghst-main-module-'));
+
+    try {
+      const realEntry = join(tempDir, 'index.js');
+      const symlinkEntry = join(tempDir, 'ghst');
+
+      writeFileSync(realEntry, '// fixture');
+      symlinkSync(realEntry, symlinkEntry);
+
+      expect(isMainModule(pathToFileURL(realEntry).href, symlinkEntry)).toBe(true);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
