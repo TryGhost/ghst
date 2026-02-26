@@ -105,7 +105,11 @@ jobs:
         run: |
           # Force npm trusted publishing (OIDC) path instead of token auth.
           unset NODE_AUTH_TOKEN
-          npm publish --provenance --access public
+          if [[ "${{ github.event.repository.private }}" == "true" ]]; then
+            npm publish --access public
+          else
+            npm publish --provenance --access public
+          fi
 
       - name: Commit and tag release version
         if: steps.gate.outputs.publish == 'true'
