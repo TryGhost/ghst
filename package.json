@@ -40,7 +40,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.26.0",
+    "@modelcontextprotocol/sdk": "1.27.1",
     "@tryghost/mg-json": "0.11.13",
     "@tryghost/mg-medium-export": "0.17.26",
     "@tryghost/mg-substack": "0.8.9",
