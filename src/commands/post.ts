@@ -569,7 +569,7 @@ export function registerPostCommands(program: Command): void {
     .description('Schedule a post')
     .requiredOption('--at <datetime>', 'ISO datetime for scheduled publish')
     .option('--newsletter <slug>', 'Newsletter slug for email delivery')
-    .option('--email-only <value>', 'true|false')
+    .option('--email-only', 'Email only publish')
     .option('--email-segment <segment>', 'Email segment')
     .action(async (id: string, options, command) => {
       const global = getGlobalOptions(command);
@@ -577,8 +577,7 @@ export function registerPostCommands(program: Command): void {
         id,
         at: options.at,
         newsletter: options.newsletter,
-        emailOnly:
-          options.emailOnly === 'true' ? true : options.emailOnly === 'false' ? false : undefined,
+        emailOnly: parseBooleanFlag(options.emailOnly),
         emailSegment: options.emailSegment,
       });
 
