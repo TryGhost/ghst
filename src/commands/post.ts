@@ -568,18 +568,28 @@ export function registerPostCommands(program: Command): void {
     .command('schedule <id>')
     .description('Schedule a post')
     .requiredOption('--at <datetime>', 'ISO datetime for scheduled publish')
+    .option('--newsletter <slug>', 'Newsletter slug for email delivery')
+    .option('--email-only <value>', 'true|false')
+    .option('--email-segment <segment>', 'Email segment')
     .action(async (id: string, options, command) => {
       const global = getGlobalOptions(command);
       const parsed = PostScheduleInputSchema.safeParse({
         id,
         at: options.at,
+        newsletter: options.newsletter,
+        emailOnly: options.emailOnly === 'true' ? true : options.emailOnly === 'false' ? false : undefined,
+        emailSegment: options.emailSegment,
       });
 
       if (!parsed.success) {
         throwValidationError(parsed.error);
       }
 
-      const payload = await schedulePost(global, parsed.data.id, parsed.data.at);
+      const payload = await schedulePost(global, parsed.data.id, parsed.data.at, {
+        newsletter: parsed.data.newsletter,
+        email_only: parsed.data.emailOnly,
+        email_segment: parsed.data.emailSegment,
+      });
       if (global.json) {
         printJson(payload, global.jq);
         return;

@@ -68,6 +68,7 @@ export async function updatePost(
     slug?: string;
     patch: Record<string, unknown>;
     source?: 'html';
+    params?: Record<string, string | number | boolean | undefined>;
   },
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
@@ -102,6 +103,7 @@ export async function updatePost(
         updated_at: updatedAt,
       },
       options.source,
+      options.params,
     );
   };
 
@@ -148,13 +150,28 @@ export async function schedulePost(
   global: GlobalOptions,
   id: string,
   at: string,
+  options?: {
+    newsletter?: string;
+    email_only?: boolean;
+    email_segment?: string;
+  },
 ): Promise<Record<string, unknown>> {
+  // Ghost requires the newsletter slug as a query parameter on the PUT
+  // endpoint — passing it in the JSON body does not work for scheduled posts.
+  const params: Record<string, string> = {};
+  if (options?.newsletter) {
+    params.newsletter = options.newsletter;
+  }
+
   return updatePost(global, {
     id,
     patch: {
       status: 'scheduled',
       published_at: at,
+      email_only: options?.email_only,
+      email_segment: options?.email_segment,
     },
+    params: Object.keys(params).length > 0 ? params : undefined,
   });
 }
 
