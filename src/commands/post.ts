@@ -577,7 +577,8 @@ export function registerPostCommands(program: Command): void {
         id,
         at: options.at,
         newsletter: options.newsletter,
-        emailOnly: options.emailOnly === 'true' ? true : options.emailOnly === 'false' ? false : undefined,
+        emailOnly:
+          options.emailOnly === 'true' ? true : options.emailOnly === 'false' ? false : undefined,
         emailSegment: options.emailSegment,
       });
 
