@@ -156,11 +156,18 @@ export async function schedulePost(
     email_segment?: string;
   },
 ): Promise<Record<string, unknown>> {
-  // Ghost requires the newsletter slug as a query parameter on the PUT
-  // endpoint — passing it in the JSON body does not work for scheduled posts.
+  // Ghost requires email-related fields as query parameters on the PUT
+  // endpoint for scheduled posts — passing them in the JSON body has no
+  // effect.  This differs from the publish transition where the body works.
   const params: Record<string, string> = {};
   if (options?.newsletter) {
     params.newsletter = options.newsletter;
+  }
+  if (options?.email_segment) {
+    params.email_segment = options.email_segment;
+  }
+  if (options?.email_only !== undefined) {
+    params.email_only = String(options.email_only);
   }
 
   return updatePost(global, {
@@ -168,8 +175,6 @@ export async function schedulePost(
     patch: {
       status: 'scheduled',
       published_at: at,
-      email_only: options?.email_only,
-      email_segment: options?.email_segment,
     },
     params: Object.keys(params).length > 0 ? params : undefined,
   });
