@@ -124,6 +124,17 @@ describe('config io helpers', () => {
     expect(readBack?.defaults).toEqual({ newsletter: 'weekly' });
   });
 
+  test('readProjectConfig walks up directory tree to find .ghst/config.json', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-walk-'));
+    const subDir = path.join(tempRoot, 'a', 'b', 'c');
+    await fs.mkdir(subDir, { recursive: true });
+
+    await writeProjectConfig({ site: 'myblog' }, tempRoot);
+
+    const readBack = await readProjectConfig(subDir);
+    expect(readBack?.site).toBe('myblog');
+  });
+
   test('rethrows unknown user config read errors', async () => {
     const env = { GHST_CONFIG_DIR: '/tmp/unused' } as NodeJS.ProcessEnv;
     const boom = new Error('disk-failure');
@@ -133,9 +144,13 @@ describe('config io helpers', () => {
   });
 
   test('rethrows unknown project config read errors', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-rethrow-'));
+    await fs.mkdir(path.join(tempRoot, '.ghst'), { recursive: true });
+    await fs.writeFile(path.join(tempRoot, '.ghst', 'config.json'), '{}', 'utf8');
+
     const boom = new Error('project-failure');
     vi.spyOn(fs, 'readFile').mockRejectedValueOnce(boom);
 
-    await expect(readProjectConfig('/tmp/unused')).rejects.toBe(boom);
+    await expect(readProjectConfig(tempRoot)).rejects.toBe(boom);
   });
 });

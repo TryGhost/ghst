@@ -123,6 +123,27 @@ export function getProjectConfigPath(cwd = process.cwd()): string {
   return path.join(cwd, '.ghst', 'config.json');
 }
 
+async function findProjectConfigPath(cwd = process.cwd()): Promise<string | null> {
+  let dir = path.resolve(cwd);
+  const root = path.parse(dir).root;
+
+  while (true) {
+    const candidate = path.join(dir, '.ghst', 'config.json');
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // not found at this level, keep walking up
+    }
+
+    if (dir === root) {
+      return null;
+    }
+
+    dir = path.dirname(dir);
+  }
+}
+
 export async function readUserConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<GhstUserConfig> {
@@ -168,7 +189,10 @@ export async function writeUserConfig(
 }
 
 export async function readProjectConfig(cwd = process.cwd()): Promise<GhstProjectConfig | null> {
-  const configPath = getProjectConfigPath(cwd);
+  const configPath = await findProjectConfigPath(cwd);
+  if (!configPath) {
+    return null;
+  }
 
   try {
     const raw = await fs.readFile(configPath, 'utf8');
