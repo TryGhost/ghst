@@ -6,6 +6,7 @@ import { generateStaffJwt, parseStaffAccessToken } from '../lib/auth.js';
 import { GhostClient } from '../lib/client.js';
 import {
   deriveSiteAlias,
+  readProjectConfig,
   readUserConfig,
   resolveConnectionConfig,
   writeProjectConfig,
@@ -370,12 +371,17 @@ export function registerAuthCommands(program: Command): void {
       const global = getGlobalOptions(command);
       const config = await readUserConfig();
       const aliases = Object.keys(config.sites);
+      const projectConfig = await readProjectConfig();
+      const projectSite = projectConfig?.site ?? null;
+      const effectiveSite = projectSite ?? config.active ?? null;
 
       if (global.json) {
         console.log(
           JSON.stringify(
             {
               active: config.active ?? null,
+              ...(projectSite ? { projectLink: projectSite } : {}),
+              effectiveSite,
               sites: aliases,
             },
             null,
@@ -391,8 +397,11 @@ export function registerAuthCommands(program: Command): void {
       }
 
       console.log(`Active site: ${config.active ?? '(none)'}`);
+      if (projectSite) {
+        console.log(`Project link: ${projectSite} (overrides active site in this directory)`);
+      }
       for (const [alias, site] of Object.entries(config.sites)) {
-        const marker = config.active === alias ? '*' : ' ';
+        const marker = effectiveSite === alias ? '*' : ' ';
         console.log(`${marker} ${alias} -> ${site.url}`);
       }
     });
