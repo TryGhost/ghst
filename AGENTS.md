@@ -21,7 +21,7 @@
 ## Runtime And Tooling
 
 - Node: `20.x`, `22.x`, `24.x` (`.nvmrc` defaults to `24`; `package.json` engines allow all three)
-- Package manager: `pnpm@10.28.1`
+- Package manager: `pnpm@10.30.3`
 - Language: TypeScript (ESM)
 - Build: `tsup`
 - Test: `vitest`
@@ -116,6 +116,8 @@ pnpm build
 - `tier list --include` is supported.
 - `bulk` subcommands exist for all mutable phase 1-4 resources: `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`.
 - `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
+- `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
+- `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
 - MCP parity additions include `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
 - Deferred MCP/CLI blocker: `snippet` / `ghost_snippet_list`.
 - Deferred blocker tracker doc: `docs/snippet-contract-tracker.md`.

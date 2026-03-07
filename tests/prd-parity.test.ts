@@ -170,6 +170,15 @@ describe('PRD parity guardrails', () => {
     }
   });
 
+  test('mcp http hardening flags remain available', () => {
+    const program = buildProgram();
+    const httpFlags = getSubcommandOptionNames(program, 'mcp', 'http');
+
+    expect(httpFlags).toContain('--unsafe-public-bind');
+    expect(httpFlags).toContain('--cors-origin');
+    expect(httpFlags).toContain('--auth-token');
+  });
+
   test('bulk support exists for all mutable resources in phase 1-4', () => {
     const program = buildProgram();
     for (const resource of [

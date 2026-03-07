@@ -50,6 +50,76 @@ export function setMcpRunnersForTests(
   runMcpHttpForTests = options?.http ?? null;
 }
 
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return (
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized === '[::1]' ||
+    normalized === 'localhost'
+  );
+}
+
+function assertSafeBindHost(host: string, allowPublicBind: boolean): void {
+  if (allowPublicBind || isLoopbackHost(host)) {
+    return;
+  }
+
+  throw new GhstError(
+    `mcp http refuses non-loopback host '${host}' without --unsafe-public-bind.`,
+    {
+      code: 'USAGE_ERROR',
+      exitCode: ExitCode.USAGE_ERROR,
+    },
+  );
+}
+
+function normalizeCorsOrigin(origin: string | undefined): string | undefined {
+  if (origin === undefined) {
+    return undefined;
+  }
+
+  const trimmed = origin.trim();
+  if (!trimmed) {
+    throw new GhstError('cors-origin must be a single exact origin.', {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
+
+  if (trimmed === '*' || trimmed.includes(',')) {
+    throw new GhstError('cors-origin must be a single exact origin and cannot use wildcards.', {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new GhstError('cors-origin must be a valid origin like https://app.example.com.', {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
+
+  if (
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.pathname !== '/'
+  ) {
+    throw new GhstError('cors-origin must be a single exact origin without path, query, or hash.', {
+      code: 'VALIDATION_ERROR',
+      exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  }
+
+  return parsed.origin;
+}
+
 function assertToolsFilter(toolsArg: string | undefined): void {
   if (toolsArg === undefined || toolsArg === 'all') {
     return;
@@ -118,7 +188,8 @@ export function registerMcpCommands(program: Command): void {
     .description('Run MCP server over HTTP transport')
     .option('--host <host>', 'Bind host', '127.0.0.1')
     .option('--port <port>', 'Bind port', '3100')
-    .option('--cors-origin <origin>', 'Allow CORS origin')
+    .option('--cors-origin <origin>', 'Allow a single exact CORS origin')
+    .option('--unsafe-public-bind', 'Allow binding mcp http to a non-loopback host')
     .option('--max-body-bytes <bytes>', 'Maximum HTTP MCP request body size in bytes', '1048576')
     .option('--headers-timeout-ms <ms>', 'HTTP headers timeout in milliseconds', '15000')
     .option('--request-timeout-ms <ms>', 'HTTP request timeout in milliseconds', '15000')
@@ -144,6 +215,8 @@ export function registerMcpCommands(program: Command): void {
         options.keepaliveTimeoutMs,
         'keepalive-timeout-ms',
       );
+      assertSafeBindHost(options.host, Boolean(options.unsafePublicBind));
+      const corsOrigin = normalizeCorsOrigin(options.corsOrigin as string | undefined);
       const authToken =
         (options.authToken as string | undefined) ?? process.env.GHST_MCP_AUTH_TOKEN;
       if (!authToken) {
@@ -161,7 +234,7 @@ export function registerMcpCommands(program: Command): void {
       await run(server, {
         host: options.host,
         port,
-        corsOrigin: options.corsOrigin,
+        corsOrigin,
         authToken,
         maxBodyBytes,
         headersTimeoutMs,

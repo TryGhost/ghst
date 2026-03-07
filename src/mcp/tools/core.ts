@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { normalizeGhostApiPath } from '../../lib/api-path.js';
 import { GhostClient } from '../../lib/client.js';
 import { resolveConnectionConfig } from '../../lib/config.js';
 import { uploadImage } from '../../lib/images.js';
@@ -126,7 +127,7 @@ async function callApi(
   });
 
   const payload = await client.rawRequest<Record<string, unknown>>(
-    options.path,
+    normalizeGhostApiPath(options.path, options.contentApi ? 'content' : 'admin'),
     options.method ?? 'GET',
     options.body,
     options.params,

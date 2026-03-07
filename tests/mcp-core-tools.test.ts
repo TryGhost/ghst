@@ -178,14 +178,14 @@ describe('mcp core tool registration', () => {
     await run('ghost_user_list', { limit: 5 });
 
     const apiContentResponse = await run('ghost_api_request', {
-      path: '/posts/',
+      path: '/ghost/api/content/posts/',
       params: { limit: 1 },
       content_api: true,
     });
     expect(apiContentResponse.structuredContent).toHaveProperty('posts');
 
     const apiAdminResponse = await run('ghost_api_request', {
-      path: '/site/',
+      path: '/ghost/api/admin/site/',
       method: 'GET',
     });
     expect(apiAdminResponse.structuredContent).toHaveProperty('site');
@@ -197,6 +197,20 @@ describe('mcp core tool registration', () => {
     expect(searchResponse.structuredContent).toMatchObject({
       query: "o'hara",
     });
+  });
+
+  test('rejects escape-capable ghost api request paths before execution', async () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+
+    const tool = tools.get('ghost_api_request');
+    expect(tool).toBeDefined();
+    await expect(tool?.handler({ path: '../../../members/' }) as Promise<unknown>).rejects.toThrow(
+      'dot segments',
+    );
+    await expect(tool?.handler({ path: '/%2E%2E%2Fmembers/' }) as Promise<unknown>).rejects.toThrow(
+      'encoded path separators',
+    );
   });
 
   test('can register a narrow tool subset', () => {

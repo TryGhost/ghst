@@ -116,7 +116,7 @@ export function registerConfigCommands(program: Command): void {
   config
     .command('show')
     .description('Show current user config')
-    .option('--show-secrets', 'Display sensitive values in plaintext')
+    .option('--show-secrets', 'Display sensitive values in plaintext (sensitive output)')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const userConfig = await readUserConfig();
@@ -160,7 +160,7 @@ export function registerConfigCommands(program: Command): void {
   config
     .command('get <path>')
     .description('Read a config value by dot path')
-    .option('--show-secrets', 'Display sensitive values in plaintext')
+    .option('--show-secrets', 'Display sensitive values in plaintext (sensitive output)')
     .action(async (path: string, options, command) => {
       const global = getGlobalOptions(command);
       const userConfig = await readUserConfig();

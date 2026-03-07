@@ -18,6 +18,11 @@ import { ExitCode, GhstError } from '../lib/errors.js';
 type PromptFn = (question: string) => Promise<string>;
 type OpenUrlFn = (url: string) => Promise<void>;
 
+interface ResolvedGhostAdminOrigin {
+  inputOrigin: string;
+  resolvedOrigin: string;
+}
+
 const LOGIN_GUIDANCE_BORDER = '------------------------------------------------------------';
 const LOGIN_GUIDANCE_TITLE = 'Continue In Ghost Admin';
 const LOGIN_GUIDANCE_LINE =
@@ -193,9 +198,36 @@ function getGhostStaffSettingsUrl(url: string): string {
   return `${normalizedUrl}/ghost/#/settings/staff`;
 }
 
-async function resolveGhostAdminOrigin(inputUrl: string): Promise<string> {
+function hasOriginChanged(inputOrigin: string, resolvedOrigin: string): boolean {
+  return inputOrigin !== resolvedOrigin;
+}
+
+async function confirmRedirectedOrigin(
+  inputOrigin: string,
+  resolvedOrigin: string,
+  useColor: boolean,
+): Promise<boolean> {
+  const lines = [
+    'Ghost Admin redirect detected.',
+    `Requested origin: ${inputOrigin}`,
+    `Resolved origin: ${resolvedOrigin}`,
+    'Continue with the resolved Ghost Admin origin?',
+  ];
+  const message = lines.join('\n');
+
+  console.log('');
+  console.log(useColor ? chalk.yellow(message) : message);
+  console.log('');
+
+  const answer = await promptFn('Continue? [y/N]: ');
+  const normalized = answer.trim().toLowerCase();
+  return normalized === 'y' || normalized === 'yes';
+}
+
+async function resolveGhostAdminOrigin(inputUrl: string): Promise<ResolvedGhostAdminOrigin> {
   const maxRedirects = 5;
-  let probeUrl = getGhostAdminEntryUrl(inputUrl);
+  const inputOrigin = normalizeGhostUrl(inputUrl);
+  let probeUrl = getGhostAdminEntryUrl(inputOrigin);
 
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
     let response: Response;
@@ -222,7 +254,10 @@ async function resolveGhostAdminOrigin(inputUrl: string): Promise<string> {
     }
 
     const finalUrl = response.url || probeUrl;
-    return normalizeGhostUrl(finalUrl);
+    return {
+      inputOrigin,
+      resolvedOrigin: normalizeGhostUrl(finalUrl),
+    };
   }
 
   throw new GhstError(`Too many redirects while resolving Ghost Admin URL from '${inputUrl}'.`, {
@@ -304,8 +339,33 @@ export function registerAuthCommands(program: Command): void {
         urlInput = urlInput || (await promptFn('Ghost URL (e.g. https://example.com): '));
       }
 
-      urlInput = normalizeGhostUrl(urlInput ?? '');
-      urlInput = await resolveGhostAdminOrigin(urlInput);
+      const requestedOrigin = normalizeGhostUrl(urlInput ?? '');
+      const resolvedOrigin = await resolveGhostAdminOrigin(requestedOrigin);
+      urlInput = resolvedOrigin.resolvedOrigin;
+
+      if (hasOriginChanged(resolvedOrigin.inputOrigin, resolvedOrigin.resolvedOrigin)) {
+        if (nonInteractive) {
+          throw new GhstError(
+            `Ghost Admin discovery resolved to '${resolvedOrigin.resolvedOrigin}' instead of '${resolvedOrigin.inputOrigin}'. Re-run with --url ${resolvedOrigin.resolvedOrigin}.`,
+            {
+              exitCode: ExitCode.USAGE_ERROR,
+              code: 'USAGE_ERROR',
+            },
+          );
+        }
+
+        const shouldContinue = await confirmRedirectedOrigin(
+          resolvedOrigin.inputOrigin,
+          resolvedOrigin.resolvedOrigin,
+          global.color !== false,
+        );
+        if (!shouldContinue) {
+          throw new GhstError('Operation cancelled.', {
+            exitCode: ExitCode.OPERATION_CANCELLED,
+            code: 'OPERATION_CANCELLED',
+          });
+        }
+      }
 
       if (!nonInteractive) {
         printLoginGuidance(global.color !== false);
@@ -526,7 +586,7 @@ export function registerAuthCommands(program: Command): void {
 
   auth
     .command('token')
-    .description('Print a short-lived staff JWT for the active connection')
+    .description('Print a short-lived staff JWT for the active connection (sensitive output)')
     .action(async (_, command) => {
       const global = getGlobalOptions(command);
       const connection = await resolveConnectionConfig(global);

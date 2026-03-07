@@ -112,6 +112,8 @@ ghst auth link --site <site-alias>
 ghst auth token
 ```
 
+`ghst auth token` prints a short-lived staff JWT. Treat the output as sensitive.
+
 ## Command Reference
 
 | Resource | Actions |
@@ -194,6 +196,9 @@ ghst api /posts/ --paginate --include-headers
 ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
 ```
 
+`endpointPath` must stay within the selected Ghost API root. Use resource paths such as `/posts/`
+or canonical Ghost API paths such as `/ghost/api/admin/posts/`.
+
 ## Configuration and Environment Variables
 
 Connection resolution order:
@@ -261,8 +266,13 @@ Run MCP over stdio or HTTP:
 
 ```bash
 ghst mcp stdio --tools all
-ghst mcp http --host 127.0.0.1 --port 3100 --tools posts,tags,site
+ghst mcp http --host 127.0.0.1 --port 3100 --tools posts,tags,site --auth-token token-123
 ```
+
+Notes:
+
+- `ghst mcp http` binds to loopback by default. Binding to a non-loopback host requires `--unsafe-public-bind`.
+- `--cors-origin` accepts a single exact origin only, for example `https://app.example.com`.
 
 Supported tool groups:
 
@@ -275,6 +285,12 @@ Supported tool groups:
 - `users`
 - `api`
 - `search`
+
+## Safe Operation
+
+- Keep `ghst mcp http` on loopback unless you explicitly intend to expose Ghost admin automation.
+- Treat `ghst api` and MCP `ghost_api_request` as privileged admin access.
+- Avoid sharing terminal output that contains `ghst auth token` output or values revealed with `config --show-secrets`.
 
 ## Troubleshooting
 
