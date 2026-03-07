@@ -132,6 +132,7 @@ ghst auth token
 | `image` | `upload` |
 | `theme` | `list`, `upload`, `activate`, `validate`, `dev` |
 | `site` | `info` |
+| `stats` | `overview`, `web [content|sources|locations|devices|utm-sources|utm-mediums|utm-campaigns|utm-contents|utm-terms]`, `growth`, `posts`, `email [clicks|subscribers]`, `post <id> [web|growth|newsletter|referrers]` |
 | `setting` | `list`, `get`, `set` |
 | `migrate` | `wordpress`, `medium`, `substack`, `csv`, `json`, `export` |
 | `config` | `show`, `path`, `list`, `get`, `set` |
@@ -195,6 +196,26 @@ Direct API calls:
 ghst api /posts/ --paginate --include-headers
 ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
 ```
+
+Analytics reporting:
+
+```bash
+ghst stats overview
+ghst stats web
+ghst stats web sources --range 90d --csv
+ghst stats growth
+ghst stats posts --range 30d --csv
+ghst stats email subscribers --csv
+ghst stats post <post-id> referrers --csv --output ./referrers.csv
+```
+
+Ghost analytics filter semantics:
+- `source` and `utm_*` filters are session-scoped.
+- post and member-status filters are hit-scoped.
+
+Ghost range semantics:
+- `stats growth` clips member, MRR, and subscription histories client-side when Ghost only exposes broader source data.
+- `stats post ... growth` clips Ghost's lifetime post-growth history to the selected window.
 
 `endpointPath` must stay within the selected Ghost API root. Use resource paths such as `/posts/`
 or canonical Ghost API paths such as `/ghost/api/admin/posts/`.
