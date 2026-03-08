@@ -1701,6 +1701,33 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
     expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"posts"');
 
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'web',
+        '--limit',
+        '1',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    const limitedPostWeb = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '{}')) as {
+      sources?: Array<{ label: string }>;
+      locations?: Array<{ label: string }>;
+    };
+    expect(limitedPostWeb.sources).toHaveLength(1);
+    expect(limitedPostWeb.sources?.[0]?.label).toBe('Twitter');
+    expect(limitedPostWeb.locations).toHaveLength(1);
+    expect(limitedPostWeb.locations?.[0]?.label).toBe('US');
+
     await expect(
       run([
         'node',

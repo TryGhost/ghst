@@ -1663,7 +1663,13 @@ class StatsClient {
     const post = await this.getPostMeta(input.id);
     const [summaryPayload, growthReport, referrersReport, webReport, fallback] = await Promise.all([
       client.rawRequest<Record<string, unknown>>(`/stats/posts/${input.id}/stats/`),
-      this.getPostGrowthReport(input),
+      this.getPostGrowthReport({
+        ...input,
+        range: range.preset ?? undefined,
+        from: range.from ?? undefined,
+        to: range.to,
+        timezone: range.timezone,
+      }),
       this.getPostReferrersReport({ ...input, limit: 5 }),
       this.getPostWebReport({ ...input, limit: 5 }).catch((error) => {
         if (error instanceof GhstError && error.code === 'ANALYTICS_UNAVAILABLE') {

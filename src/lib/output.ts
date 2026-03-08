@@ -111,7 +111,7 @@ export function printTableHuman(headers: string[], rows: string[][], useColor = 
 
 export function formatCsv(headers: string[], rows: string[][]): string {
   const escapeValue = (value: string): string => {
-    if (/[",\n]/.test(value)) {
+    if (/[",\r\n]/.test(value)) {
       return `"${value.replaceAll('"', '""')}"`;
     }
 

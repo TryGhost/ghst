@@ -132,7 +132,7 @@ ghst auth token
 | `image` | `upload` |
 | `theme` | `list`, `upload`, `activate`, `validate`, `dev` |
 | `site` | `info` |
-| `stats` | `overview`, `web [content\|sources\|locations\|devices\|utm-sources\|utm-mediums\|utm-campaigns\|utm-contents\|utm-terms]`, `growth`, `posts`, `email [clicks\|subscribers]`, `post <id> [web\|growth\|newsletter\|referrers]` |
+| `stats` | `overview`, `web` (content, sources, locations, devices, utm-sources, utm-mediums, utm-campaigns, utm-contents, utm-terms), `growth`, `posts`, `email` (clicks, subscribers), `post <id>` (web, growth, newsletter, referrers) |
 | `setting` | `list`, `get`, `set` |
 | `migrate` | `wordpress`, `medium`, `substack`, `csv`, `json`, `export` |
 | `config` | `show`, `path`, `list`, `get`, `set` |
@@ -303,9 +303,15 @@ Supported tool groups:
 - `members`
 - `site`
 - `settings`
+- `stats`
 - `users`
 - `api`
 - `search`
+
+The `stats` MCP tools mirror the CLI analytics surface, including `ghst stats overview`,
+`ghst stats web`, `ghst stats growth`, `ghst stats posts`, `ghst stats email subscribers`,
+and `ghst stats post <post-id> referrers`. The same Ghost analytics filter and range semantics
+shown above apply to both the CLI and MCP stats tooling.
 
 ## Safe Operation
 

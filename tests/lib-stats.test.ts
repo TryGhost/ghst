@@ -438,6 +438,17 @@ describe('stats library', () => {
     ]);
   });
 
+  test('uses the resolved default range for embedded post growth data', async () => {
+    installGhostFixtureFetchMock();
+
+    const payload = await getStatsPost({}, { id: fixtureIds.postId });
+
+    expect(payload.range.from).not.toBeNull();
+    expect(payload.growth).toEqual([
+      { date: '2026-03-01', free_members: 9, paid_members: 3, mrr: 178 },
+    ]);
+  });
+
   test('filters newsletter click stats by explicit post ids without adding date filters to the click endpoint', async () => {
     const requests: string[] = [];
     installGhostFixtureFetchMock({
