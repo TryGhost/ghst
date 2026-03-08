@@ -4,17 +4,17 @@
   "payload": {
     "errors": [
       {
-        "code": "UPDATE_CLIENT",
-        "context": "Provided client accept-version v6.0 is behind current Ghost version v6.21.",
+        "code": null,
+        "context": "The requested API route was not found.",
         "details": null,
         "ghostErrorCode": null,
-        "help": "Try upgrading your Ghost API client.",
+        "help": null,
         "id": "<error-id>",
         "message": "Request could not be served, the endpoint was not found.",
         "property": null,
-        "type": "RequestNotAcceptableError"
+        "type": "NotFoundError"
       }
     ]
   },
-  "status": 406
+  "status": 404
 }

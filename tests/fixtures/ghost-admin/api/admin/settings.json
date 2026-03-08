@@ -131,7 +131,7 @@
     },
     {
       "key": "stripe_billing_portal_configuration_id",
-      "value": "bpc_1T3JzRBATzDJmjGyiLmeGhDl"
+      "value": "<stripeBillingPortalConfigurationId>"
     },
     {
       "key": "stripe_secret_key",
@@ -163,7 +163,7 @@
     },
     {
       "key": "stripe_connect_account_id",
-      "value": "acct_1T3JxwBATzDJmjGy"
+      "value": "<stripeConnectAccountId>"
     },
     {
       "key": "members_monthly_price_id",
@@ -371,7 +371,7 @@
     },
     {
       "key": "indexnow_api_key",
-      "value": "f5d4de7f680dafeb86e40d5c0fc32d4a"
+      "value": "<indexNowApiKey>"
     },
     {
       "key": "members_enabled",

@@ -10,6 +10,14 @@ const blockedPatterns: Array<{ name: string; regex: RegExp }> = [
   { name: 'Stripe webhook secret', regex: /\bwhsec_[A-Za-z0-9]+\b/ },
   { name: 'Ghost staff access token', regex: /\b[0-9a-f]{24}:[0-9a-f]{64}\b/i },
   {
+    name: 'Sentry DSN',
+    regex: /https:\/\/[A-Za-z0-9]+@o\d+\.ingest\.[A-Za-z0-9.-]+\.sentry\.io\/\d+/,
+  },
+  {
+    name: 'Gravatar hash',
+    regex: /https:\/\/www\.gravatar\.com\/avatar\/[a-f0-9]{32}\?s=\d+&r=[a-z]&d=[a-z]+/i,
+  },
+  {
     name: 'Private key block',
     regex: /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/,
   },

@@ -7,7 +7,7 @@
     "icon": null,
     "locale": "en",
     "logo": null,
-    "sentry_dsn": "https://7468693a372afad2aebc1d6e935a286b@o55869.ingest.us.sentry.io/5783507",
+    "sentry_dsn": "https://placeholder.example.com/0",
     "sentry_env": "production",
     "site_uuid": "ebb2010a-e4ee-4749-a172-824be8ab34a1",
     "title": "ghst",

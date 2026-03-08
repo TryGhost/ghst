@@ -368,10 +368,21 @@ describe('comment schemas', () => {
     expectValid<{ page?: number }>(CommentRelationListInputSchema, { id: 'comment-1', page: 2 });
 
     expectInvalid(CommentListInputSchema, { limit: 101 });
+    expectInvalid(CommentListInputSchema, { limit: 'all', page: 2 }, '--page with --limit all');
     expectInvalid(CommentGetInputSchema, { id: '' });
     expectInvalid(CommentRepliesInputSchema, { id: '', page: 1 });
+    expectInvalid(
+      CommentRepliesInputSchema,
+      { id: 'comment-1', limit: 'all', page: 2 },
+      '--page with --limit all',
+    );
     expectInvalid(CommentDeleteInputSchema, { id: '' });
     expectInvalid(CommentRelationListInputSchema, { id: 'comment-1', page: 0 });
+    expectInvalid(
+      CommentRelationListInputSchema,
+      { id: 'comment-1', limit: 'all', page: 2 },
+      '--page with --limit all',
+    );
   });
 });
 

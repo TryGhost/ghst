@@ -177,7 +177,7 @@ export const ghostFixtureContracts = {
     'api/errors/unknown-route-404.json',
     ['fallback unknown route response'],
     () => ghostFixtures.api.errors.unknownRoute404,
-    (value) => validateErrorFixture(value, 'api/errors/unknown-route-404.json', 406),
+    (value) => validateErrorFixture(value, 'api/errors/unknown-route-404.json', 404),
   ),
   postsBrowse: contract(
     'posts/browse.json',
@@ -415,7 +415,7 @@ export const ghostFixtureContracts = {
     'tiers/not-found-like-500.json',
     ['direct fixture consumers in tests'],
     () => ghostFixtures.tiers.notFoundLike500,
-    (value) => validateErrorFixture(value, 'tiers/not-found-like-500.json', 404),
+    (value) => validateErrorFixture(value, 'tiers/not-found-like-500.json', 500),
   ),
   offersBrowse: contract(
     'offers/browse.json',

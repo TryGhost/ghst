@@ -121,6 +121,26 @@ describe('comment command contracts', () => {
     expect(commentMocks.printJson).toHaveBeenCalledTimes(2);
   });
 
+  test('rejects combining --page with --limit all', async () => {
+    await expect(
+      run(['node', 'ghst', 'comment', 'list', '--limit', 'all', '--page', '2']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'comment', 'replies', 'comment-1', '--limit', 'all', '--page', '2']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'comment', 'likes', 'comment-1', '--limit', 'all', '--page', '2']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'comment', 'reports', 'comment-1', '--limit', 'all', '--page', '2']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    expect(commentMocks.listComments).not.toHaveBeenCalled();
+    expect(commentMocks.listCommentReplies).not.toHaveBeenCalled();
+    expect(commentMocks.listCommentLikes).not.toHaveBeenCalled();
+    expect(commentMocks.listCommentReports).not.toHaveBeenCalled();
+  });
+
   test('routes get, thread, likes, and reports through the correct human/json printers', async () => {
     await expect(run(['node', 'ghst', 'comment', 'get', 'comment-1'])).resolves.toBe(
       ExitCode.SUCCESS,
