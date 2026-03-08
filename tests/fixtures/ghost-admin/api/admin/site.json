@@ -1,0 +1,17 @@
+{
+  "site": {
+    "accent_color": "#000000",
+    "allow_external_signup": true,
+    "cover_image": null,
+    "description": "a CLI tool for Ghost",
+    "icon": null,
+    "locale": "en",
+    "logo": null,
+    "sentry_dsn": "https://placeholder.example.com/0",
+    "sentry_env": "production",
+    "site_uuid": "ebb2010a-e4ee-4749-a172-824be8ab34a1",
+    "title": "ghst",
+    "url": "https://ghst.ghost.io/",
+    "version": "6.21"
+  }
+}

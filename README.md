@@ -119,6 +119,7 @@ ghst auth token
 | Resource | Actions |
 | --- | --- |
 | `auth` | `login`, `status`, `list`, `switch`, `logout`, `link`, `token` |
+| `comment` | `list`, `get`, `thread`, `replies`, `likes`, `reports`, `hide`, `show`, `delete` |
 | `post` | `list`, `get`, `create`, `update`, `delete`, `publish`, `schedule`, `unschedule`, `copy`, `bulk` |
 | `page` | `list`, `get`, `create`, `update`, `delete`, `copy`, `bulk` |
 | `tag` | `list`, `get`, `create`, `update`, `delete`, `bulk` |
@@ -167,6 +168,17 @@ Bulk updates:
 ghst post bulk --filter "status:draft" --update --add-tag release-notes --authors editor@example.com
 ghst member bulk --update --filter "status:free" --labels "trial,needs-follow-up"
 ghst label bulk --filter "name:'legacy'" --action delete --yes
+```
+
+Comment moderation:
+
+```bash
+ghst comment list --filter "status:hidden"
+ghst comment thread <comment-id>
+ghst comment replies <comment-id>
+ghst comment hide <comment-id>
+ghst comment show <comment-id>
+ghst comment delete <comment-id> --yes
 ```
 
 Scheduling:
@@ -318,6 +330,7 @@ Supported tool groups:
 - `pages`
 - `tags`
 - `members`
+- `comments`
 - `site`
 - `settings`
 - `stats`

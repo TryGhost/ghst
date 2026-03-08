@@ -12,7 +12,7 @@ import { ExitCode } from '../src/lib/errors.js';
 import { setMigrateSourceLoaderForTests } from '../src/lib/migrate.js';
 import { setPromptHandlerForTests } from '../src/lib/prompts.js';
 import { resetSocialWebIdentityCacheForTests } from '../src/lib/socialweb-client.js';
-import { fixtureIds } from './helpers/ghost-fixtures.js';
+import { fixtureIds, ghostFixtures } from './helpers/ghost-fixtures.js';
 import { createMemoryCredentialStore } from './helpers/mock-credentials.js';
 import {
   createGhostFixtureFetchHandler,
@@ -20,6 +20,9 @@ import {
 } from './helpers/mock-ghost.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
+const fixturePrimaryPostTitle =
+  (ghostFixtures.posts.read as { posts?: Array<{ title?: string }> }).posts?.[0]?.title ??
+  'Fixture Post';
 
 describe('run + commands', () => {
   let tempRoot = '';
@@ -173,6 +176,7 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'completion', 'bash'])).resolves.toBe(ExitCode.SUCCESS);
 
     const script = String(logSpy.mock.calls.at(-1)?.[0] ?? '');
+    expect(script).toContain('comment');
     expect(script).toContain('newsletter');
     expect(script).toContain('mcp');
     expect(script).toContain('--debug');
@@ -836,7 +840,9 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'post', 'get', '--slug', fixtureIds.postSlug, '--json']),
     ).resolves.toBe(ExitCode.SUCCESS);
-    expect(lastLogJson<{ posts: Array<{ title: string }> }>().posts[0]?.title).toBe('Fixture Post');
+    expect(lastLogJson<{ posts: Array<{ title: string }> }>().posts[0]?.title).toBe(
+      fixturePrimaryPostTitle,
+    );
 
     await expect(
       run([
@@ -1314,18 +1320,19 @@ describe('run + commands', () => {
 
   test('keeps site, setting, user, and image flows wired with output-aware checks', async () => {
     const logSpy = vi.mocked(console.log);
+    const fixtureSite = ghostFixtures.api.admin.site.site as { title: string; url: string };
     await seedSmokeFixtures();
     await loginMyblog();
 
     await expect(run(['node', 'ghst', 'site', 'info', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     expect(lastLogJson<{ site: { title: string; url: string } }>().site).toMatchObject({
-      title: 'ghst',
-      url: 'https://ghst.ghost.io/',
+      title: fixtureSite.title,
+      url: fixtureSite.url,
     });
 
     let start = logSpy.mock.calls.length;
     await expect(run(['node', 'ghst', 'site', 'info'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(logOutputSince(start)).toContain('ghst');
+    expect(logOutputSince(start)).toContain(fixtureSite.title);
 
     start = logSpy.mock.calls.length;
     await expect(run(['node', 'ghst', 'setting', 'list'])).resolves.toBe(ExitCode.SUCCESS);
@@ -1333,7 +1340,7 @@ describe('run + commands', () => {
 
     start = logSpy.mock.calls.length;
     await expect(run(['node', 'ghst', 'setting', 'get', 'title'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(logOutputSince(start)).toContain('ghst');
+    expect(logOutputSince(start)).toContain(fixtureSite.title);
 
     await expect(
       run(['node', 'ghst', 'setting', 'set', 'title', 'Updated Blog', '--json']),
@@ -1377,6 +1384,95 @@ describe('run + commands', () => {
     expect(JSON.stringify(lastLogJson<{ images?: Array<Record<string, unknown>> }>())).toContain(
       '/content/images/',
     );
+  });
+
+  test('keeps comment moderation flows wired against fixture-backed admin routes', async () => {
+    const logSpy = vi.mocked(console.log);
+    await loginMyblog();
+
+    await expect(run(['node', 'ghst', 'comment', 'list', '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(
+      lastLogJson<{ comments: Array<{ id: string }> }>().comments.some(
+        (comment) => comment.id === fixtureIds.commentId,
+      ),
+    ).toBe(true);
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'list', '--top-level-only', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    const topLevelComments = lastLogJson<{ comments: Array<{ id: string }> }>().comments;
+    expect(topLevelComments.some((comment) => comment.id === fixtureIds.commentId)).toBe(true);
+    expect(topLevelComments.some((comment) => comment.id === fixtureIds.commentReplyId)).toBe(
+      false,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'get', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comments: Array<{ id: string }> }>().comments[0]?.id).toBe(
+      fixtureIds.commentId,
+    );
+    expect(
+      lastLogJson<{ comments: Array<{ post?: { id?: string } }> }>().comments[0]?.post?.id,
+    ).toBe(fixtureIds.postId);
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'thread', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(
+      lastLogJson<{ comment?: { id?: string }; comments: Array<{ id: string }> }>().comment?.id,
+    ).toBe(fixtureIds.commentId);
+    expect(lastLogJson<{ comments: Array<{ id: string }> }>().comments[0]?.id).toBe(
+      fixtureIds.commentReplyId,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'replies', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comments: Array<{ id: string }> }>().comments[0]?.id).toBe(
+      fixtureIds.commentReplyId,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'likes', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comment_likes: Array<{ id: string }> }>().comment_likes[0]?.id).toBe(
+      fixtureIds.commentLikeId,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'reports', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comment_reports: Array<{ id: string }> }>().comment_reports[0]?.id).toBe(
+      fixtureIds.commentReportId,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'hide', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comments: Array<{ status: string }> }>().comments[0]?.status).toBe(
+      'hidden',
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'show', fixtureIds.commentId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comments: Array<{ status: string }> }>().comments[0]?.status).toBe(
+      'published',
+    );
+
+    await expect(
+      run(['node', 'ghst', 'comment', 'delete', fixtureIds.commentId, '--yes', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ comments: Array<{ status: string }> }>().comments[0]?.status).toBe(
+      'deleted',
+    );
+
+    const start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'comment', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain(fixtureIds.commentId);
   });
 
   test('keeps theme, webhook, and mcp smoke paths behind explicit test runners', async () => {
@@ -1597,7 +1693,8 @@ describe('run + commands', () => {
 
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
     await expect(run(['node', 'ghst', 'api', '/site/'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(lastLogJson<{ site: { title: string } }>().site.title).toBe('ghst');
+    const fixtureSite = ghostFixtures.api.admin.site.site as { title: string };
+    expect(lastLogJson<{ site: { title: string } }>().site.title).toBe(fixtureSite.title);
     await expect(
       run(['node', 'ghst', 'api', '/ghost/api/admin/site/', '--method', 'GET']),
     ).resolves.toBe(ExitCode.SUCCESS);
@@ -2381,7 +2478,10 @@ describe('run + commands', () => {
     }
 
     expect(logSpy.mock.calls.map((call) => String(call[0]))).toEqual(
-      expect.arrayContaining(['Post: Fixture Post', 'Post Newsletter: Fixture Post']),
+      expect.arrayContaining([
+        `Post: ${fixturePrimaryPostTitle}`,
+        `Post Newsletter: ${fixturePrimaryPostTitle}`,
+      ]),
     );
 
     await expect(

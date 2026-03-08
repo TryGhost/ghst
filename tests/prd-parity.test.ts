@@ -67,12 +67,13 @@ function createRegistry(): {
 }
 
 describe('PRD parity guardrails', () => {
-  test('top-level command surface matches phase 1-4 target plus socialweb extension (snippet deferred)', () => {
+  test('top-level command surface matches phase 1-4 target plus intentional extensions', () => {
     const program = buildProgram();
     const topLevel = program.commands.map((entry) => entry.name());
 
     const required = [
       'auth',
+      'comment',
       'post',
       'page',
       'tag',
@@ -101,6 +102,41 @@ describe('PRD parity guardrails', () => {
     }
 
     expect(topLevel).not.toContain('snippet');
+  });
+
+  test('comment moderation command surface remains registered', () => {
+    const program = buildProgram();
+
+    expect(getSubcommandNames(program, 'comment')).toEqual(
+      expect.arrayContaining([
+        'list',
+        'get',
+        'thread',
+        'replies',
+        'likes',
+        'reports',
+        'hide',
+        'show',
+        'delete',
+      ]),
+    );
+
+    const listFlags = getSubcommandOptionNames(program, 'comment', 'list');
+    const repliesFlags = getSubcommandOptionNames(program, 'comment', 'replies');
+    const likesFlags = getSubcommandOptionNames(program, 'comment', 'likes');
+    const deleteFlags = getSubcommandOptionNames(program, 'comment', 'delete');
+
+    for (const flag of ['--limit', '--page']) {
+      expect(listFlags).toContain(flag);
+      expect(repliesFlags).toContain(flag);
+      expect(likesFlags).toContain(flag);
+    }
+
+    expect(listFlags).toContain('--filter');
+    expect(listFlags).toContain('--order');
+    expect(listFlags).toContain('--top-level-only');
+    expect(repliesFlags).toContain('--filter');
+    expect(deleteFlags).toContain('--yes');
   });
 
   test('phase 4 actions remain registered for post/page/tag', () => {
@@ -344,6 +380,15 @@ describe('PRD parity guardrails', () => {
       'ghost_member_create',
       'ghost_member_update',
       'ghost_member_import',
+      'ghost_comment_list',
+      'ghost_comment_get',
+      'ghost_comment_thread',
+      'ghost_comment_replies',
+      'ghost_comment_likes',
+      'ghost_comment_reports',
+      'ghost_comment_hide',
+      'ghost_comment_show',
+      'ghost_comment_delete',
       'ghost_newsletter_list',
       'ghost_tier_list',
       'ghost_offer_list',

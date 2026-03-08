@@ -1,0 +1,20 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Request could not be served, the endpoint was not found.",
+  "payload": {
+    "errors": [
+      {
+        "code": null,
+        "context": "The requested API route was not found.",
+        "details": null,
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Request could not be served, the endpoint was not found.",
+        "property": null,
+        "type": "NotFoundError"
+      }
+    ]
+  },
+  "status": 404
+}

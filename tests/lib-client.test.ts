@@ -44,10 +44,10 @@ describe('GhostClient', () => {
   });
 
   test('passes params and source query on request wrappers', async () => {
-    const urls: string[] = [];
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
     installGhostFixtureFetchMock({
       onRequest: (request) => {
-        urls.push(request.url.toString());
+        requests.push({ url: request.url.toString(), init: request.init });
         return undefined;
       },
     });
@@ -117,8 +117,24 @@ describe('GhostClient', () => {
     await client.labels.edit('label-id', { name: 'VIP 2' });
     await client.labels.delete('label-id');
 
+    await client.comments.browseAll({
+      limit: 1,
+      filter: 'status:hidden',
+      order: 'created_at asc',
+      include_nested: false,
+    });
+    await client.comments.read('comment-id');
+    await client.comments.readForModeration('comment-id');
+    await client.comments.browseThread('comment-id');
+    await client.comments.replies('comment-id', { limit: 2, filter: 'status:published' });
+    await client.comments.likes('comment-id', { limit: 3 });
+    await client.comments.reports('comment-id', { page: 2 });
+    await client.comments.setStatus('comment-id', 'hidden');
+
     await client.rawRequest('site/', 'get', { ok: true }, { a: 1 });
     await client.rawRequestWithMeta('site/', 'get', undefined, { b: 2 });
+
+    const urls = requests.map((request) => request.url);
 
     expect(urls).toContain(
       'https://myblog.ghost.io/ghost/api/admin/posts/?limit=5&filter=status%3Adraft',
@@ -138,8 +154,44 @@ describe('GhostClient', () => {
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/tiers/?limit=1');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/offers/?limit=1');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/labels/?limit=1');
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/comments/?limit=1&filter=status%3Ahidden&order=created_at+asc&include_nested=false',
+    );
+    expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/comments/comment-id/');
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/comments/comment-id/?include=member%2Cpost%2Ccount.replies%2Ccount.direct_replies%2Ccount.likes%2Ccount.reports%2Cparent%2Cin_reply_to',
+    );
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/comments/?filter=%28parent_id%3Acomment-id%2Bin_reply_to_id%3Anull%29%2Cin_reply_to_id%3Acomment-id&order=created_at+asc&include=member%2Cpost%2Ccount.direct_replies%2Ccount.likes%2Ccount.reports%2Cparent%2Cin_reply_to&limit=100',
+    );
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/comments/comment-id/replies/?limit=2&filter=status%3Apublished',
+    );
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/comments/comment-id/likes/?limit=3',
+    );
+    expect(urls).toContain(
+      'https://myblog.ghost.io/ghost/api/admin/comments/comment-id/reports/?page=2',
+    );
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/site/?a=1');
     expect(urls).toContain('https://myblog.ghost.io/ghost/api/admin/site/?b=2');
+
+    const setStatusRequest = requests.find(
+      (request) =>
+        request.url.endsWith('/ghost/api/admin/comments/comment-id/') &&
+        request.init?.method === 'PUT',
+    );
+    expect(setStatusRequest?.init?.method).toBe('PUT');
+    expect(setStatusRequest?.init?.body).toBe(
+      JSON.stringify({
+        comments: [
+          {
+            id: 'comment-id',
+            status: 'hidden',
+          },
+        ],
+      }),
+    );
   });
 
   test('supports content API raw requests with content key', async () => {

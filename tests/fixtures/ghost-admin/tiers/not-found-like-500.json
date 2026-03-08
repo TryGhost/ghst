@@ -1,0 +1,20 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Tier not found",
+  "payload": {
+    "errors": [
+      {
+        "code": "UNEXPECTED_ERROR",
+        "context": "An unexpected error occurred, please try again. Cannot read properties of null (reading 'toJSON')",
+        "details": null,
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Internal server error, cannot read tier.",
+        "property": null,
+        "type": "InternalServerError"
+      }
+    ]
+  },
+  "status": 500
+}

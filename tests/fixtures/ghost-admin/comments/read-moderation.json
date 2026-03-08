@@ -1,0 +1,41 @@
+{
+  "comments": [
+    {
+      "count": {
+        "direct_replies": 1,
+        "likes": 0,
+        "replies": 1
+      },
+      "created_at": "<datetime>",
+      "edited_at": null,
+      "html": "<fixture-comment-html>",
+      "id": "<commentId>",
+      "in_reply_to_id": null,
+      "in_reply_to_snippet": null,
+      "member": {
+        "avatar_image": "https://www.gravatar.com/avatar/fixture-hash?s=250&r=g&d=blank",
+        "can_comment": true,
+        "commenting": {
+          "disabled": false,
+          "disabled_reason": null,
+          "disabled_until": null
+        },
+        "email": "<memberEmail>",
+        "expertise": null,
+        "id": "<memberId>",
+        "name": "<fixture-member-updated-name>",
+        "uuid": "<memberUuid>"
+      },
+      "parent_id": null,
+      "post": {
+        "excerpt": "Fixture content",
+        "feature_image": null,
+        "id": "<postId>",
+        "title": "<fixture-post-updated-title>",
+        "url": "https://ghst.ghost.io/p/<postUuid>/",
+        "uuid": "<postUuid>"
+      },
+      "status": "published"
+    }
+  ]
+}

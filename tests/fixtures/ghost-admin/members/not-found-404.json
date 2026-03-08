@@ -1,0 +1,20 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Resource not found error, cannot read member.",
+  "payload": {
+    "errors": [
+      {
+        "code": null,
+        "context": "Member not found.",
+        "details": null,
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Resource not found error, cannot read member.",
+        "property": null,
+        "type": "NotFoundError"
+      }
+    ]
+  },
+  "status": 404
+}

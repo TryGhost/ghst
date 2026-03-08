@@ -81,6 +81,8 @@ function formatStatus(status: string, useColor: boolean): string {
   }
 
   if (status === 'published' || status === 'active') return chalk.green(status);
+  if (status === 'hidden') return chalk.yellow(status);
+  if (status === 'deleted') return chalk.red(status);
   if (status === 'draft') return chalk.yellow(status);
   if (status === 'scheduled') return chalk.blue(status);
   if (status === 'archived') return chalk.gray(status);
@@ -165,6 +167,115 @@ function rowsFromCollection(
   return collection.map((entry) => mapper((entry as Record<string, unknown>) ?? {}));
 }
 
+function stripHtml(value: unknown): string {
+  const html = String(value ?? '');
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#39;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function truncateValue(value: string, max = 64): string {
+  if (value.length <= max) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, max - 3))}...`;
+}
+
+function getFirstRecord(
+  payload: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | undefined {
+  const collection = Array.isArray(payload[key]) ? payload[key] : [];
+  return collection[0] as Record<string, unknown> | undefined;
+}
+
+function getCommentAuthor(record: Record<string, unknown>): string {
+  const member = (record.member as Record<string, unknown> | undefined) ?? {};
+  return String(member.name ?? member.email ?? record.member_id ?? 'Unknown');
+}
+
+function getCommentPost(record: Record<string, unknown>): string {
+  const post = (record.post as Record<string, unknown> | undefined) ?? {};
+  return String(post.title ?? record.post_id ?? '');
+}
+
+function getCommentCounts(record: Record<string, unknown>): string {
+  const count = (record.count as Record<string, unknown> | undefined) ?? {};
+  const replies = Number(count.replies ?? 0);
+  const directReplies = Number(count.direct_replies ?? 0);
+  const likes = Number(count.likes ?? 0);
+  const reports = Number(count.reports ?? 0);
+  return `${replies}/${directReplies}/${likes}/${reports}`;
+}
+
+function getCommentReplyLink(record: Record<string, unknown>): string {
+  const snippet = String(record.in_reply_to_snippet ?? '').trim();
+  if (snippet) {
+    return truncateValue(snippet, 32);
+  }
+
+  if (record.in_reply_to_id) {
+    return String(record.in_reply_to_id);
+  }
+
+  if (record.parent_id) {
+    return String(record.parent_id);
+  }
+
+  return '';
+}
+
+function getCommentSnippet(record: Record<string, unknown>): string {
+  const text = stripHtml(record.html);
+  return truncateValue(text || '[removed]', 72);
+}
+
+function commentRow(record: Record<string, unknown>, useColor: boolean): string[] {
+  return [
+    String(record.id ?? ''),
+    getCommentAuthor(record),
+    truncateValue(getCommentPost(record), 28),
+    formatStatus(String(record.status ?? 'unknown'), useColor),
+    getCommentCounts(record),
+    String(record.created_at ?? ''),
+    getCommentReplyLink(record),
+    getCommentSnippet(record),
+  ];
+}
+
+function printCommentSummary(record: Record<string, unknown>): void {
+  const member = (record.member as Record<string, unknown> | undefined) ?? {};
+  const post = (record.post as Record<string, unknown> | undefined) ?? {};
+  const lines = [
+    `ID: ${String(record.id ?? '')}`,
+    `Status: ${String(record.status ?? '')}`,
+    `Author: ${String(member.name ?? member.email ?? record.member_id ?? '')}`,
+    `Author ID: ${String(member.id ?? record.member_id ?? '')}`,
+    `Post: ${String(post.title ?? record.post_id ?? '')}`,
+    `Post ID: ${String(post.id ?? record.post_id ?? '')}`,
+    `Parent ID: ${String(record.parent_id ?? '')}`,
+    `In Reply To ID: ${String(record.in_reply_to_id ?? '')}`,
+    `Created: ${String(record.created_at ?? '')}`,
+    `Edited: ${String(record.edited_at ?? '')}`,
+    `Counts (replies/direct/likes/reports): ${getCommentCounts(record)}`,
+    '',
+    'Body:',
+    stripHtml(record.html) || '[removed]',
+  ];
+
+  console.log(lines.join('\n'));
+}
+
 function formatOperationCount(value: unknown): string {
   return typeof value === 'number' ? String(value) : '0';
 }
@@ -243,6 +354,17 @@ export function printMemberListHuman(payload: Record<string, unknown>, useColor 
 
   printRows(['ID', 'EMAIL', 'NAME', 'STATUS', 'UPDATED'], rows, useColor);
   printPagination(payload, 'members');
+}
+
+export function printCommentListHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'comments', (record) => commentRow(record, useColor));
+
+  printRows(
+    ['ID', 'AUTHOR', 'POST', 'STATUS', 'R/D/L/RP', 'CREATED', 'REPLY TO', 'TEXT'],
+    rows,
+    useColor,
+  );
+  printPagination(payload, 'comments');
 }
 
 export function printNewsletterListHuman(payload: Record<string, unknown>, useColor = true): void {
@@ -464,6 +586,36 @@ export function printLabelListHuman(payload: Record<string, unknown>, useColor =
   printPagination(payload, 'labels');
 }
 
+export function printCommentLikesHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'comment_likes', (record) => {
+    const member = (record.member as Record<string, unknown> | undefined) ?? {};
+    return [
+      String(record.id ?? ''),
+      String(member.name ?? member.email ?? record.member_id ?? 'Unknown'),
+      String(member.email ?? ''),
+      String(record.created_at ?? ''),
+    ];
+  });
+
+  printRows(['ID', 'MEMBER', 'EMAIL', 'CREATED'], rows, useColor);
+  printPagination(payload, 'likes');
+}
+
+export function printCommentReportsHuman(payload: Record<string, unknown>, useColor = true): void {
+  const rows = rowsFromCollection(payload, 'comment_reports', (record) => {
+    const member = (record.member as Record<string, unknown> | undefined) ?? {};
+    return [
+      String(record.id ?? ''),
+      String(member.name ?? member.email ?? record.member_id ?? 'Unknown'),
+      String(member.email ?? ''),
+      String(record.created_at ?? ''),
+    ];
+  });
+
+  printRows(['ID', 'MEMBER', 'EMAIL', 'CREATED'], rows, useColor);
+  printPagination(payload, 'reports');
+}
+
 export function printUserListHuman(payload: Record<string, unknown>, useColor = true): void {
   const rows = rowsFromCollection(payload, 'users', (record) => [
     String(record.id ?? ''),
@@ -578,6 +730,47 @@ export function printLabelHuman(payload: Record<string, unknown>): void {
     { label: 'Slug', field: 'slug' },
     { label: 'Updated', field: 'updated_at' },
   ]);
+}
+
+export function printCommentHuman(payload: Record<string, unknown>): void {
+  const record = getFirstRecord(payload, 'comments');
+  if (!record) {
+    console.log('No record found.');
+    return;
+  }
+
+  printCommentSummary(record);
+}
+
+export function printCommentThreadHuman(payload: Record<string, unknown>, useColor = true): void {
+  const record =
+    payload.comment && typeof payload.comment === 'object'
+      ? (payload.comment as Record<string, unknown>)
+      : undefined;
+
+  if (!record) {
+    console.log('No record found.');
+    return;
+  }
+
+  printCommentSummary(record);
+
+  const comments = Array.isArray(payload.comments)
+    ? (payload.comments as Array<Record<string, unknown>>)
+    : [];
+
+  if (comments.length === 0) {
+    console.log('\nNo thread replies.');
+    return;
+  }
+
+  console.log('\nThread replies:');
+  printRows(
+    ['ID', 'AUTHOR', 'POST', 'STATUS', 'R/D/L/RP', 'CREATED', 'REPLY TO', 'TEXT'],
+    comments.map((comment) => commentRow(comment, useColor)),
+    useColor,
+  );
+  printPagination(payload, 'comments');
 }
 
 export function printUserHuman(payload: Record<string, unknown>): void {

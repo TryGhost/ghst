@@ -1,0 +1,10 @@
+{
+  "webhooks": [
+    {
+      "event": "post.published",
+      "id": "webhook-id",
+      "name": "<fixture-webhook-name>",
+      "target_url": "https://example.com/webhook-updated"
+    }
+  ]
+}

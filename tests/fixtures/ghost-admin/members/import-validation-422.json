@@ -1,0 +1,20 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Please select a members CSV file.",
+  "payload": {
+    "errors": [
+      {
+        "code": null,
+        "context": null,
+        "details": null,
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Please select a members CSV file.",
+        "property": null,
+        "type": "ValidationError"
+      }
+    ]
+  },
+  "status": 422
+}

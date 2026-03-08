@@ -1,0 +1,53 @@
+{
+  "members": [
+    {
+      "avatar_image": "https://www.gravatar.com/avatar/fixture-hash?s=250&r=g&d=blank",
+      "can_comment": true,
+      "commenting": {
+        "disabled": false,
+        "disabled_reason": null,
+        "disabled_until": null
+      },
+      "comped": false,
+      "created_at": "<datetime>",
+      "email": "<memberEmail>",
+      "email_count": 0,
+      "email_open_rate": null,
+      "email_opened_count": 0,
+      "email_suppression": {
+        "info": null,
+        "suppressed": false
+      },
+      "geolocation": null,
+      "id": "<memberId>",
+      "labels": [],
+      "last_seen_at": null,
+      "name": "<fixture-member-updated-name>",
+      "newsletters": [
+        {
+          "description": null,
+          "id": "<newsletterId>",
+          "name": "ghst",
+          "status": "active"
+        }
+      ],
+      "note": "Fixture note updated",
+      "status": "free",
+      "subscribed": true,
+      "subscriptions": [],
+      "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=fixture-member-uuid&key=fixture-token",
+      "updated_at": "<datetime>",
+      "uuid": "<memberUuid>"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "limit": 2,
+      "next": null,
+      "page": 1,
+      "pages": 1,
+      "prev": null,
+      "total": 1
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
-import { cloneFixture, fixtureIds, ghostFixtures } from './ghost-fixtures.js';
+import { cloneContractFixture, getContractFixture } from './ghost-fixture-contract.js';
+import { cloneFixture, fixtureIds } from './ghost-fixtures.js';
 
 export interface MockGhostRequest {
   url: URL;
@@ -39,7 +40,7 @@ function jwtLikeToken(payload: Record<string, unknown>): string {
 }
 
 function unknownRouteResponse(pathname: string): Response {
-  const fixture = ghostFixtures.api.errors.unknownRoute404 as Record<string, unknown>;
+  const fixture = getContractFixture('apiUnknownRoute404') as Record<string, unknown>;
   const status = Number(fixture.status ?? 404);
   const payload = cloneFixture((fixture.payload as Record<string, unknown>) ?? {});
 
@@ -448,7 +449,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/site/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.api.admin.site));
+      return jsonResponse(cloneContractFixture('apiAdminSite'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/identities/') && method === 'GET') {
@@ -458,7 +459,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'GET') {
-      const payload = cloneFixture(ghostFixtures.api.admin.settings) as Record<string, unknown>;
+      const payload = cloneContractFixture('apiAdminSettings') as Record<string, unknown>;
       const settings = Array.isArray(payload.settings)
         ? (payload.settings as Array<Record<string, unknown>>)
         : [];
@@ -691,28 +692,28 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/posts/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.posts.browse));
+      return jsonResponse(cloneContractFixture('postsBrowse'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.posts.read));
+      return jsonResponse(cloneContractFixture('postsRead'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/posts/slug/${fixtureIds.postSlug}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.posts.read));
+      return jsonResponse(cloneContractFixture('postsRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/posts/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.posts.create));
+      return jsonResponse(cloneContractFixture('postsCreate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`) && method === 'PUT') {
       if (options.postConflictOnce && conflictCount === 0) {
         conflictCount += 1;
-        const conflictFixture = ghostFixtures.posts.conflict409 as Record<string, unknown>;
+        const conflictFixture = getContractFixture('postsConflict409') as Record<string, unknown>;
         return jsonResponse(
           cloneFixture((conflictFixture.payload as Record<string, unknown>) ?? {}),
           Number(conflictFixture.status ?? 409),
@@ -721,7 +722,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
 
       const isPublishRequest = String(init?.body ?? '').includes('"status":"published"');
       if (isPublishRequest) {
-        const payload = cloneFixture(ghostFixtures.posts.update) as Record<string, unknown>;
+        const payload = cloneContractFixture('postsUpdate') as Record<string, unknown>;
         const posts = payload.posts as Array<Record<string, unknown>>;
         if (posts[0]) {
           posts[0].status = 'published';
@@ -729,7 +730,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
         return jsonResponse(payload);
       }
 
-      return jsonResponse(cloneFixture(ghostFixtures.posts.update));
+      return jsonResponse(cloneContractFixture('postsUpdate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`) && method === 'DELETE') {
@@ -740,34 +741,30 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/copy/`) &&
       method === 'POST'
     ) {
-      return jsonResponse(
-        cloneFixture(
-          (ghostFixtures.posts.copy ?? ghostFixtures.posts.create) as Record<string, unknown>,
-        ),
-      );
+      return jsonResponse(cloneContractFixture('postsCopy'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/pages/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.pages.browse));
+      return jsonResponse(cloneContractFixture('pagesBrowse'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/pages/${fixtureIds.pageId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.pages.read));
+      return jsonResponse(cloneContractFixture('pagesRead'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/pages/slug/${fixtureIds.pageSlug}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.pages.read));
+      return jsonResponse(cloneContractFixture('pagesRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/pages/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.pages.create));
+      return jsonResponse(cloneContractFixture('pagesCreate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/pages/${fixtureIds.pageId}/`) && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.pages.update));
+      return jsonResponse(cloneContractFixture('pagesUpdate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/pages/${fixtureIds.pageId}/`) && method === 'DELETE') {
@@ -778,34 +775,30 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       pathname.endsWith(`/ghost/api/admin/pages/${fixtureIds.pageId}/copy/`) &&
       method === 'POST'
     ) {
-      return jsonResponse(
-        cloneFixture(
-          (ghostFixtures.pages.copy ?? ghostFixtures.pages.create) as Record<string, unknown>,
-        ),
-      );
+      return jsonResponse(cloneContractFixture('pagesCopy'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/tags/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.tags.browse));
+      return jsonResponse(cloneContractFixture('tagsBrowse'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/tags/${fixtureIds.tagId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.tags.read));
+      return jsonResponse(cloneContractFixture('tagsRead'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/tags/slug/${fixtureIds.tagSlug}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.tags.read));
+      return jsonResponse(cloneContractFixture('tagsRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/tags/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.tags.create));
+      return jsonResponse(cloneContractFixture('tagsCreate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/tags/${fixtureIds.tagId}/`) && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.tags.update));
+      return jsonResponse(cloneContractFixture('tagsUpdate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/tags/${fixtureIds.tagId}/`) && method === 'DELETE') {
@@ -814,34 +807,34 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
 
     if (pathname.endsWith('/ghost/api/admin/members/upload/') && method === 'GET') {
       return textResponse(
-        String(ghostFixtures.members.exportCsv ?? ''),
+        String(getContractFixture('membersExportCsv')),
         200,
         'text/csv; charset=utf-8',
       );
     }
 
     if (pathname.endsWith('/ghost/api/admin/members/upload/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.importCsv));
+      return jsonResponse(cloneContractFixture('membersImportCsv'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/members/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.browse));
+      return jsonResponse(cloneContractFixture('membersBrowse'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/members/bulk/') && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.bulkEdit));
+      return jsonResponse(cloneContractFixture('membersBulkEdit'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/members/') && method === 'DELETE') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.bulkDestroy));
+      return jsonResponse(cloneContractFixture('membersBulkDestroy'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/members/${fixtureIds.memberId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.read));
+      return jsonResponse(cloneContractFixture('membersRead'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/members/${fixtureIds.memberId}/`) && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.update));
+      return jsonResponse(cloneContractFixture('membersUpdate'));
     }
 
     if (
@@ -852,84 +845,84 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/members/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.members.create));
+      return jsonResponse(cloneContractFixture('membersCreate'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/newsletters/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.newsletters.browse));
+      return jsonResponse(cloneContractFixture('newslettersBrowse'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/newsletters/${fixtureIds.newsletterId}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.newsletters.read));
+      return jsonResponse(cloneContractFixture('newslettersRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/newsletters/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.newsletters.create));
+      return jsonResponse(cloneContractFixture('newslettersCreate'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/newsletters/${fixtureIds.newsletterId}/`) &&
       method === 'PUT'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.newsletters.update));
+      return jsonResponse(cloneContractFixture('newslettersUpdate'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/tiers/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.tiers.browse));
+      return jsonResponse(cloneContractFixture('tiersBrowse'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/tiers/${fixtureIds.tierId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.tiers.read));
+      return jsonResponse(cloneContractFixture('tiersRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/tiers/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.tiers.create));
+      return jsonResponse(cloneContractFixture('tiersCreate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/tiers/${fixtureIds.tierId}/`) && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.tiers.update));
+      return jsonResponse(cloneContractFixture('tiersUpdate'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/offers/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.offers.browse));
+      return jsonResponse(cloneContractFixture('offersBrowse'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/offers/${fixtureIds.offerId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.offers.read));
+      return jsonResponse(cloneContractFixture('offersRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/offers/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.offers.create));
+      return jsonResponse(cloneContractFixture('offersCreate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/offers/${fixtureIds.offerId}/`) && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.offers.update));
+      return jsonResponse(cloneContractFixture('offersUpdate'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/labels/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.labels.browse));
+      return jsonResponse(cloneContractFixture('labelsBrowse'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/labels/slug/${fixtureIds.labelSlug}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.labels.read));
+      return jsonResponse(cloneContractFixture('labelsRead'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/labels/${fixtureIds.labelId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.labels.read));
+      return jsonResponse(cloneContractFixture('labelsRead'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/labels/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.labels.create));
+      return jsonResponse(cloneContractFixture('labelsCreate'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/labels/${fixtureIds.labelId}/`) && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.labels.update));
+      return jsonResponse(cloneContractFixture('labelsUpdate'));
     }
 
     if (
@@ -939,48 +932,114 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       return new Response(null, { status: 204 });
     }
 
+    if (pathname.endsWith('/ghost/api/admin/comments/') && method === 'GET') {
+      const threadFilter = `(parent_id:${fixtureIds.commentId}+in_reply_to_id:null),in_reply_to_id:${fixtureIds.commentId}`;
+      if (url.searchParams.get('filter') === threadFilter) {
+        return jsonResponse(cloneContractFixture('commentsThread'));
+      }
+
+      if (url.searchParams.get('include_nested') === 'false') {
+        return jsonResponse(cloneContractFixture('commentsBrowseTopLevel'));
+      }
+      return jsonResponse(cloneContractFixture('commentsBrowse'));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/comments/${fixtureIds.commentId}/replies/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneContractFixture('commentsReplies'));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/comments/${fixtureIds.commentId}/reports/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneContractFixture('commentsReports'));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/comments/${fixtureIds.commentId}/likes/`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(cloneContractFixture('commentsLikes'));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/comments/${fixtureIds.commentId}/`) &&
+      method === 'GET'
+    ) {
+      if (url.searchParams.get('include')?.includes('post')) {
+        return jsonResponse(cloneContractFixture('commentsReadModeration'));
+      }
+      return jsonResponse(cloneContractFixture('commentsRead'));
+    }
+
+    if (
+      pathname.endsWith(`/ghost/api/admin/comments/${fixtureIds.commentId}/`) &&
+      method === 'PUT'
+    ) {
+      const rawBody = String(init?.body ?? '');
+      const parsedBody = rawBody
+        ? (JSON.parse(rawBody) as { comments?: Array<{ status?: string }> })
+        : {};
+      const status = String(parsedBody.comments?.[0]?.status ?? '');
+
+      if (status === 'hidden') {
+        return jsonResponse(cloneContractFixture('commentsHide'));
+      }
+
+      if (status === 'published') {
+        return jsonResponse(cloneContractFixture('commentsShow'));
+      }
+
+      if (status === 'deleted') {
+        return jsonResponse(cloneContractFixture('commentsDelete'));
+      }
+    }
+
     if (pathname.endsWith('/ghost/api/admin/users/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.users.browse));
+      return jsonResponse(cloneContractFixture('usersBrowse'));
     }
 
     if (pathname.endsWith(`/ghost/api/admin/users/${fixtureIds.userId}/`) && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.users.readById));
+      return jsonResponse(cloneContractFixture('usersReadById'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/users/slug/${fixtureIds.userSlug}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.users.readBySlug));
+      return jsonResponse(cloneContractFixture('usersReadBySlug'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/users/email/${fixtureIds.userEmail}/`) &&
       method === 'GET'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.users.readByEmail));
+      return jsonResponse(cloneContractFixture('usersReadByEmail'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/users/me/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.users.me));
+      return jsonResponse(cloneContractFixture('usersMe'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/webhooks/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.webhooks.create));
+      return jsonResponse(cloneContractFixture('webhooksCreate'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/webhooks/${fixtureIds.webhookId}/`) &&
       method === 'PUT'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.webhooks.update));
+      return jsonResponse(cloneContractFixture('webhooksUpdate'));
     }
 
     if (
       pathname.endsWith(`/ghost/api/admin/webhooks/${fixtureIds.webhookId}/`) &&
       method === 'DELETE'
     ) {
-      const fixture = cloneFixture(ghostFixtures.webhooks.delete) as Record<string, unknown>;
+      const fixture = cloneContractFixture('webhooksDelete') as Record<string, unknown>;
       if (Object.keys(fixture).length === 0) {
         return new Response(null, { status: 204 });
       }
@@ -988,23 +1047,23 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/images/upload/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.images.upload));
+      return jsonResponse(cloneContractFixture('imagesUpload'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/themes/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.themes.browse));
+      return jsonResponse(cloneContractFixture('themesBrowse'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/themes/active/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.themes.active));
+      return jsonResponse(cloneContractFixture('themesActive'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/themes/upload/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.themes.upload));
+      return jsonResponse(cloneContractFixture('themesUpload'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/themes/uploaded-theme/activate/') && method === 'PUT') {
-      const fixture = cloneFixture(ghostFixtures.themes.activate) as {
+      const fixture = cloneContractFixture('themesActivate') as {
         themes?: Array<{ name?: string; package?: { name?: string } }>;
       };
       const theme = fixture.themes?.[0];
@@ -1021,7 +1080,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       pathname.endsWith(`/ghost/api/admin/themes/${fixtureIds.themeName}/activate/`) &&
       method === 'PUT'
     ) {
-      return jsonResponse(cloneFixture(ghostFixtures.themes.activate));
+      return jsonResponse(cloneContractFixture('themesActivate'));
     }
 
     if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'PUT') {
@@ -1329,7 +1388,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/db/') && method === 'GET') {
-      const dbFixture = cloneFixture(ghostFixtures.db.export) as Record<string, unknown>;
+      const dbFixture = cloneContractFixture('dbExport') as Record<string, unknown>;
       const byteLength = Number(dbFixture.bytes ?? 14);
       return new Response(Buffer.alloc(byteLength, 0), {
         status: 200,
@@ -1338,7 +1397,7 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/db/') && method === 'POST') {
-      return jsonResponse(cloneFixture(ghostFixtures.db.importSuccess));
+      return jsonResponse(cloneContractFixture('dbImportSuccess'));
     }
 
     return unknownRouteResponse(pathname);

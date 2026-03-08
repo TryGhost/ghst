@@ -1,36 +1,32 @@
 # Ghost API Fixtures
 
-These fixtures are captured from a real authenticated Ghost Admin API instance.
+These fixtures are static, hand-curated Ghost Admin API samples used by fixture-backed tests.
 
-## Update Fixtures
+## Check Fixtures
 
 ```bash
 nvm use
-pnpm fixtures:ghost:update
+pnpm fixtures:ghost:check
 ```
 
 This command will:
 
-1. Resolve the active Ghost connection using normal CLI precedence.
-2. Create temporary post/page/tag resources.
-3. Capture representative browse/read/create/update responses across phase 1-4 resources.
-4. Capture post/page copy responses and phase 4 parity request paths used in command tests.
-5. Capture representative `ghst api` admin responses (`/site/` and `/settings/`).
-6. Capture representative error responses (`409`, `404`, and `422` when returned).
-7. Sanitize volatile fields and write `fixtures.json`.
-8. Delete temporary resources.
-9. Redact secret-like values (for example Stripe keys and API tokens). Fixture generation fails if secret-like values remain after sanitization.
+1. Parse every committed fixture JSON file.
+2. Verify the file set matches the typed fixture manifest.
+3. Verify fixture payloads satisfy the mock-router contract.
+4. Fail if any fixture contains secret-like values.
 
-## Check Fixtures In CI
+## Optional Local Snapshot
 
 ```bash
-pnpm fixtures:ghost:check
+pnpm fixtures:ghost:capture --url http://localhost:2368 --staff-token <id:secret>
 ```
 
-This regenerates fixtures in-memory and compares with the committed file. It exits non-zero when drift is detected.
+This writes a lightweight read-only Ghost Admin snapshot to a temp directory for manual inspection. It is not part of the normal fixture workflow, it never rewrites committed fixtures, and it refuses non-local hosts.
 
 ## Notes
 
-- Fixture generation performs real writes and deletes in the configured Ghost site.
-- Use a development/staging site for fixture refreshes.
-- `tests/fixtures-secrets.test.ts` enforces that committed fixtures do not contain secret-like values.
+- Fixtures are split by route/scenario under this directory so updates stay isolated.
+- Fixture-backed tests and `pnpm fixtures:ghost:check` are fully offline.
+- The optional capture command is only a lightweight local snapshot helper, not an authoritative contract verifier.
+- `tests/fixtures-secrets.test.ts` and `scripts/check-ghost-fixtures.ts` both enforce that committed fixtures do not contain secret-like values.

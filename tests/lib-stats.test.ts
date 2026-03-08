@@ -18,10 +18,13 @@ import {
   getStatsWeb,
   getStatsWebTable,
 } from '../src/lib/stats.js';
-import { fixtureIds } from './helpers/ghost-fixtures.js';
+import { fixtureIds, ghostFixtures } from './helpers/ghost-fixtures.js';
 import { installGhostFixtureFetchMock } from './helpers/mock-ghost.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
+const fixturePrimaryPostTitle =
+  (ghostFixtures.posts.read as { posts?: Array<{ title?: string }> }).posts?.[0]?.title ??
+  'Fixture Post';
 
 describe('stats library', () => {
   let tempRoot = '';
@@ -266,7 +269,7 @@ describe('stats library', () => {
 
     const payload = await getStatsPostWeb({}, { id: fixtureIds.postId, range: '7d' });
 
-    expect(payload.post.title).toBe('Fixture Post');
+    expect(payload.post.title).toBe(fixturePrimaryPostTitle);
     expect(payload.kpis.visits).toBe(34);
     expect(payload.timeseries).toEqual([
       {
@@ -295,6 +298,10 @@ describe('stats library', () => {
 
   test('retrieves newsletter and post analytics variants', async () => {
     installGhostFixtureFetchMock();
+    const fixtureNewsletterBrowse = ghostFixtures.newsletters.browse as {
+      newsletters: Array<{ name: string }>;
+    };
+    const fixtureNewsletter = fixtureNewsletterBrowse.newsletters[0] as { name: string };
 
     const newsletters = await getStatsNewsletters({}, { range: '30d', limit: 10 });
     const subscribers = await getStatsNewsletterSubscribers({}, { range: '30d' });
@@ -315,7 +322,7 @@ describe('stats library', () => {
     const posts = await getStatsPosts({}, { range: '30d', limit: 5 });
     const devices = await getStatsWebTable({}, 'devices', { range: '30d', limit: 10 });
 
-    expect(newsletters.newsletters[0]?.newsletter_name).toBe('ghst');
+    expect(newsletters.newsletters[0]?.newsletter_name).toBe(fixtureNewsletter.name);
     expect(newsletters.newsletters[0]?.recipients).toBe(120);
     expect(newsletters.newsletters[0]?.clicked).toBe(24);
     expect(newsletters.newsletters[0]?.click_rate).toBe(20);

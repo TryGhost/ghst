@@ -1,0 +1,20 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Please select a database file to import.",
+  "payload": {
+    "errors": [
+      {
+        "code": null,
+        "context": null,
+        "details": null,
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Please select a database file to import.",
+        "property": null,
+        "type": "ValidationError"
+      }
+    ]
+  },
+  "status": 422
+}

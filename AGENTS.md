@@ -4,7 +4,7 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `socialweb`, `stats`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `comment`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `socialweb`, `stats`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD parity status: strict phase 1-4 command/action/flag parity in place with guard tests; only `snippet` remains intentionally deferred pending confirmed Ghost Admin API contract.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 - Documentation split:
@@ -47,8 +47,7 @@ pnpm build
 - Typecheck: `pnpm typecheck`
 - Test: `pnpm test`
 - Lint: `pnpm lint` (Biome check: lint + formatting)
-- Refresh Ghost Admin fixtures: `pnpm fixtures:ghost:update`
-- Check Ghost Admin fixture drift: `pnpm fixtures:ghost:check`
+- Check committed Ghost fixtures offline: `pnpm fixtures:ghost:check`
 
 ## Documentation Rules
 
@@ -72,6 +71,7 @@ pnpm build
 ## Implemented Commands
 
 - `ghst auth login|status|list|switch|logout|link|token`
+- `ghst comment list|get|thread|replies|likes|reports|hide|show|delete`
 - `ghst post list|get|create|update|delete|publish|schedule|unschedule|copy|bulk`
 - `ghst page list|get|create|update|delete|copy|bulk`
 - `ghst tag list|get|create|update|delete|bulk`
@@ -100,6 +100,7 @@ pnpm build
 - `pages`
 - `tags`
 - `members`
+- `comments`
 - `site`
 - `settings`
 - `users`
@@ -110,6 +111,9 @@ pnpm build
 ## Parity Notes
 
 - `post create|update` supports `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
+- `comment list` defaults to site-wide admin moderation semantics and includes replies unless `--top-level-only` is passed.
+- `comment get` uses Ghost Admin's moderation read include set, and `comment thread` mirrors the Admin moderation sidebar by combining the selected comment read with the filtered thread query.
+- `comment hide|show|delete` map to Ghost Admin comment status transitions (`hidden`, `published`, `deleted`).
 - `post publish|schedule` supports `--newsletter`, `--email-segment`, and `--email-only`.
 - `post delete` supports either `<id>` or `--filter` (non-interactive delete requires `--yes`).
 - `post bulk` supports `--action` and PRD aliases `--update`/`--delete` plus update fields including `--add-tag` and `--authors`.
@@ -126,6 +130,7 @@ pnpm build
 - `stats post ... growth` clips Ghost lifetime post-growth history client-side to the selected window.
 - Ghost analytics semantics: `source` and `utm_*` filters are session-scoped, while post/member-status filters are hit-scoped.
 - MCP now exposes first-class stats tools via the `stats` tool group rather than requiring raw `ghost_api_request` calls.
+- MCP now exposes first-class comment moderation tools via the `comments` tool group, including list/get/thread/replies/likes/reports/hide/show/delete.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
 - MCP parity additions include `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.

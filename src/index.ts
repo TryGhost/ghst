@@ -3,6 +3,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Command, CommanderError } from 'commander';
 import { registerApiCommands } from './commands/api.js';
 import { registerAuthCommands } from './commands/auth.js';
+import { registerCommentCommands } from './commands/comment.js';
 import { registerCompletionCommands } from './commands/completion.js';
 import { registerConfigCommands } from './commands/config.js';
 import { registerImageCommands } from './commands/image.js';
@@ -42,6 +43,7 @@ export function buildProgram(): Command {
     .option('--no-color', 'Disable color output');
 
   registerAuthCommands(program);
+  registerCommentCommands(program);
   registerPostCommands(program);
   registerPageCommands(program);
   registerTagCommands(program);
