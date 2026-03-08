@@ -212,7 +212,7 @@ describe('stats library', () => {
       },
     });
 
-    const payload = await getStatsGrowth({}, { range: '30d' });
+    const payload = await getStatsGrowth({}, { from: '2026-02-06', to: '2026-03-02' });
 
     expect(payload.summary.free_members).toBe(280);
     expect(payload.summary.paid_members).toBe(0);
@@ -333,6 +333,94 @@ describe('stats library', () => {
     expect(devices.metric).toBe('devices');
   });
 
+  test('aggregates all newsletter sends before applying the report row limit', async () => {
+    const requests: string[] = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url }) => {
+        requests.push(url.toString());
+
+        if (
+          pathname.endsWith('/ghost/api/admin/stats/newsletter-basic-stats/') &&
+          method === 'GET'
+        ) {
+          return new Response(
+            JSON.stringify({
+              stats: [
+                {
+                  post_id: fixtureIds.postId,
+                  post_title: 'Fixture Post',
+                  send_date: '2026-03-01T00:00:00.000Z',
+                  sent_to: 120,
+                  total_opens: 78,
+                  open_rate: 0.65,
+                },
+                {
+                  post_id: 'post-secondary',
+                  post_title: 'Second Fixture Post',
+                  send_date: '2026-03-02T00:00:00.000Z',
+                  sent_to: 30,
+                  total_opens: 15,
+                  open_rate: 0.5,
+                },
+              ],
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        if (
+          pathname.endsWith('/ghost/api/admin/stats/newsletter-click-stats/') &&
+          method === 'GET'
+        ) {
+          return new Response(
+            JSON.stringify({
+              stats: [
+                {
+                  post_id: fixtureIds.postId,
+                  total_clicks: 24,
+                  email_count: 120,
+                  click_rate: 0.2,
+                },
+                {
+                  post_id: 'post-secondary',
+                  total_clicks: 6,
+                  email_count: 30,
+                  click_rate: 0.2,
+                },
+              ],
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        return undefined;
+      },
+    });
+
+    const payload = await getStatsNewsletters({}, { range: '30d', limit: 1 });
+
+    expect(payload.newsletters).toHaveLength(1);
+    expect(payload.newsletters[0]?.sent_posts).toBe(2);
+    expect(payload.newsletters[0]?.recipients).toBe(150);
+    expect(payload.newsletters[0]?.opened).toBe(93);
+    expect(payload.newsletters[0]?.clicked).toBe(30);
+    expect(payload.newsletters[0]?.click_rate).toBe(20);
+    expect(
+      requests.some(
+        (entry) =>
+          entry.includes('/ghost/api/admin/stats/newsletter-basic-stats/') &&
+          entry.includes(`newsletter_id=${fixtureIds.newsletterId}`) &&
+          !entry.includes('limit='),
+      ),
+    ).toBe(true);
+  });
+
   test('treats timezone-only post growth requests as lifetime scope and clips explicit windows', async () => {
     installGhostFixtureFetchMock();
 
@@ -381,6 +469,30 @@ describe('stats library', () => {
           !entry.includes('date_from='),
       ),
     ).toBe(true);
+  });
+
+  test('propagates post web auth failures instead of returning a partial post report', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/ghost/api/admin/tinybird/token/') && method === 'GET') {
+          return new Response(
+            JSON.stringify({
+              errors: [{ message: 'Forbidden' }],
+            }),
+            {
+              status: 403,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(getStatsPost({}, { id: fixtureIds.postId, range: '30d' })).rejects.toMatchObject({
+      exitCode: ExitCode.AUTH_ERROR,
+    });
   });
 
   test('returns an empty newsletter click report when the requested post ids are outside the selected range', async () => {

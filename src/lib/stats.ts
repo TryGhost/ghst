@@ -1359,7 +1359,6 @@ class StatsClient {
             {
               ...this.buildRangeParams(range),
               newsletter_id: newsletterId,
-              limit: input.limit ?? 10,
             },
           ),
           client.rawRequest<Record<string, unknown>>('/stats/subscriber-count/', 'GET', undefined, {
@@ -1442,7 +1441,6 @@ class StatsClient {
       {
         ...this.buildRangeParams(range),
         newsletter_id: input.newsletterId,
-        limit: input.limit ?? 10,
       },
     );
     const basicStatsRows = getArray(basicStatsPayload);
@@ -1478,7 +1476,7 @@ class StatsClient {
         slug: getString(newsletter.slug),
       },
       posts: input.postIds ?? [],
-      clicks: normalizeNewsletterClicks(mergedRows),
+      clicks: normalizeNewsletterClicks(mergedRows).slice(0, input.limit ?? mergedRows.length),
     };
   }
 
@@ -1667,7 +1665,13 @@ class StatsClient {
       client.rawRequest<Record<string, unknown>>(`/stats/posts/${input.id}/stats/`),
       this.getPostGrowthReport(input),
       this.getPostReferrersReport({ ...input, limit: 5 }),
-      this.getPostWebReport({ ...input, limit: 5 }).catch(() => null),
+      this.getPostWebReport({ ...input, limit: 5 }).catch((error) => {
+        if (error instanceof GhstError && error.code === 'ANALYTICS_UNAVAILABLE') {
+          return null;
+        }
+
+        throw error;
+      }),
       this.getPostSummaryFallback(input.id, range),
     ]);
     const summary = extractPostSummary(summaryPayload);

@@ -1157,6 +1157,26 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
   });
 
+  test('uses env output mode for stats json responses', async () => {
+    process.env.GHST_OUTPUT = 'json';
+    const logSpy = vi.spyOn(console, 'log');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"summary"');
+  });
+
   test('covers phase2 validation and non-interactive branches', async () => {
     await expect(
       run([

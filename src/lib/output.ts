@@ -767,5 +767,5 @@ export function printStatsPostWebHuman(payload: StatsPostWebReport, useColor = t
 }
 
 export function isJsonMode(global: GlobalOptions): boolean {
-  return Boolean(global.json || process.env.GHST_OUTPUT === 'json');
+  return Boolean(global.json || global.jq || process.env.GHST_OUTPUT === 'json');
 }

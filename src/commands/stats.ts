@@ -4,6 +4,7 @@ import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import {
   formatCsv,
+  isJsonMode,
   printJson,
   printStatsGrowthHuman,
   printStatsNewsletterClicksHuman,
@@ -115,6 +116,8 @@ function assertCsvMode(
   options: { csv?: boolean; output?: string },
   allowed: boolean,
 ): void {
+  const jsonMode = isJsonMode(global);
+
   if (!options.csv && options.output) {
     throw new GhstError('--output requires --csv.', {
       exitCode: ExitCode.VALIDATION_ERROR,
@@ -129,12 +132,16 @@ function assertCsvMode(
     });
   }
 
-  if (options.csv && (global.json || global.jq)) {
+  if (options.csv && jsonMode) {
     throw new GhstError('Cannot combine --csv with --json or --jq.', {
       exitCode: ExitCode.VALIDATION_ERROR,
       code: 'VALIDATION_ERROR',
     });
   }
+}
+
+function shouldPrintJson(global: ReturnType<typeof getGlobalOptions>): boolean {
+  return isJsonMode(global);
 }
 
 function addRangeOptions(command: Command): Command {
@@ -333,7 +340,7 @@ export function registerStatsCommands(program: Command): void {
 
       const payload = await getStatsOverview(global, parsed.data);
 
-      if (global.json) {
+      if (shouldPrintJson(global)) {
         printJson(payload, global.jq);
         return;
       }
@@ -373,7 +380,7 @@ export function registerStatsCommands(program: Command): void {
         }
 
         const payload = await getStatsWeb(global, parsed.data);
-        if (global.json) {
+        if (shouldPrintJson(global)) {
           printJson(payload, global.jq);
           return;
         }
@@ -394,7 +401,7 @@ export function registerStatsCommands(program: Command): void {
       }
 
       const payload = await getStatsWebTable(global, view, parsed.data);
-      if (global.json) {
+      if (shouldPrintJson(global)) {
         printJson(payload, global.jq);
         return;
       }
@@ -425,7 +432,7 @@ export function registerStatsCommands(program: Command): void {
       }
 
       const payload = await getStatsGrowth(global, parsed.data);
-      if (global.json) {
+      if (shouldPrintJson(global)) {
         printJson(payload, global.jq);
         return;
       }
@@ -451,7 +458,7 @@ export function registerStatsCommands(program: Command): void {
       }
 
       const payload = await getStatsPosts(global, parsed.data);
-      if (global.json) {
+      if (shouldPrintJson(global)) {
         printJson(payload, global.jq);
         return;
       }
@@ -488,7 +495,7 @@ export function registerStatsCommands(program: Command): void {
           }
 
           const payload = await getStatsNewsletters(global, parsed.data);
-          if (global.json) {
+          if (shouldPrintJson(global)) {
             printJson(payload, global.jq);
             return;
           }
@@ -518,7 +525,7 @@ export function registerStatsCommands(program: Command): void {
           }
 
           const payload = await getStatsNewsletterClicks(global, parsed.data);
-          if (global.json) {
+          if (shouldPrintJson(global)) {
             printJson(payload, global.jq);
             return;
           }
@@ -543,7 +550,7 @@ export function registerStatsCommands(program: Command): void {
           }
 
           const payload = await getStatsNewsletterSubscribers(global, parsed.data);
-          if (global.json) {
+          if (shouldPrintJson(global)) {
             printJson(payload, global.jq);
             return;
           }
@@ -591,7 +598,7 @@ export function registerStatsCommands(program: Command): void {
         }
 
         const payload = await getStatsPost(global, parsed.data);
-        if (global.json) {
+        if (shouldPrintJson(global)) {
           printJson(payload, global.jq);
           return;
         }
@@ -611,7 +618,7 @@ export function registerStatsCommands(program: Command): void {
         }
 
         const payload = await getStatsPostWeb(global, parsed.data);
-        if (global.json) {
+        if (shouldPrintJson(global)) {
           printJson(payload, global.jq);
           return;
         }
@@ -631,7 +638,7 @@ export function registerStatsCommands(program: Command): void {
         }
 
         const payload = await getStatsPostGrowth(global, parsed.data);
-        if (global.json) {
+        if (shouldPrintJson(global)) {
           printJson(payload, global.jq);
           return;
         }
@@ -656,7 +663,7 @@ export function registerStatsCommands(program: Command): void {
         }
 
         const payload = await getStatsPostNewsletter(global, parsed.data);
-        if (global.json) {
+        if (shouldPrintJson(global)) {
           printJson(payload, global.jq);
           return;
         }
@@ -677,7 +684,7 @@ export function registerStatsCommands(program: Command): void {
         }
 
         const payload = await getStatsPostReferrers(global, parsed.data);
-        if (global.json) {
+        if (shouldPrintJson(global)) {
           printJson(payload, global.jq);
           return;
         }

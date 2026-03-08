@@ -132,7 +132,7 @@ ghst auth token
 | `image` | `upload` |
 | `theme` | `list`, `upload`, `activate`, `validate`, `dev` |
 | `site` | `info` |
-| `stats` | `overview`, `web [content|sources|locations|devices|utm-sources|utm-mediums|utm-campaigns|utm-contents|utm-terms]`, `growth`, `posts`, `email [clicks|subscribers]`, `post <id> [web|growth|newsletter|referrers]` |
+| `stats` | `overview`, `web [content\|sources\|locations\|devices\|utm-sources\|utm-mediums\|utm-campaigns\|utm-contents\|utm-terms]`, `growth`, `posts`, `email [clicks\|subscribers]`, `post <id> [web\|growth\|newsletter\|referrers]` |
 | `setting` | `list`, `get`, `set` |
 | `migrate` | `wordpress`, `medium`, `substack`, `csv`, `json`, `export` |
 | `config` | `show`, `path`, `list`, `get`, `set` |
