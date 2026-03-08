@@ -68,6 +68,7 @@ export async function updatePost(
     slug?: string;
     patch: Record<string, unknown>;
     source?: 'html';
+    params?: Record<string, string | number | boolean | undefined>;
   },
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
@@ -102,6 +103,7 @@ export async function updatePost(
         updated_at: updatedAt,
       },
       options.source,
+      options.params,
     );
   };
 
@@ -148,13 +150,33 @@ export async function schedulePost(
   global: GlobalOptions,
   id: string,
   at: string,
+  options?: {
+    newsletter?: string;
+    email_only?: boolean;
+    email_segment?: string;
+  },
 ): Promise<Record<string, unknown>> {
+  // Ghost requires email-related fields as query parameters on the PUT
+  // endpoint for scheduled posts — passing them in the JSON body has no
+  // effect.  This differs from the publish transition where the body works.
+  const params: Record<string, string> = {};
+  if (options?.newsletter) {
+    params.newsletter = options.newsletter;
+  }
+  if (options?.email_segment) {
+    params.email_segment = options.email_segment;
+  }
+  if (options?.email_only !== undefined) {
+    params.email_only = String(options.email_only);
+  }
+
   return updatePost(global, {
     id,
     patch: {
       status: 'scheduled',
       published_at: at,
     },
+    params: Object.keys(params).length > 0 ? params : undefined,
   });
 }
 

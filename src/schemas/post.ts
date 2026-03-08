@@ -183,6 +183,9 @@ export const PostPublishInputSchema = z.object({
 export const PostScheduleInputSchema = z.object({
   id: z.string().min(1),
   at: z.string().datetime(),
+  newsletter: z.string().optional(),
+  emailOnly: z.boolean().optional(),
+  emailSegment: z.string().optional(),
 });
 
 export const PostUnscheduleInputSchema = z.object({
