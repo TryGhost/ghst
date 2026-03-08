@@ -57,6 +57,19 @@ import {
 } from '../src/schemas/post.js';
 import { SettingGetInputSchema, SettingSetInputSchema } from '../src/schemas/setting.js';
 import {
+  SocialWebBlockDomainInputSchema,
+  SocialWebContentInputSchema,
+  SocialWebFollowsInputSchema,
+  SocialWebHandleActionInputSchema,
+  SocialWebIdInputSchema,
+  SocialWebPaginatedInputSchema,
+  SocialWebProfileInputSchema,
+  SocialWebProfileUpdateInputSchema,
+  SocialWebReplyInputSchema,
+  SocialWebSearchInputSchema,
+  SocialWebUploadInputSchema,
+} from '../src/schemas/socialweb.js';
+import {
   StatsNewsletterClicksInputSchema,
   StatsPostInputSchema,
   StatsPostsInputSchema,
@@ -403,6 +416,83 @@ describe('phase3 schemas', () => {
     expect(MigrateCsvInputSchema.parse({ file: './posts.csv' }).file).toBe('./posts.csv');
     expect(MigrateJsonInputSchema.parse({ file: './import.json' }).file).toBe('./import.json');
     expect(MigrateExportInputSchema.parse({ output: './backup.zip' }).output).toBe('./backup.zip');
+  });
+});
+
+describe('socialweb schemas', () => {
+  test('validates socialweb profile, pagination, and note inputs', () => {
+    expect(SocialWebProfileInputSchema.parse({ handle: 'me' }).handle).toBe('me');
+    expect(SocialWebProfileInputSchema.parse({ handle: '@alice@remote.example' }).handle).toBe(
+      '@alice@remote.example',
+    );
+    expect(() => SocialWebProfileInputSchema.parse({ handle: 'alice' })).toThrow();
+
+    expect(
+      SocialWebProfileUpdateInputSchema.parse({
+        name: 'Alice',
+        username: 'alice',
+        bio: 'Remote account',
+        avatarUrl: 'https://remote.example/avatar.png',
+        bannerImageUrl: 'https://remote.example/banner.png',
+      }).username,
+    ).toBe('alice');
+    expect(() => SocialWebProfileUpdateInputSchema.parse({})).toThrow();
+
+    expect(SocialWebSearchInputSchema.parse({ query: 'alice' }).query).toBe('alice');
+    expect(SocialWebPaginatedInputSchema.parse({ limit: 25, all: true }).limit).toBe(25);
+    expect(() => SocialWebPaginatedInputSchema.parse({ all: true, next: 'cursor' })).toThrow();
+
+    expect(SocialWebFollowsInputSchema.parse({ handle: 'me', limit: 10, all: true }).limit).toBe(
+      10,
+    );
+    expect(() =>
+      SocialWebFollowsInputSchema.parse({ handle: 'me', all: true, next: 'cursor' }),
+    ).toThrow();
+    expect(SocialWebHandleActionInputSchema.parse({ handle: '@alice@remote.example' }).handle).toBe(
+      '@alice@remote.example',
+    );
+    expect(() => SocialWebHandleActionInputSchema.parse({ handle: 'alice' })).toThrow();
+    expect(() => SocialWebHandleActionInputSchema.parse({ handle: 'me' })).toThrow();
+
+    expect(SocialWebIdInputSchema.parse({ id: 'https://remote.example/posts/1' }).id).toBe(
+      'https://remote.example/posts/1',
+    );
+    expect(() => SocialWebIdInputSchema.parse({ id: 'not-a-url' })).toThrow();
+
+    expect(SocialWebBlockDomainInputSchema.parse({ url: 'https://remote.example' }).url).toBe(
+      'https://remote.example',
+    );
+    expect(SocialWebUploadInputSchema.parse({ filePath: './photo.jpg' }).filePath).toBe(
+      './photo.jpg',
+    );
+
+    expect(
+      SocialWebContentInputSchema.parse({
+        content: 'hello social web',
+        imageUrl: 'https://remote.example/image.png',
+        imageAlt: 'Alt',
+      }).content,
+    ).toBe('hello social web');
+    expect(() =>
+      SocialWebContentInputSchema.parse({
+        content: 'hello',
+        stdin: true,
+      }),
+    ).toThrow();
+    expect(() =>
+      SocialWebContentInputSchema.parse({
+        content: 'hello',
+        imageFile: './photo.jpg',
+        imageUrl: 'https://remote.example/image.png',
+      }),
+    ).toThrow();
+
+    expect(
+      SocialWebReplyInputSchema.parse({
+        id: 'https://remote.example/posts/1',
+        stdin: true,
+      }).id,
+    ).toBe('https://remote.example/posts/1');
   });
 });
 

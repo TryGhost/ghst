@@ -2,6 +2,12 @@ import process from 'node:process';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import type {
+  SocialWebAccount,
+  SocialWebNotification,
+  SocialWebPost,
+  SocialWebStatusReport,
+} from './socialweb.js';
+import type {
   StatsBreakdownRow,
   StatsContentRow,
   StatsGrowthReport,
@@ -264,6 +270,173 @@ export function printTierListHuman(payload: Record<string, unknown>, useColor = 
 
   printRows(['ID', 'NAME', 'TYPE', 'ACTIVE', 'MONTHLY', 'YEARLY'], rows, useColor);
   printPagination(payload, 'tiers');
+}
+
+function socialWebPostRows(posts: SocialWebPost[], useColor: boolean): string[][] {
+  return posts.map((post) => [
+    String(post.id ?? ''),
+    String(post.title ?? post.excerpt ?? '(untitled)'),
+    String(
+      post.author && typeof post.author === 'object'
+        ? ((post.author as { handle?: string }).handle ?? '')
+        : '',
+    ),
+    formatStatus(post.repostedByMe ? 'reposted' : post.likedByMe ? 'liked' : 'active', useColor),
+  ]);
+}
+
+function socialWebAccountRows(accounts: SocialWebAccount[]): string[][] {
+  return accounts.map((account) => [
+    String(account.id ?? ''),
+    String(account.name ?? ''),
+    String(account.handle ?? ''),
+    String(account.followedByMe ?? ''),
+  ]);
+}
+
+export function printSocialWebStatusHuman(payload: Record<string, unknown>, useColor = true): void {
+  const report = payload as unknown as SocialWebStatusReport;
+  console.log(
+    `Social web: ${formatStatus(report.settings.social_web ? 'enabled' : 'disabled', useColor)}`,
+  );
+  console.log(`Reachable: ${report.reachable ? 'yes' : 'no'}`);
+  console.log(`Identity available: ${report.identity.available ? 'yes' : 'no'}`);
+  if (report.identity.role) {
+    console.log(`Identity role: ${report.identity.role}`);
+  }
+  if (report.account?.handle) {
+    console.log(`Handle: ${report.account.handle}`);
+  }
+}
+
+export function printSocialWebAccountHuman(
+  payload: Record<string, unknown>,
+  _useColor = true,
+): void {
+  const account = payload as unknown as SocialWebAccount;
+  console.log(`Name: ${String(account.name ?? '')}`);
+  console.log(`Handle: ${String(account.handle ?? '')}`);
+  if (account.url) {
+    console.log(`URL: ${account.url}`);
+  }
+  if (account.bio) {
+    console.log(`Bio: ${account.bio}`);
+  }
+  if (typeof account.followerCount === 'number' || typeof account.followingCount === 'number') {
+    console.log(
+      `Followers: ${String(account.followerCount ?? 0)}  Following: ${String(account.followingCount ?? 0)}`,
+    );
+  }
+  if (account.followedByMe !== undefined) {
+    console.log(`Followed by me: ${account.followedByMe ? 'yes' : 'no'}`);
+  }
+  if (account.blockedByMe !== undefined) {
+    console.log(`Blocked by me: ${account.blockedByMe ? 'yes' : 'no'}`);
+  }
+}
+
+export function printSocialWebAccountsHuman(
+  payload: Record<string, unknown>,
+  useColor = true,
+): void {
+  const accounts = Array.isArray(payload.accounts)
+    ? (payload.accounts as SocialWebAccount[])
+    : Array.isArray(payload.blocked_accounts)
+      ? (payload.blocked_accounts as SocialWebAccount[])
+      : Array.isArray(payload.blocked_domains)
+        ? (payload.blocked_domains as SocialWebAccount[])
+        : [];
+
+  printRows(['ID', 'NAME', 'HANDLE', 'FOLLOWED'], socialWebAccountRows(accounts), useColor);
+
+  if (typeof payload.next === 'string' && payload.next) {
+    console.log(`\nNext: ${payload.next}`);
+  }
+}
+
+export function printSocialWebPostsHuman(payload: Record<string, unknown>, useColor = true): void {
+  if (!Array.isArray(payload.posts)) {
+    const single = payload as unknown as SocialWebPost;
+    const authorHandle =
+      single.author && typeof single.author === 'object'
+        ? String((single.author as { handle?: string }).handle ?? '')
+        : '';
+    console.log(`ID: ${String(single.id ?? '')}`);
+    console.log(`Title: ${String(single.title ?? single.excerpt ?? '')}`);
+    if (authorHandle) {
+      console.log(`Author: ${authorHandle}`);
+    }
+    if (single.url) {
+      console.log(`URL: ${single.url}`);
+    }
+    if (single.content) {
+      console.log(`\n${single.content}`);
+    }
+    return;
+  }
+
+  printRows(
+    ['ID', 'TITLE', 'AUTHOR', 'STATE'],
+    socialWebPostRows(payload.posts as SocialWebPost[], useColor),
+    useColor,
+  );
+
+  if (typeof payload.next === 'string' && payload.next) {
+    console.log(`\nNext: ${payload.next}`);
+  }
+}
+
+export function printSocialWebNotificationsHuman(
+  payload: Record<string, unknown>,
+  useColor = true,
+): void {
+  const notifications = Array.isArray(payload.notifications)
+    ? (payload.notifications as SocialWebNotification[])
+    : [];
+  const rows = notifications.map((notification) => [
+    notification.type,
+    notification.actor?.handle ?? '',
+    notification.post && typeof notification.post === 'object'
+      ? String((notification.post as { title?: string }).title ?? '')
+      : '',
+    notification.createdAt,
+  ]);
+
+  printRows(['TYPE', 'ACTOR', 'POST', 'CREATED'], rows, useColor);
+  if (typeof payload.next === 'string' && payload.next) {
+    console.log(`\nNext: ${payload.next}`);
+  }
+}
+
+export function printSocialWebThreadHuman(
+  payload: Record<string, unknown>,
+  _useColor = true,
+): void {
+  const ancestors = Array.isArray((payload.ancestors as { chain?: unknown[] } | undefined)?.chain)
+    ? (((payload.ancestors as { chain?: unknown[] }).chain ?? []) as SocialWebPost[])
+    : [];
+  const post = (payload.post ?? null) as SocialWebPost | null;
+  const children = Array.isArray(payload.children)
+    ? (payload.children as Array<{ post?: SocialWebPost }>)
+    : [];
+
+  for (const ancestor of ancestors) {
+    console.log(`Ancestor: ${ancestor.id}`);
+  }
+
+  if (post) {
+    console.log(`Root: ${post.id} ${post.title ?? post.excerpt ?? ''}`.trim());
+  }
+
+  for (const child of children) {
+    if (child.post) {
+      console.log(`Reply: ${child.post.id} ${child.post.title ?? child.post.excerpt ?? ''}`.trim());
+    }
+  }
+
+  if (typeof payload.next === 'string' && payload.next) {
+    console.log(`More replies: ${payload.next}`);
+  }
 }
 
 export function printOfferListHuman(payload: Record<string, unknown>, useColor = true): void {

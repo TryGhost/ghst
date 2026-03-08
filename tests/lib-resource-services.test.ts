@@ -54,6 +54,27 @@ import {
 } from '../src/lib/posts.js';
 import { getSetting, listSettings, setSetting } from '../src/lib/settings.js';
 import { getSiteInfo } from '../src/lib/site.js';
+import {
+  blockAccount,
+  blockDomain,
+  createNote,
+  deleteSocialWebPost,
+  derepostPost,
+  followAccount,
+  getSocialWebProfile,
+  getSocialWebStatus,
+  getSocialWebThread,
+  listNotes,
+  listSocialWebPosts,
+  replyToPost,
+  searchSocialWeb,
+  unblockAccount,
+  unblockDomain,
+  unfollowAccount,
+  unlikePost,
+  uploadSocialWebImage,
+} from '../src/lib/socialweb.js';
+import { resetSocialWebIdentityCacheForTests } from '../src/lib/socialweb-client.js';
 import { bulkTags, createTag, deleteTag, getTag, listTags, updateTag } from '../src/lib/tags.js';
 import { activateTheme, listThemes, uploadTheme } from '../src/lib/themes.js';
 import { createTier, getTier, listTiers, updateTier } from '../src/lib/tiers.js';
@@ -112,9 +133,11 @@ describe('resource service helpers', () => {
       'title,html\nImported Post,<p>Hello</p>\n',
       'utf8',
     );
+    resetSocialWebIdentityCacheForTests();
   });
 
   afterEach(() => {
+    resetSocialWebIdentityCacheForTests();
     vi.restoreAllMocks();
     setMigrateSourceLoaderForTests(null);
     process.chdir(previousCwd);
@@ -1130,6 +1153,205 @@ describe('resource service helpers', () => {
     await expect(setSetting({}, 'title', 'bad')).rejects.toMatchObject({
       code: 'GHOST_API_ERROR',
       exitCode: ExitCode.VALIDATION_ERROR,
+    });
+  });
+
+  test('bridges staff-token auth into social web identity auth and caches it per run', async () => {
+    const requests: string[] = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ url }) => {
+        requests.push(url.toString());
+        return undefined;
+      },
+    });
+
+    const status = await getSocialWebStatus({});
+    expect(status.settings.social_web).toBe(true);
+    expect(status.reachable).toBe(true);
+    expect(status.identity.available).toBe(true);
+    expect(status.identity.role).toBe('Owner');
+
+    const profile = await getSocialWebProfile({}, 'me');
+    expect(profile.handle).toBe('@index@myblog.ghost.io');
+
+    expect(requests.filter((entry) => entry.endsWith('/ghost/api/admin/identities/'))).toHaveLength(
+      1,
+    );
+  });
+
+  test('covers social web reads, hydration fallback, and mutations', async () => {
+    installGhostFixtureFetchMock();
+
+    const notes = await listNotes({}, { limit: 1 }, true);
+    expect((notes.posts as Array<{ id: string }>).length).toBeGreaterThan(1);
+
+    const posts = await listSocialWebPosts({}, 'me', {}, false);
+    expect((posts.posts as Array<{ id: string }>)[0]?.id).toContain('/note/');
+
+    const search = await searchSocialWeb({}, 'alice');
+    expect((search.accounts as Array<{ handle: string }>)[0]?.handle).toBe('@alice@remote.example');
+
+    const thread = await getSocialWebThread({}, 'https://remote.example/posts/1');
+    expect((thread.post as { id?: string })?.id).toBe('https://remote.example/posts/1');
+
+    const follow = await followAccount({}, '@alice@remote.example');
+    expect((follow as { handle?: string }).handle).toBe('@alice@remote.example');
+
+    await expect(unfollowAccount({}, '@alice@remote.example')).resolves.toEqual({});
+    await expect(unlikePost({}, 'https://remote.example/posts/1')).resolves.toEqual({});
+    await expect(derepostPost({}, 'https://remote.example/posts/1')).resolves.toEqual({});
+    await expect(
+      deleteSocialWebPost({}, 'https://myblog.ghost.io/.ghost/activitypub/note/1'),
+    ).resolves.toEqual({});
+
+    const upload = await uploadSocialWebImage({}, path.join(workDir, 'photo.jpg'));
+    expect(upload.fileUrl).toBe('https://myblog.ghost.io/content/images/social-upload.png');
+
+    const note = await createNote(
+      {},
+      {
+        content: 'hello social web',
+        imageFile: path.join(workDir, 'photo.jpg'),
+        imageAlt: 'Greeting image',
+      },
+    );
+    expect((note.post as { content?: string })?.content).toBe('hello social web');
+
+    const reply = await replyToPost({}, 'https://remote.example/posts/1', {
+      content: 'reply text',
+    });
+    expect((reply.post as { content?: string })?.content).toBe('reply text');
+
+    await expect(blockAccount({}, 'https://remote.example/users/alice')).resolves.toEqual({});
+    await expect(unblockAccount({}, 'https://remote.example/users/alice')).resolves.toEqual({});
+    await expect(blockDomain({}, 'https://remote.example')).resolves.toEqual({});
+    await expect(unblockDomain({}, 'https://remote.example')).resolves.toEqual({});
+  });
+
+  test('maps social web identity bootstrap and account lookup failures', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/ghost/api/admin/identities/') && method === 'GET') {
+          return jsonResponse(
+            {
+              errors: [{ message: 'Forbidden' }],
+            },
+            403,
+          );
+        }
+        return undefined;
+      },
+    });
+
+    await expect(getSocialWebProfile({}, 'me')).rejects.toMatchObject({
+      code: 'AUTH_ERROR',
+      exitCode: ExitCode.AUTH_ERROR,
+    });
+
+    resetSocialWebIdentityCacheForTests();
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/ghost/api/admin/identities/') && method === 'GET') {
+          return jsonResponse({ identities: [{}] });
+        }
+        return undefined;
+      },
+    });
+
+    await expect(getSocialWebProfile({}, 'me')).rejects.toMatchObject({
+      code: 'AUTH_ERROR',
+      exitCode: ExitCode.AUTH_ERROR,
+    });
+
+    resetSocialWebIdentityCacheForTests();
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/account/me') && method === 'GET') {
+          return jsonResponse({ error: 'Forbidden', code: 'SITE_MISSING' }, 403);
+        }
+        return undefined;
+      },
+    });
+
+    await expect(getSocialWebProfile({}, 'me')).rejects.toMatchObject({
+      code: 'AUTH_ERROR',
+      exitCode: ExitCode.AUTH_ERROR,
+      message: 'Social web is not enabled on this site.',
+    });
+
+    resetSocialWebIdentityCacheForTests();
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/account/me') && method === 'GET') {
+          return jsonResponse({ error: 'Social web disabled' }, 404);
+        }
+        return undefined;
+      },
+    });
+
+    await expect(getSocialWebProfile({}, 'me')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      exitCode: ExitCode.NOT_FOUND,
+    });
+
+    resetSocialWebIdentityCacheForTests();
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/feed/notes') && method === 'GET') {
+          return jsonResponse({ error: 'Social web disabled' }, 404);
+        }
+        return undefined;
+      },
+    });
+
+    await expect(listNotes({}, {}, false)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      exitCode: ExitCode.NOT_FOUND,
+      message:
+        'Social web is not reachable for this site. It may be disabled or the ActivityPub service may not be initialized yet.',
+    });
+
+    resetSocialWebIdentityCacheForTests();
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (
+          pathname.endsWith(
+            `/.ghost/activitypub/v1/account/${encodeURIComponent('@alice@remote.example')}`,
+          ) &&
+          method === 'GET'
+        ) {
+          return jsonResponse({ error: 'Social web disabled' }, 404);
+        }
+        return undefined;
+      },
+    });
+
+    await expect(getSocialWebProfile({}, '@alice@remote.example')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      exitCode: ExitCode.NOT_FOUND,
+      message:
+        'Social web is not reachable for this site. It may be disabled or the ActivityPub service may not be initialized yet.',
+    });
+  });
+
+  test('guards against runaway social web pagination loops', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/feed/notes') && method === 'GET') {
+          return jsonResponse({
+            posts: [],
+            next: 'repeat-cursor',
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(listNotes({}, {}, true)).rejects.toMatchObject({
+      code: 'PAGINATION_ERROR',
+      exitCode: ExitCode.GENERAL_ERROR,
+      message: 'Pagination exceeded the maximum number of pages.',
     });
   });
 });
