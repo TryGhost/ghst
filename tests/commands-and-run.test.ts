@@ -250,7 +250,7 @@ describe('run + commands', () => {
       openedUrls.push(url);
     });
 
-    const promptAnswers = ['john.onolan.org', '', KEY];
+    const promptAnswers = ['john.onolan.org', 'yes', '', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
 
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
@@ -260,6 +260,68 @@ describe('run + commands', () => {
     const configRaw = await fs.readFile(configPath, 'utf8');
     const config = JSON.parse(configRaw) as { sites: Record<string, { url: string }> };
     expect(config.sites.john?.url).toBe('https://john.ghost.io');
+  });
+
+  test('cancels interactive auth when redirected admin origin is not confirmed', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        postConflictOnce: true,
+        onRequest: async ({ pathname, method }) => {
+          if (pathname === '/ghost' && method === 'GET') {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: 'https://john.ghost.io/ghost/',
+              },
+            });
+          }
+          return undefined;
+        },
+      }),
+    );
+
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+
+    const promptAnswers = ['john.onolan.org', 'no'];
+    setPromptForTests(async () => promptAnswers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(
+      ExitCode.OPERATION_CANCELLED,
+    );
+    expect(openedUrls).toEqual([]);
+  });
+
+  test('continues auth when admin discovery redirects within the same origin', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        postConflictOnce: true,
+        onRequest: async ({ pathname, method }) => {
+          if (pathname === '/ghost' && method === 'GET') {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: 'https://myblog.ghost.io/ghost/',
+              },
+            });
+          }
+          return undefined;
+        },
+      }),
+    );
+
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+
+    const promptAnswers = ['https://myblog.ghost.io', '', KEY];
+    setPromptForTests(async () => promptAnswers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual(['https://myblog.ghost.io/ghost/#/settings/staff']);
   });
 
   test('prints updated staff access token guidance copy', async () => {
@@ -314,6 +376,46 @@ describe('run + commands', () => {
       .map((call) => call.map((entry) => String(entry)).join(' '))
       .join('\n');
     expect(errorOutput).toContain('Unable to reach Ghost Admin URL');
+  });
+
+  test('fails non-interactive auth when admin discovery resolves to a different origin', async () => {
+    const errorSpy = vi.spyOn(console, 'error');
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        postConflictOnce: true,
+        onRequest: async ({ pathname, method }) => {
+          if (pathname === '/ghost' && method === 'GET') {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                location: 'https://john.ghost.io/ghost/',
+              },
+            });
+          }
+          return undefined;
+        },
+      }),
+    );
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://john.onolan.org',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+
+    const errorOutput = errorSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(errorOutput).toContain("resolved to 'https://john.ghost.io'");
+    expect(errorOutput).toContain('Re-run with --url https://john.ghost.io.');
   });
 
   test('covers post/page/tag/member/newsletter/tier/offer/label/webhook/user/image/theme/site/setting/migrate/config/api/completion command flows', async () => {
@@ -914,6 +1016,9 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
     await expect(run(['node', 'ghst', 'api', '/site/'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(
+      run(['node', 'ghst', 'api', '/ghost/api/admin/site/', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
       run(['node', 'ghst', 'api', '/settings/', '--query', 'limit=1', 'status=published']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
@@ -948,6 +1053,12 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'api', '/posts/', '--body', '{}', '--input', './payload.json']),
     ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
+      run(['node', 'ghst', 'api', '../../../members/', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'api', '/%2E%2E%2Fmembers/', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
 
     setMcpRunnersForTests({
       stdio: async () => undefined,
@@ -980,6 +1091,55 @@ describe('run + commands', () => {
         'token-123',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'mcp',
+        'http',
+        '--host',
+        '0.0.0.0',
+        '--port',
+        '3100',
+        '--tools',
+        'posts,tags',
+        '--auth-token',
+        'token-123',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'mcp',
+        'http',
+        '--host',
+        '0.0.0.0',
+        '--port',
+        '3100',
+        '--tools',
+        'posts,tags',
+        '--auth-token',
+        'token-123',
+        '--unsafe-public-bind',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'mcp',
+        'http',
+        '--port',
+        '3100',
+        '--tools',
+        'posts,tags',
+        '--auth-token',
+        'token-123',
+        '--cors-origin',
+        '*',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(
       run([
         'node',
@@ -1064,6 +1224,26 @@ describe('run + commands', () => {
   test('uses env output mode for json errors', async () => {
     process.env.GHST_OUTPUT = 'json';
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
+  });
+
+  test('uses env output mode for stats json responses', async () => {
+    process.env.GHST_OUTPUT = 'json';
+    const logSpy = vi.spyOn(console, 'log');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"summary"');
   });
 
   test('covers phase2 validation and non-interactive branches', async () => {
@@ -1169,6 +1349,46 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'member', 'export', '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+  });
+
+  test('normalizes mcp http cors origin before invoking the runner', async () => {
+    let seenOptions:
+      | {
+          host: string;
+          port: number;
+          corsOrigin?: string;
+          authToken: string;
+          maxBodyBytes: number;
+          headersTimeoutMs: number;
+          requestTimeoutMs: number;
+          keepAliveTimeoutMs: number;
+        }
+      | undefined;
+
+    setMcpRunnersForTests({
+      http: async (_server, options) => {
+        seenOptions = options;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'mcp',
+        'http',
+        '--port',
+        '3100',
+        '--tools',
+        'posts',
+        '--auth-token',
+        'token-123',
+        '--cors-origin',
+        'https://app.example.com/',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(seenOptions?.corsOrigin).toBe('https://app.example.com');
   });
 
   test('covers phase3 validation, permission, and migrate edge branches', async () => {
@@ -1454,5 +1674,235 @@ describe('run + commands', () => {
       }),
     );
     await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.AUTH_ERROR);
+  });
+
+  test('covers stats commands across summary, json, jq, and csv outputs', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"summary"');
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"timeseries"');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+        '--range',
+        '90d',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    const overviewOutput = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(overviewOutput).toContain('Members: 157 (+23)');
+    expect(overviewOutput).toContain('Paid members: 31 (+7)');
+    expect(overviewOutput).toContain('MRR: 1,540 (+360)');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'growth',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(logSpy.mock.calls[0]?.[0] ?? '')).toContain('Growth');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'email',
+        'clicks',
+        '--newsletter',
+        fixtureIds.newsletterId,
+        '--json',
+        '--jq',
+        '.clicks[].clicks',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(logSpy.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining(['24']),
+    );
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'posts',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"posts"');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'web',
+        '--limit',
+        '1',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    const limitedPostWeb = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '{}')) as {
+      sources?: Array<{ label: string }>;
+      locations?: Array<{ label: string }>;
+    };
+    expect(limitedPostWeb.sources).toHaveLength(1);
+    expect(limitedPostWeb.sources?.[0]?.label).toBe('Twitter');
+    expect(limitedPostWeb.locations).toHaveLength(1);
+    expect(limitedPostWeb.locations?.[0]?.label).toBe('US');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'web',
+        'sources',
+        '--csv',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(stdoutSpy.mock.calls.map((call) => String(call[0])).join('')).toContain(
+      'label,visits,signups,paid_conversions,mrr',
+    );
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'referrers',
+        '--csv',
+        '--output',
+        './post-referrers.csv',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(fs.readFile(path.join(workDir, 'post-referrers.csv'), 'utf8')).resolves.toContain(
+      'source,visits,signups,paid_conversions,mrr',
+    );
+  });
+
+  test('covers remaining stats command views and validation branches', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+
+    for (const argv of [
+      ['stats', 'web'],
+      ['stats', 'web', 'content'],
+      ['stats', 'web', 'devices'],
+      ['stats', 'web', 'utm-sources', '--json'],
+      ['stats', 'email', '--csv'],
+      ['stats', 'posts', '--csv'],
+      ['stats', 'email', 'subscribers'],
+      ['stats', 'post', fixtureIds.postId],
+      ['stats', 'post', fixtureIds.postId, 'web'],
+      ['stats', 'post', fixtureIds.postId, 'growth', '--csv'],
+      ['stats', 'post', fixtureIds.postId, 'newsletter'],
+    ]) {
+      await expect(
+        run(['node', 'ghst', '--url', 'https://myblog.ghost.io', '--staff-token', KEY, ...argv]),
+      ).resolves.toBe(ExitCode.SUCCESS);
+    }
+
+    expect(logSpy.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining(['Post: Fixture Post', 'Post Newsletter: Fixture Post']),
+    );
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'web',
+        '--csv',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'newsletters',
+        'clicks',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'unknown',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
   });
 });

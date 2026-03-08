@@ -9,6 +9,7 @@ import {
   printError,
 } from '../src/lib/errors.js';
 import {
+  formatCsv,
   isJsonMode,
   printJson,
   printLabelHuman,
@@ -205,6 +206,7 @@ describe('output helpers', () => {
   test('detects json mode from flag and environment', () => {
     expect(isJsonMode({ json: true })).toBe(true);
     expect(isJsonMode({ json: false })).toBe(false);
+    expect(isJsonMode({ jq: '.posts[].title' })).toBe(true);
 
     const previous = process.env.GHST_OUTPUT;
     process.env.GHST_OUTPUT = 'json';
@@ -214,5 +216,9 @@ describe('output helpers', () => {
     } else {
       process.env.GHST_OUTPUT = previous;
     }
+  });
+
+  test('quotes csv fields containing carriage returns', () => {
+    expect(formatCsv(['title'], [['hello\rworld']])).toBe('title\n"hello\rworld"');
   });
 });

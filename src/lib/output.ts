@@ -1,6 +1,23 @@
 import process from 'node:process';
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import type {
+  StatsBreakdownRow,
+  StatsContentRow,
+  StatsGrowthReport,
+  StatsNewsletterClicksReport,
+  StatsNewsletterSubscribersReport,
+  StatsNewslettersReport,
+  StatsOverviewReport,
+  StatsPostGrowthReport,
+  StatsPostNewsletterReport,
+  StatsPostReferrersReport,
+  StatsPostReport,
+  StatsPostsReport,
+  StatsPostWebReport,
+  StatsWebReport,
+  StatsWebTableReport,
+} from './stats.js';
 import { isStdoutTty } from './tty.js';
 import type { GlobalOptions } from './types.js';
 
@@ -86,6 +103,22 @@ function printRows(headers: string[], rows: string[][], useColor: boolean): void
   }
 
   console.log(table.toString());
+}
+
+export function printTableHuman(headers: string[], rows: string[][], useColor = true): void {
+  printRows(headers, rows, useColor);
+}
+
+export function formatCsv(headers: string[], rows: string[][]): string {
+  const escapeValue = (value: string): string => {
+    if (/[",\r\n]/.test(value)) {
+      return `"${value.replaceAll('"', '""')}"`;
+    }
+
+    return value;
+  };
+
+  return [headers, ...rows].map((row) => row.map(escapeValue).join(',')).join('\n');
 }
 
 function printPagination(payload: Record<string, unknown>, label: string): void {
@@ -431,6 +464,308 @@ export function printSiteHuman(payload: Record<string, unknown>): void {
   console.log(lines.join('\n'));
 }
 
+function formatInteger(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
+}
+
+function formatDecimal(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatPercent(value: number): string {
+  return `${formatDecimal(value)}%`;
+}
+
+function formatSeconds(value: number): string {
+  return `${formatInteger(value)}s`;
+}
+
+function printSection(title: string): void {
+  console.log(title);
+}
+
+function printKeyValues(lines: string[]): void {
+  console.log(lines.join('\n'));
+}
+
+function breakdownRows(items: StatsBreakdownRow[]): string[][] {
+  return items.map((item) => [
+    item.label,
+    formatInteger(item.visits),
+    item.signups === null ? '' : formatInteger(item.signups),
+    item.paid_conversions === null ? '' : formatInteger(item.paid_conversions),
+    item.mrr === null ? '' : formatInteger(item.mrr),
+  ]);
+}
+
+function contentRows(items: StatsContentRow[]): string[][] {
+  return items.map((item) => [
+    item.title,
+    item.pathname,
+    formatInteger(item.visits),
+    formatInteger(item.pageviews),
+  ]);
+}
+
+function trafficSourceRows(items: StatsBreakdownRow[]): string[][] {
+  return items.map((item) => [item.label, formatInteger(item.visits)]);
+}
+
+export function printStatsOverviewHuman(payload: StatsOverviewReport, useColor = true): void {
+  const memberDelta = `${payload.summary.member_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.member_delta)}`;
+  const paidDelta = `${payload.summary.paid_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.paid_delta)}`;
+  const mrrDelta = `${payload.summary.mrr_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.mrr_delta)}`;
+
+  printSection(
+    `Overview (${payload.range.from ?? 'all'} to ${payload.range.to}, ${payload.range.timezone})`,
+  );
+  printKeyValues([
+    `Visitors: ${formatInteger(payload.summary.visitors)}`,
+    `Pageviews: ${formatInteger(payload.summary.pageviews)}`,
+    `Bounce rate: ${formatPercent(payload.summary.bounce_rate)}`,
+    `Visit duration: ${formatSeconds(payload.summary.avg_session_sec)}`,
+    `Active visitors: ${formatInteger(payload.summary.active_visitors)}`,
+    `Members: ${formatInteger(payload.summary.total_members)} (${memberDelta})`,
+    `Paid members: ${formatInteger(payload.summary.paid_members)} (${paidDelta})`,
+    `MRR: ${formatInteger(payload.summary.mrr)} (${mrrDelta})`,
+  ]);
+  console.log('');
+  printSection('Top Content');
+  printRows(['TITLE', 'PATH', 'VISITS', 'PAGEVIEWS'], contentRows(payload.web.content), useColor);
+  console.log('');
+  printSection('Top Sources');
+  printRows(['SOURCE', 'VISITS'], trafficSourceRows(payload.web.sources), useColor);
+}
+
+export function printStatsWebHuman(payload: StatsWebReport, useColor = true): void {
+  printSection(
+    `Web (${payload.range.from ?? 'all'} to ${payload.range.to}, ${payload.range.timezone})`,
+  );
+  printKeyValues([
+    `Visitors: ${formatInteger(payload.kpis.visits)}`,
+    `Pageviews: ${formatInteger(payload.kpis.pageviews)}`,
+    `Bounce rate: ${formatPercent(payload.kpis.bounce_rate)}`,
+    `Visit duration: ${formatSeconds(payload.kpis.avg_session_sec)}`,
+    `Active visitors: ${formatInteger(payload.kpis.active_visitors)}`,
+  ]);
+  console.log('');
+  printSection('Top Content');
+  printRows(['TITLE', 'PATH', 'VISITS', 'PAGEVIEWS'], contentRows(payload.content), useColor);
+  console.log('');
+  printSection('Top Sources');
+  printRows(
+    ['SOURCE', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    breakdownRows(payload.sources),
+    useColor,
+  );
+  console.log('');
+  printSection('Top Locations');
+  printRows(
+    ['LOCATION', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    breakdownRows(payload.locations),
+    useColor,
+  );
+}
+
+export function printStatsWebTableHuman(payload: StatsWebTableReport, useColor = true): void {
+  if (payload.metric === 'content') {
+    printRows(
+      ['TITLE', 'PATH', 'VISITS', 'PAGEVIEWS'],
+      contentRows(payload.items as StatsContentRow[]),
+      useColor,
+    );
+    return;
+  }
+
+  printRows(
+    ['LABEL', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    breakdownRows(payload.items as StatsBreakdownRow[]),
+    useColor,
+  );
+}
+
+export function printStatsGrowthHuman(payload: StatsGrowthReport, useColor = true): void {
+  printSection(
+    `Growth (${payload.range.from ?? 'all'} to ${payload.range.to}, ${payload.range.timezone})`,
+  );
+  printKeyValues([
+    `Members: ${formatInteger(payload.summary.total_members)} (${payload.summary.member_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.member_delta)})`,
+    `Paid members: ${formatInteger(payload.summary.paid_members)} (${payload.summary.paid_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.paid_delta)})`,
+    `MRR: ${formatInteger(payload.summary.mrr)} (${payload.summary.mrr_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.mrr_delta)})`,
+    `Subscriptions: ${formatInteger(payload.summary.total_subscriptions)} (${payload.summary.subscription_delta >= 0 ? '+' : ''}${formatInteger(payload.summary.subscription_delta)})`,
+  ]);
+  console.log('');
+  printSection('Top Sources');
+  printRows(
+    ['SOURCE', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    breakdownRows(payload.sources),
+    useColor,
+  );
+}
+
+export function printStatsPostsHuman(payload: StatsPostsReport, useColor = true): void {
+  printRows(
+    ['TITLE', 'VIEWS', 'MEMBERS', 'SENT', 'OPEN RATE', 'CLICK RATE'],
+    payload.posts.map((item) => [
+      item.title,
+      formatInteger(item.views),
+      formatInteger(item.members),
+      item.sent_count === null ? '' : formatInteger(item.sent_count),
+      item.open_rate === null ? '' : formatPercent(item.open_rate),
+      item.click_rate === null ? '' : formatPercent(item.click_rate),
+    ]),
+    useColor,
+  );
+}
+
+export function printStatsNewslettersHuman(payload: StatsNewslettersReport, useColor = true): void {
+  const rows = payload.newsletters.map((item) => [
+    item.newsletter_name,
+    formatInteger(item.sent_posts),
+    formatInteger(item.recipients),
+    formatPercent(item.open_rate),
+    formatPercent(item.click_rate),
+    formatInteger(item.subscribers),
+  ]);
+
+  printRows(
+    ['NEWSLETTER', 'POSTS', 'RECIPIENTS', 'OPEN RATE', 'CLICK RATE', 'SUBSCRIBERS'],
+    rows,
+    useColor,
+  );
+}
+
+export function printStatsNewsletterClicksHuman(
+  payload: StatsNewsletterClicksReport,
+  useColor = true,
+): void {
+  const rows = payload.clicks.map((item) => [
+    item.post_title,
+    item.send_date ?? '',
+    formatInteger(item.recipients),
+    formatInteger(item.clicks),
+    formatPercent(item.click_rate),
+  ]);
+  printRows(['POST', 'DATE', 'RECIPIENTS', 'CLICKS', 'CLICK RATE'], rows, useColor);
+}
+
+export function printStatsNewsletterSubscribersHuman(
+  payload: StatsNewsletterSubscribersReport,
+  useColor = true,
+): void {
+  const rows = payload.newsletters.map((item) => [
+    item.newsletter_name,
+    formatInteger(item.subscribers),
+    `${item.subscriber_delta >= 0 ? '+' : ''}${formatInteger(item.subscriber_delta)}`,
+  ]);
+  printRows(['NEWSLETTER', 'SUBSCRIBERS', 'DELTA'], rows, useColor);
+}
+
+export function printStatsPostHuman(payload: StatsPostReport, useColor = true): void {
+  printSection(`Post: ${payload.post.title}`);
+  printKeyValues([
+    `Visitors: ${formatInteger(payload.summary.visitors)}`,
+    `Pageviews: ${formatInteger(payload.summary.pageviews)}`,
+    `Free members: ${formatInteger(payload.summary.free_members)}`,
+    `Paid members: ${formatInteger(payload.summary.paid_members)}`,
+    `MRR: ${formatInteger(payload.summary.mrr)}`,
+    `Email recipients: ${formatInteger(payload.summary.email_recipients)}`,
+    `Email open rate: ${formatPercent(payload.summary.email_open_rate)}`,
+    `Email click rate: ${formatPercent(payload.summary.email_click_rate)}`,
+  ]);
+
+  if (payload.web) {
+    console.log('');
+    printSection('Web');
+    printKeyValues([
+      `Visitors: ${formatInteger(payload.web.kpis.visits)}`,
+      `Pageviews: ${formatInteger(payload.web.kpis.pageviews)}`,
+      `Bounce rate: ${formatPercent(payload.web.kpis.bounce_rate)}`,
+    ]);
+  }
+
+  console.log('');
+  printSection('Top Referrers');
+  printRows(
+    ['SOURCE', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    payload.referrers.map((item) => [
+      item.source,
+      formatInteger(item.visits),
+      formatInteger(item.signups),
+      formatInteger(item.paid_conversions),
+      formatInteger(item.mrr),
+    ]),
+    useColor,
+  );
+}
+
+export function printStatsPostGrowthHuman(payload: StatsPostGrowthReport, useColor = true): void {
+  printRows(
+    ['DATE', 'FREE', 'PAID', 'MRR'],
+    payload.growth.map((item) => [
+      item.date,
+      formatInteger(item.free_members),
+      formatInteger(item.paid_members),
+      formatInteger(item.mrr),
+    ]),
+    useColor,
+  );
+}
+
+export function printStatsPostNewsletterHuman(payload: StatsPostNewsletterReport): void {
+  printSection(`Post Newsletter: ${payload.post.title}`);
+  printKeyValues([
+    `Recipients: ${formatInteger(payload.newsletter.recipients)}`,
+    `Open rate: ${formatPercent(payload.newsletter.open_rate)}`,
+    `Click rate: ${formatPercent(payload.newsletter.click_rate)}`,
+  ]);
+}
+
+export function printStatsPostReferrersHuman(
+  payload: StatsPostReferrersReport,
+  useColor = true,
+): void {
+  printRows(
+    ['SOURCE', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    payload.referrers.map((item) => [
+      item.source,
+      formatInteger(item.visits),
+      formatInteger(item.signups),
+      formatInteger(item.paid_conversions),
+      formatInteger(item.mrr),
+    ]),
+    useColor,
+  );
+}
+
+export function printStatsPostWebHuman(payload: StatsPostWebReport, useColor = true): void {
+  printSection(`Post Web: ${payload.post.title}`);
+  printKeyValues([
+    `Visitors: ${formatInteger(payload.kpis.visits)}`,
+    `Pageviews: ${formatInteger(payload.kpis.pageviews)}`,
+    `Bounce rate: ${formatPercent(payload.kpis.bounce_rate)}`,
+    `Visit duration: ${formatSeconds(payload.kpis.avg_session_sec)}`,
+    `Active visitors: ${formatInteger(payload.kpis.active_visitors)}`,
+  ]);
+  console.log('');
+  printSection('Top Sources');
+  printRows(
+    ['SOURCE', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    breakdownRows(payload.sources),
+    useColor,
+  );
+  console.log('');
+  printSection('Top Locations');
+  printRows(
+    ['LOCATION', 'VISITS', 'SIGNUPS', 'PAID', 'MRR'],
+    breakdownRows(payload.locations),
+    useColor,
+  );
+}
+
 export function isJsonMode(global: GlobalOptions): boolean {
-  return Boolean(global.json || process.env.GHST_OUTPUT === 'json');
+  return Boolean(global.json || global.jq || process.env.GHST_OUTPUT === 'json');
 }

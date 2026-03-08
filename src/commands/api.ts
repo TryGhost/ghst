@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import type { Command } from 'commander';
+import { normalizeGhostApiPath } from '../lib/api-path.js';
 import { GhostClient, type GhostResponseWithMeta } from '../lib/client.js';
 import { resolveConnectionConfig } from '../lib/config.js';
 import { getGlobalOptions } from '../lib/context.js';
@@ -197,6 +198,8 @@ export function registerApiCommands(program: Command): void {
 
       const fieldValues = parseFieldPairs(options.field);
       const fieldKeys = Object.keys(fieldValues);
+      const requestApi = options.contentApi ? 'content' : 'admin';
+      const normalizedEndpointPath = normalizeGhostApiPath(endpointPath, requestApi);
 
       const global = getGlobalOptions(command);
       const connection = await resolveConnectionConfig(global);
@@ -233,11 +236,11 @@ export function registerApiCommands(program: Command): void {
       }
 
       const result = await executeRequest(client, {
-        endpointPath,
+        endpointPath: normalizedEndpointPath,
         method: options.method,
         body: requestBody,
         params,
-        contentApi: options.contentApi,
+        contentApi: requestApi === 'content',
         paginate: Boolean(options.paginate),
       });
 

@@ -114,7 +114,7 @@ describe('mcp core tool registration', () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
 
-    expect(tools.size).toBe(36);
+    expect(tools.size).toBe(49);
 
     const run = async (
       name: string,
@@ -185,14 +185,14 @@ describe('mcp core tool registration', () => {
     await run('ghost_user_list', { limit: 5 });
 
     const apiContentResponse = await run('ghost_api_request', {
-      path: '/posts/',
+      path: '/ghost/api/content/posts/',
       params: { limit: 1 },
       content_api: true,
     });
     expect(apiContentResponse.structuredContent).toHaveProperty('posts');
 
     const apiAdminResponse = await run('ghost_api_request', {
-      path: '/site/',
+      path: '/ghost/api/admin/site/',
       method: 'GET',
     });
     expect(apiAdminResponse.structuredContent).toHaveProperty('site');
@@ -204,6 +204,82 @@ describe('mcp core tool registration', () => {
     expect(searchResponse.structuredContent).toMatchObject({
       query: "o'hara",
     });
+
+    const overviewResponse = await run('ghost_stats_overview', { range: '30d' });
+    expect(overviewResponse.structuredContent).toHaveProperty('summary');
+
+    const webResponse = await run('ghost_stats_web', { range: '30d' });
+    expect(webResponse.structuredContent).toHaveProperty('kpis');
+
+    const webTableResponse = await run('ghost_stats_web_table', {
+      view: 'devices',
+      range: '30d',
+    });
+    expect(webTableResponse.structuredContent).toHaveProperty('items');
+
+    const growthResponse = await run('ghost_stats_growth', { range: '30d' });
+    expect(growthResponse.structuredContent).toHaveProperty('summary');
+
+    const postsResponse = await run('ghost_stats_posts', { range: '30d' });
+    expect(postsResponse.structuredContent).toHaveProperty('posts');
+
+    const emailResponse = await run('ghost_stats_email', { range: '30d' });
+    expect(emailResponse.structuredContent).toHaveProperty('newsletters');
+
+    const emailClicksResponse = await run('ghost_stats_email_clicks', {
+      newsletter_id: fixtureIds.newsletterId,
+      range: '30d',
+    });
+    expect(emailClicksResponse.structuredContent).toHaveProperty('clicks');
+
+    const emailSubscribersResponse = await run('ghost_stats_email_subscribers', {
+      range: '30d',
+    });
+    expect(emailSubscribersResponse.structuredContent).toHaveProperty('newsletters');
+
+    const postResponse = await run('ghost_stats_post', {
+      id: fixtureIds.postId,
+      range: '30d',
+    });
+    expect(postResponse.structuredContent).toHaveProperty('summary');
+
+    const postWebResponse = await run('ghost_stats_post_web', {
+      id: fixtureIds.postId,
+      range: '30d',
+    });
+    expect(postWebResponse.structuredContent).toHaveProperty('kpis');
+
+    const postGrowthResponse = await run('ghost_stats_post_growth', {
+      id: fixtureIds.postId,
+      range: '30d',
+    });
+    expect(postGrowthResponse.structuredContent).toHaveProperty('growth');
+
+    const postNewsletterResponse = await run('ghost_stats_post_newsletter', {
+      id: fixtureIds.postId,
+      range: '30d',
+    });
+    expect(postNewsletterResponse.structuredContent).toHaveProperty('newsletter');
+
+    const postReferrersResponse = await run('ghost_stats_post_referrers', {
+      id: fixtureIds.postId,
+      range: '30d',
+    });
+    expect(postReferrersResponse.structuredContent).toHaveProperty('referrers');
+  });
+
+  test('rejects escape-capable ghost api request paths before execution', async () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+
+    const tool = tools.get('ghost_api_request');
+    expect(tool).toBeDefined();
+    await expect(tool?.handler({ path: '../../../members/' }) as Promise<unknown>).rejects.toThrow(
+      'dot segments',
+    );
+    await expect(tool?.handler({ path: '/%2E%2E%2Fmembers/' }) as Promise<unknown>).rejects.toThrow(
+      'encoded path separators',
+    );
   });
 
   test('ghost_post_schedule forwards email delivery flags as query params', async () => {

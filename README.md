@@ -112,6 +112,8 @@ ghst auth link --site <site-alias>
 ghst auth token
 ```
 
+`ghst auth token` prints a short-lived staff JWT. Treat the output as sensitive.
+
 ## Command Reference
 
 | Resource | Actions |
@@ -130,6 +132,7 @@ ghst auth token
 | `image` | `upload` |
 | `theme` | `list`, `upload`, `activate`, `validate`, `dev` |
 | `site` | `info` |
+| `stats` | `overview`, `web` (content, sources, locations, devices, utm-sources, utm-mediums, utm-campaigns, utm-contents, utm-terms), `growth`, `posts`, `email` (clicks, subscribers), `post <id>` (web, growth, newsletter, referrers) |
 | `setting` | `list`, `get`, `set` |
 | `migrate` | `wordpress`, `medium`, `substack`, `csv`, `json`, `export` |
 | `config` | `show`, `path`, `list`, `get`, `set` |
@@ -193,6 +196,29 @@ Direct API calls:
 ghst api /posts/ --paginate --include-headers
 ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
 ```
+
+Analytics reporting:
+
+```bash
+ghst stats overview
+ghst stats web
+ghst stats web sources --range 90d --csv
+ghst stats growth
+ghst stats posts --range 30d --csv
+ghst stats email subscribers --csv
+ghst stats post <post-id> referrers --csv --output ./referrers.csv
+```
+
+Ghost analytics filter semantics:
+- `source` and `utm_*` filters are session-scoped.
+- post and member-status filters are hit-scoped.
+
+Ghost range semantics:
+- `stats growth` clips member, MRR, and subscription histories client-side when Ghost only exposes broader source data.
+- `stats post ... growth` clips Ghost's lifetime post-growth history to the selected window.
+
+`endpointPath` must stay within the selected Ghost API root. Use resource paths such as `/posts/`
+or canonical Ghost API paths such as `/ghost/api/admin/posts/`.
 
 ## Configuration and Environment Variables
 
@@ -261,8 +287,13 @@ Run MCP over stdio or HTTP:
 
 ```bash
 ghst mcp stdio --tools all
-ghst mcp http --host 127.0.0.1 --port 3100 --tools posts,tags,site
+ghst mcp http --host 127.0.0.1 --port 3100 --tools posts,tags,site --auth-token token-123
 ```
+
+Notes:
+
+- `ghst mcp http` binds to loopback by default. Binding to a non-loopback host requires `--unsafe-public-bind`.
+- `--cors-origin` accepts a single exact origin only, for example `https://app.example.com`.
 
 Supported tool groups:
 
@@ -272,9 +303,21 @@ Supported tool groups:
 - `members`
 - `site`
 - `settings`
+- `stats`
 - `users`
 - `api`
 - `search`
+
+The `stats` MCP tools mirror the CLI analytics surface, including `ghst stats overview`,
+`ghst stats web`, `ghst stats growth`, `ghst stats posts`, `ghst stats email subscribers`,
+and `ghst stats post <post-id> referrers`. The same Ghost analytics filter and range semantics
+shown above apply to both the CLI and MCP stats tooling.
+
+## Safe Operation
+
+- Keep `ghst mcp http` on loopback unless you explicitly intend to expose Ghost admin automation.
+- Treat `ghst api` and MCP `ghost_api_request` as privileged admin access.
+- Avoid sharing terminal output that contains `ghst auth token` output or values revealed with `config --show-secrets`.
 
 ## Troubleshooting
 

@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { normalizeGhostApiPath } from '../../lib/api-path.js';
 import { GhostClient } from '../../lib/client.js';
 import { resolveConnectionConfig } from '../../lib/config.js';
 import { uploadImage } from '../../lib/images.js';
@@ -26,6 +27,21 @@ import {
 } from '../../lib/posts.js';
 import { getSetting, listSettings, setSetting } from '../../lib/settings.js';
 import { getSiteInfo } from '../../lib/site.js';
+import {
+  getStatsGrowth,
+  getStatsNewsletterClicks,
+  getStatsNewsletterSubscribers,
+  getStatsNewsletters,
+  getStatsOverview,
+  getStatsPost,
+  getStatsPostGrowth,
+  getStatsPostNewsletter,
+  getStatsPostReferrers,
+  getStatsPosts,
+  getStatsPostWeb,
+  getStatsWeb,
+  getStatsWebTable,
+} from '../../lib/stats.js';
 import { createTag, deleteTag, getTag, listTags, updateTag } from '../../lib/tags.js';
 import { activateTheme, uploadTheme } from '../../lib/themes.js';
 import { listTiers } from '../../lib/tiers.js';
@@ -42,7 +58,8 @@ export type McpToolGroup =
   | 'settings'
   | 'users'
   | 'api'
-  | 'search';
+  | 'search'
+  | 'stats';
 
 export const MCP_TOOL_GROUPS: readonly McpToolGroup[] = [
   'posts',
@@ -54,7 +71,86 @@ export const MCP_TOOL_GROUPS: readonly McpToolGroup[] = [
   'users',
   'api',
   'search',
+  'stats',
 ] as const;
+
+const statsRangeArgs = {
+  range: z.enum(['7d', '30d', '90d', '365d', 'all']).optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  timezone: z.string().optional(),
+};
+
+const statsWebArgs = {
+  ...statsRangeArgs,
+  audience: z.enum(['all', 'free', 'paid']).optional(),
+  source: z.string().optional(),
+  location: z.string().optional(),
+  device: z.enum(['desktop', 'mobile-ios', 'mobile-android', 'bot', 'unknown']).optional(),
+  utm_source: z.string().optional(),
+  utm_medium: z.string().optional(),
+  utm_campaign: z.string().optional(),
+  utm_content: z.string().optional(),
+  utm_term: z.string().optional(),
+  limit: z.number().int().positive().max(100).optional(),
+};
+
+const statsTableViewSchema = z.enum([
+  'content',
+  'sources',
+  'locations',
+  'devices',
+  'utm-sources',
+  'utm-mediums',
+  'utm-campaigns',
+  'utm-contents',
+  'utm-terms',
+]);
+
+type StatsRangeArgsInput = {
+  range?: '7d' | '30d' | '90d' | '365d' | 'all';
+  from?: string;
+  to?: string;
+  timezone?: string;
+};
+
+type StatsWebArgsInput = StatsRangeArgsInput & {
+  audience?: 'all' | 'free' | 'paid';
+  source?: string;
+  location?: string;
+  device?: 'desktop' | 'mobile-ios' | 'mobile-android' | 'bot' | 'unknown';
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  limit?: number;
+};
+
+function mapStatsRangeArgs(args: StatsRangeArgsInput) {
+  return {
+    range: args.range,
+    from: args.from,
+    to: args.to,
+    timezone: args.timezone,
+  };
+}
+
+function mapStatsWebArgs(args: StatsWebArgsInput) {
+  return {
+    ...mapStatsRangeArgs(args),
+    audience: args.audience,
+    source: args.source,
+    location: args.location,
+    device: args.device,
+    utmSource: args.utm_source,
+    utmMedium: args.utm_medium,
+    utmCampaign: args.utm_campaign,
+    utmContent: args.utm_content,
+    utmTerm: args.utm_term,
+    limit: args.limit,
+  };
+}
 
 function toolResult(data: unknown): {
   content: Array<{ type: 'text'; text: string }>;
@@ -127,7 +223,7 @@ async function callApi(
   });
 
   const payload = await client.rawRequest<Record<string, unknown>>(
-    options.path,
+    normalizeGhostApiPath(options.path, options.contentApi ? 'content' : 'admin'),
     options.method ?? 'GET',
     options.body,
     options.params,
@@ -808,6 +904,213 @@ export function registerCoreTools(
         }),
       },
       async (args) => toolResult(await runSearch(global, args.query, args.limit ?? 10)),
+    );
+  }
+
+  if (enabledGroups.has('stats')) {
+    server.registerTool(
+      'ghost_stats_overview',
+      {
+        description: 'Get the Ghost analytics overview report.',
+        inputSchema: z.object({
+          ...statsRangeArgs,
+        }),
+      },
+      async (args) => toolResult(await getStatsOverview(global, mapStatsRangeArgs(args))),
+    );
+
+    server.registerTool(
+      'ghost_stats_web',
+      {
+        description: 'Get the Ghost web analytics report.',
+        inputSchema: z.object({
+          ...statsWebArgs,
+        }),
+      },
+      async (args) => toolResult(await getStatsWeb(global, mapStatsWebArgs(args))),
+    );
+
+    server.registerTool(
+      'ghost_stats_web_table',
+      {
+        description: 'Get a focused Ghost web analytics table view.',
+        inputSchema: z.object({
+          view: statsTableViewSchema,
+          ...statsWebArgs,
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsWebTable(global, args.view, {
+            ...mapStatsWebArgs(args),
+            limit: args.limit ?? 10,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_growth',
+      {
+        description: 'Get Ghost member and revenue growth analytics.',
+        inputSchema: z.object({
+          ...statsRangeArgs,
+          limit: z.number().int().positive().max(100).optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsGrowth(global, { ...mapStatsRangeArgs(args), limit: args.limit ?? 5 }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_posts',
+      {
+        description: 'Get top Ghost posts by views.',
+        inputSchema: z.object({
+          ...statsRangeArgs,
+          limit: z.number().int().positive().max(100).optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsPosts(global, { ...mapStatsRangeArgs(args), limit: args.limit ?? 5 }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_email',
+      {
+        description: 'Get Ghost email analytics grouped by newsletter.',
+        inputSchema: z.object({
+          ...statsRangeArgs,
+          newsletter_id: z.string().optional(),
+          limit: z.number().int().positive().max(100).optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsNewsletters(global, {
+            ...mapStatsRangeArgs(args),
+            newsletterId: args.newsletter_id,
+            limit: args.limit ?? 10,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_email_clicks',
+      {
+        description:
+          'Get Ghost email click analytics for a newsletter, optionally filtered by post ids.',
+        inputSchema: z.object({
+          ...statsRangeArgs,
+          newsletter_id: z.string(),
+          post_ids: z.array(z.string()).optional(),
+          limit: z.number().int().positive().max(100).optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsNewsletterClicks(global, {
+            ...mapStatsRangeArgs(args),
+            newsletterId: args.newsletter_id,
+            postIds: args.post_ids,
+            limit: args.limit ?? 10,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_email_subscribers',
+      {
+        description: 'Get Ghost newsletter subscriber analytics.',
+        inputSchema: z.object({
+          ...statsRangeArgs,
+          newsletter_id: z.string().optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsNewsletterSubscribers(global, {
+            ...mapStatsRangeArgs(args),
+            newsletterId: args.newsletter_id,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_post',
+      {
+        description: 'Get Ghost analytics for a single post.',
+        inputSchema: z.object({
+          id: z.string(),
+          ...statsRangeArgs,
+        }),
+      },
+      async (args) =>
+        toolResult(await getStatsPost(global, { ...mapStatsRangeArgs(args), id: args.id })),
+    );
+
+    server.registerTool(
+      'ghost_stats_post_web',
+      {
+        description: 'Get Ghost web analytics for a single post.',
+        inputSchema: z.object({
+          id: z.string(),
+          ...statsWebArgs,
+        }),
+      },
+      async (args) =>
+        toolResult(await getStatsPostWeb(global, { ...mapStatsWebArgs(args), id: args.id })),
+    );
+
+    server.registerTool(
+      'ghost_stats_post_growth',
+      {
+        description: 'Get Ghost growth analytics for a single post.',
+        inputSchema: z.object({
+          id: z.string(),
+          ...statsRangeArgs,
+        }),
+      },
+      async (args) =>
+        toolResult(await getStatsPostGrowth(global, { ...mapStatsRangeArgs(args), id: args.id })),
+    );
+
+    server.registerTool(
+      'ghost_stats_post_newsletter',
+      {
+        description: 'Get Ghost email performance analytics for a single post.',
+        inputSchema: z.object({
+          id: z.string(),
+          ...statsRangeArgs,
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsPostNewsletter(global, { ...mapStatsRangeArgs(args), id: args.id }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_stats_post_referrers',
+      {
+        description: 'Get Ghost referrer analytics for a single post.',
+        inputSchema: z.object({
+          id: z.string(),
+          ...statsRangeArgs,
+          limit: z.number().int().positive().max(100).optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await getStatsPostReferrers(global, {
+            ...mapStatsRangeArgs(args),
+            id: args.id,
+            limit: args.limit ?? 10,
+          }),
+        ),
     );
   }
 }

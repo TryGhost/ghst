@@ -57,6 +57,13 @@ import {
 } from '../src/schemas/post.js';
 import { SettingGetInputSchema, SettingSetInputSchema } from '../src/schemas/setting.js';
 import {
+  StatsNewsletterClicksInputSchema,
+  StatsPostInputSchema,
+  StatsPostsInputSchema,
+  StatsWebInputSchema,
+  StatsWebTableInputSchema,
+} from '../src/schemas/stats.js';
+import {
   TagBulkInputSchema,
   TagCreateInputSchema,
   TagGetInputSchema,
@@ -396,5 +403,61 @@ describe('phase3 schemas', () => {
     expect(MigrateCsvInputSchema.parse({ file: './posts.csv' }).file).toBe('./posts.csv');
     expect(MigrateJsonInputSchema.parse({ file: './import.json' }).file).toBe('./import.json');
     expect(MigrateExportInputSchema.parse({ output: './backup.zip' }).output).toBe('./backup.zip');
+  });
+});
+
+describe('stats schemas', () => {
+  test('validates range, filters, and scoped analytics inputs', () => {
+    expect(
+      StatsWebInputSchema.parse({
+        range: '30d',
+        audience: 'paid',
+        source: 'twitter.com',
+        location: 'us',
+        device: 'desktop',
+        utmSource: 'twitter',
+      }).location,
+    ).toBe('US');
+
+    expect(
+      StatsWebTableInputSchema.parse({
+        from: '2026-02-01',
+        to: '2026-03-01',
+      }).limit,
+    ).toBe(10);
+
+    expect(
+      StatsNewsletterClicksInputSchema.parse({
+        newsletterId: 'newsletter-id',
+        postIds: ['post-id'],
+      }).newsletterId,
+    ).toBe('newsletter-id');
+
+    expect(
+      StatsPostsInputSchema.parse({
+        range: '30d',
+      }).limit,
+    ).toBe(5);
+
+    expect(StatsPostInputSchema.parse({ id: 'post-id', range: '7d' }).id).toBe('post-id');
+
+    expect(() =>
+      StatsWebInputSchema.parse({
+        from: '2026-03-01',
+        to: '2026-02-01',
+      }),
+    ).toThrow();
+
+    expect(() =>
+      StatsWebInputSchema.parse({
+        timezone: 'Mars/Phobos',
+      }),
+    ).toThrow();
+
+    expect(() =>
+      StatsNewsletterClicksInputSchema.parse({
+        newsletterId: '',
+      }),
+    ).toThrow();
   });
 });

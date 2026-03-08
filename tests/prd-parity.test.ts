@@ -86,6 +86,7 @@ describe('PRD parity guardrails', () => {
       'image',
       'theme',
       'site',
+      'stats',
       'setting',
       'config',
       'api',
@@ -109,6 +110,54 @@ describe('PRD parity guardrails', () => {
     );
     expect(getSubcommandNames(program, 'page')).toEqual(expect.arrayContaining(['copy', 'bulk']));
     expect(getSubcommandNames(program, 'tag')).toEqual(expect.arrayContaining(['bulk']));
+  });
+
+  test('stats command surface and shared analytics flags remain registered', () => {
+    const program = buildProgram();
+
+    expect(getSubcommandNames(program, 'stats')).toEqual(
+      expect.arrayContaining(['overview', 'web', 'growth', 'posts', 'email', 'post']),
+    );
+
+    const webFlags = getSubcommandOptionNames(program, 'stats', 'web');
+    const growthFlags = getSubcommandOptionNames(program, 'stats', 'growth');
+    const postsFlags = getSubcommandOptionNames(program, 'stats', 'posts');
+    const emailFlags = getSubcommandOptionNames(program, 'stats', 'email');
+    const postFlags = getSubcommandOptionNames(program, 'stats', 'post');
+
+    for (const flag of ['--range', '--from', '--to', '--timezone']) {
+      expect(webFlags).toContain(flag);
+      expect(growthFlags).toContain(flag);
+      expect(postsFlags).toContain(flag);
+      expect(emailFlags).toContain(flag);
+      expect(postFlags).toContain(flag);
+    }
+
+    for (const flag of [
+      '--audience',
+      '--source',
+      '--location',
+      '--device',
+      '--utm-source',
+      '--utm-medium',
+      '--utm-campaign',
+      '--utm-content',
+      '--utm-term',
+      '--limit',
+      '--csv',
+      '--output',
+    ]) {
+      expect(webFlags).toContain(flag);
+    }
+
+    for (const flag of ['--limit', '--csv', '--output']) {
+      expect(postsFlags).toContain(flag);
+    }
+
+    expect(emailFlags).toContain('--newsletter');
+    expect(emailFlags).toContain('--post');
+    expect(emailFlags).toContain('--csv');
+    expect(postFlags).toContain('--csv');
   });
 
   test('post parity flags remain available', () => {
@@ -170,6 +219,15 @@ describe('PRD parity guardrails', () => {
     for (const flag of ['--update', '--delete', '--labels', '--yes']) {
       expect(memberBulkFlags).toContain(flag);
     }
+  });
+
+  test('mcp http hardening flags remain available', () => {
+    const program = buildProgram();
+    const httpFlags = getSubcommandOptionNames(program, 'mcp', 'http');
+
+    expect(httpFlags).toContain('--unsafe-public-bind');
+    expect(httpFlags).toContain('--cors-origin');
+    expect(httpFlags).toContain('--auth-token');
   });
 
   test('bulk support exists for all mutable resources in phase 1-4', () => {
