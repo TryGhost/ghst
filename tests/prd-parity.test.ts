@@ -116,6 +116,7 @@ describe('PRD parity guardrails', () => {
     const postCreateFlags = getSubcommandOptionNames(program, 'post', 'create');
     const postUpdateFlags = getSubcommandOptionNames(program, 'post', 'update');
     const postPublishFlags = getSubcommandOptionNames(program, 'post', 'publish');
+    const postScheduleFlags = getSubcommandOptionNames(program, 'post', 'schedule');
     const postDeleteFlags = getSubcommandOptionNames(program, 'post', 'delete');
     const postBulkFlags = getSubcommandOptionNames(program, 'post', 'bulk');
 
@@ -142,6 +143,7 @@ describe('PRD parity guardrails', () => {
 
     for (const flag of ['--newsletter', '--email-segment', '--email-only']) {
       expect(postPublishFlags).toContain(flag);
+      expect(postScheduleFlags).toContain(flag);
     }
 
     expect(postDeleteFlags).toContain('--filter');
@@ -198,6 +200,7 @@ describe('PRD parity guardrails', () => {
       'ghost_post_update',
       'ghost_post_delete',
       'ghost_post_publish',
+      'ghost_post_schedule',
       'ghost_page_list',
       'ghost_page_get',
       'ghost_page_create',

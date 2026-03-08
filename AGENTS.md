@@ -107,7 +107,7 @@ pnpm build
 ## Parity Notes
 
 - `post create|update` supports `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
-- `post publish` supports `--newsletter`, `--email-segment`, and `--email-only`.
+- `post publish|schedule` supports `--newsletter`, `--email-segment`, and `--email-only`.
 - `post delete` supports either `<id>` or `--filter` (non-interactive delete requires `--yes`).
 - `post bulk` supports `--action` and PRD aliases `--update`/`--delete` plus update fields including `--add-tag` and `--authors`.
 - `member list --status` composes with `--filter`.
@@ -116,7 +116,7 @@ pnpm build
 - `tier list --include` is supported.
 - `bulk` subcommands exist for all mutable phase 1-4 resources: `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`.
 - `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
-- MCP parity additions include `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
+- MCP parity additions include `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
 - Deferred MCP/CLI blocker: `snippet` / `ghost_snippet_list`.
 - Deferred blocker tracker doc: `docs/snippet-contract-tracker.md`.
 

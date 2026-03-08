@@ -21,6 +21,7 @@ import {
   getPost,
   listPosts,
   publishPost,
+  schedulePost,
   updatePost,
 } from '../../lib/posts.js';
 import { getSetting, listSettings, setSetting } from '../../lib/settings.js';
@@ -271,6 +272,28 @@ export function registerCoreTools(
       },
       async (args) => {
         const payload = await publishPost(global, args.id);
+        return toolResult(payload);
+      },
+    );
+
+    server.registerTool(
+      'ghost_post_schedule',
+      {
+        description: 'Schedule a Ghost post, with optional email delivery settings.',
+        inputSchema: z.object({
+          id: z.string(),
+          at: z.string().datetime(),
+          newsletter: z.string().optional(),
+          email_only: z.boolean().optional(),
+          email_segment: z.string().optional(),
+        }),
+      },
+      async (args) => {
+        const payload = await schedulePost(global, args.id, args.at, {
+          newsletter: args.newsletter,
+          email_only: args.email_only,
+          email_segment: args.email_segment,
+        });
         return toolResult(payload);
       },
     );
