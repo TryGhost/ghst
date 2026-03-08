@@ -428,9 +428,9 @@ describe('run + commands', () => {
     expect(switchOutput).not.toContain('team-alpha');
     expect(switchOutput).not.toContain('editorial-prod');
 
-    const config = JSON.parse(
-      await fs.readFile(path.join(configDir, 'config.json'), 'utf8'),
-    ) as { active: string };
+    const config = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
+      active: string;
+    };
     expect(config.active).toBe('editorial-prod');
   });
 
@@ -489,9 +489,9 @@ describe('run + commands', () => {
     expect(switchOutput).toContain("Active site set to 'same.example.com [secondary]'.");
     expect(switchOutput).not.toContain('unique.example.org [unique]');
 
-    const config = JSON.parse(
-      await fs.readFile(path.join(configDir, 'config.json'), 'utf8'),
-    ) as { active: string };
+    const config = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
+      active: string;
+    };
     expect(config.active).toBe('secondary');
   });
 

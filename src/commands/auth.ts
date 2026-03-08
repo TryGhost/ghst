@@ -227,10 +227,7 @@ function formatSiteDomain(url: string): string {
   }
 }
 
-function formatSwitchSiteOption(
-  alias: string,
-  sites: Record<string, { url: string }>,
-): string {
+function formatSwitchSiteOption(alias: string, sites: Record<string, { url: string }>): string {
   const site = sites[alias];
   if (!site) {
     return alias;
@@ -623,7 +620,9 @@ export function registerAuthCommands(program: Command): void {
 
       config.active = resolvedTargetSite;
       await writeUserConfig(config);
-      console.log(`Active site set to '${formatSwitchSiteOption(resolvedTargetSite, config.sites)}'.`);
+      console.log(
+        `Active site set to '${formatSwitchSiteOption(resolvedTargetSite, config.sites)}'.`,
+      );
     });
 
   auth
