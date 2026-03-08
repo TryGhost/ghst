@@ -200,7 +200,6 @@ Important notes:
 
 - Update docs whenever command behavior, flags, output, or config behavior changes.
 - At minimum, keep `README.md` and this file in sync with the code.
-- If `snippet` contract status changes, update `docs/snippet-contract-tracker.md`.
 
 ## Submitting a Pull Request
 
