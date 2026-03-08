@@ -67,7 +67,7 @@ function createRegistry(): {
 }
 
 describe('PRD parity guardrails', () => {
-  test('top-level command surface matches phase 1-4 target (snippet deferred)', () => {
+  test('top-level command surface matches phase 1-4 target plus socialweb extension (snippet deferred)', () => {
     const program = buildProgram();
     const topLevel = program.commands.map((entry) => entry.name());
 
@@ -86,6 +86,7 @@ describe('PRD parity guardrails', () => {
       'image',
       'theme',
       'site',
+      'socialweb',
       'stats',
       'setting',
       'config',
@@ -228,6 +229,74 @@ describe('PRD parity guardrails', () => {
     expect(httpFlags).toContain('--unsafe-public-bind');
     expect(httpFlags).toContain('--cors-origin');
     expect(httpFlags).toContain('--auth-token');
+  });
+
+  test('socialweb command surface remains registered', () => {
+    const program = buildProgram();
+
+    expect(getSubcommandNames(program, 'socialweb')).toEqual(
+      expect.arrayContaining([
+        'status',
+        'enable',
+        'disable',
+        'profile',
+        'profile-update',
+        'search',
+        'notes',
+        'reader',
+        'notifications',
+        'notifications-count',
+        'posts',
+        'likes',
+        'followers',
+        'following',
+        'post',
+        'thread',
+        'follow',
+        'unfollow',
+        'like',
+        'unlike',
+        'repost',
+        'derepost',
+        'delete',
+        'note',
+        'reply',
+        'blocked-accounts',
+        'blocked-domains',
+        'block',
+        'unblock',
+        'block-domain',
+        'unblock-domain',
+        'upload',
+      ]),
+    );
+
+    for (const action of [
+      'notes',
+      'reader',
+      'notifications',
+      'posts',
+      'likes',
+      'followers',
+      'following',
+      'blocked-accounts',
+      'blocked-domains',
+    ]) {
+      const flags = getSubcommandOptionNames(program, 'socialweb', action);
+      expect(flags).toContain('--all');
+      expect(flags).toContain('--limit');
+    }
+
+    const noteFlags = getSubcommandOptionNames(program, 'socialweb', 'note');
+    expect(noteFlags).toEqual(
+      expect.arrayContaining([
+        '--content',
+        '--stdin',
+        '--image-file',
+        '--image-url',
+        '--image-alt',
+      ]),
+    );
   });
 
   test('bulk support exists for all mutable resources in phase 1-4', () => {

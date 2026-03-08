@@ -132,6 +132,7 @@ ghst auth token
 | `image` | `upload` |
 | `theme` | `list`, `upload`, `activate`, `validate`, `dev` |
 | `site` | `info` |
+| `socialweb` | `status`, `enable`, `disable`, `profile`, `profile-update`, `search`, `notes`, `reader`, `notifications`, `notifications-count`, `posts`, `likes`, `followers`, `following`, `post`, `thread`, `follow`, `unfollow`, `like`, `unlike`, `repost`, `derepost`, `delete`, `note`, `reply`, `blocked-accounts`, `blocked-domains`, `block`, `unblock`, `block-domain`, `unblock-domain`, `upload` |
 | `stats` | `overview`, `web` (content, sources, locations, devices, utm-sources, utm-mediums, utm-campaigns, utm-contents, utm-terms), `growth`, `posts`, `email` (clicks, subscribers), `post <id>` (web, growth, newsletter, referrers) |
 | `setting` | `list`, `get`, `set` |
 | `migrate` | `wordpress`, `medium`, `substack`, `csv`, `json`, `export` |
@@ -208,6 +209,22 @@ ghst stats posts --range 30d --csv
 ghst stats email subscribers --csv
 ghst stats post <post-id> referrers --csv --output ./referrers.csv
 ```
+
+Social web / ActivityPub:
+
+```bash
+ghst socialweb status
+ghst socialweb profile
+ghst socialweb notes --json
+ghst socialweb follow @alice@example.com
+ghst socialweb note --content "Hello fediverse"
+ghst socialweb reply https://example.com/users/alice/statuses/1 --content "Replying from ghst"
+```
+
+Social web auth note:
+- `ghst socialweb` bootstraps a short-lived identity JWT from `/ghost/api/admin/identities/`.
+- That bridge requires an Owner or Administrator staff access token.
+- Public Ghost post publishing still lives under `ghst post`; `ghst socialweb` is for notes, interactions, profile, feed, and moderation flows.
 
 Ghost analytics filter semantics:
 - `source` and `utm_*` filters are session-scoped.

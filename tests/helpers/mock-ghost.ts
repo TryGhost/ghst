@@ -31,6 +31,13 @@ function textResponse(
   });
 }
 
+function jwtLikeToken(payload: Record<string, unknown>): string {
+  const header = { alg: 'RS256', typ: 'JWT', kid: 'identity-key' };
+  const encode = (value: Record<string, unknown>) =>
+    Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+  return `${encode(header)}.${encode(payload)}.signature`;
+}
+
 function unknownRouteResponse(pathname: string): Response {
   const fixture = ghostFixtures.api.errors.unknownRoute404 as Record<string, unknown>;
   const status = Number(fixture.status ?? 404);
@@ -45,6 +52,9 @@ function unknownRouteResponse(pathname: string): Response {
 
 export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOptions = {}) {
   let conflictCount = 0;
+  let socialWebEnabled = true;
+  let notificationsUnreadCount = 3;
+  let nextNoteId = 2;
   const statsConfig = {
     id: 'site-uuid',
     endpoint: 'https://analytics.example.com',
@@ -87,6 +97,174 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     { source: 'Twitter', visits: 18, signups: 4, paid_conversions: 1, mrr: 99 },
     { source: 'Direct', visits: 12, signups: 2, paid_conversions: 1, mrr: 79 },
     { source: 'Google', visits: 8, signups: 1, paid_conversions: 0, mrr: 0 },
+  ];
+
+  const identityToken = jwtLikeToken({
+    sub: 'owner@example.com',
+    role: 'Owner',
+    exp: 1_778_291_200,
+  });
+
+  const socialAccount = {
+    id: 'account-me',
+    apId: 'https://myblog.ghost.io/.ghost/activitypub/users/index',
+    name: 'Site Owner',
+    handle: '@index@myblog.ghost.io',
+    bio: 'Owner account',
+    url: 'https://myblog.ghost.io',
+    avatarUrl: 'https://myblog.ghost.io/content/images/avatar.png',
+    bannerImageUrl: 'https://myblog.ghost.io/content/images/banner.png',
+    postCount: 2,
+    likedCount: 1,
+    followingCount: 1,
+    followerCount: 2,
+    followedByMe: false,
+    blockedByMe: false,
+    domainBlockedByMe: false,
+  };
+
+  const remoteAccount = {
+    id: 'account-remote',
+    apId: 'https://remote.example/users/alice',
+    name: 'Alice Remote',
+    handle: '@alice@remote.example',
+    bio: 'Remote account',
+    url: 'https://remote.example/@alice',
+    avatarUrl: 'https://remote.example/alice.png',
+    bannerImageUrl: null,
+    postCount: 1,
+    likedCount: 0,
+    followingCount: 0,
+    followerCount: 1,
+    followedByMe: true,
+    blockedByMe: false,
+    domainBlockedByMe: false,
+  };
+
+  const remotePostId = 'https://remote.example/posts/1';
+  const localNoteId = 'https://myblog.ghost.io/.ghost/activitypub/note/1';
+
+  const socialPosts: Array<{
+    id: string;
+    type: number;
+    title: string;
+    excerpt: string;
+    summary: null;
+    content: string;
+    url: string;
+    featureImageUrl: null;
+    publishedAt: string;
+    likeCount: number;
+    likedByMe: boolean;
+    replyCount: number;
+    readingTimeMinutes: number;
+    attachments: unknown[];
+    author: {
+      id: string;
+      handle: string;
+      avatarUrl: string;
+      name: string;
+      url: string;
+      followedByMe: boolean;
+    };
+    authoredByMe: boolean;
+    repostCount: number;
+    repostedByMe: boolean;
+    repostedBy: null;
+  }> = [
+    {
+      id: remotePostId,
+      type: 0,
+      title: 'Remote hello',
+      excerpt: 'Remote hello',
+      summary: null,
+      content: 'Remote hello from the fediverse',
+      url: 'https://remote.example/@alice/posts/1',
+      featureImageUrl: null,
+      publishedAt: '2026-03-01T00:00:00.000Z',
+      likeCount: 2,
+      likedByMe: false,
+      replyCount: 1,
+      readingTimeMinutes: 1,
+      attachments: [],
+      author: {
+        id: remoteAccount.id,
+        handle: remoteAccount.handle,
+        avatarUrl: remoteAccount.avatarUrl,
+        name: remoteAccount.name,
+        url: remoteAccount.url,
+        followedByMe: true,
+      },
+      authoredByMe: false,
+      repostCount: 1,
+      repostedByMe: false,
+      repostedBy: null,
+    },
+    {
+      id: localNoteId,
+      type: 0,
+      title: '',
+      excerpt: 'Fixture note',
+      summary: null,
+      content: 'Fixture note',
+      url: 'https://myblog.ghost.io/activitypub/notes/1',
+      featureImageUrl: null,
+      publishedAt: '2026-03-02T00:00:00.000Z',
+      likeCount: 1,
+      likedByMe: true,
+      replyCount: 0,
+      readingTimeMinutes: 1,
+      attachments: [],
+      author: {
+        id: socialAccount.id,
+        handle: socialAccount.handle,
+        avatarUrl: socialAccount.avatarUrl,
+        name: socialAccount.name,
+        url: socialAccount.url,
+        followedByMe: false,
+      },
+      authoredByMe: true,
+      repostCount: 0,
+      repostedByMe: false,
+      repostedBy: null,
+    },
+  ];
+
+  const socialNotifications = [
+    {
+      id: 'notification-1',
+      type: 'follow',
+      actor: {
+        id: remoteAccount.id,
+        name: remoteAccount.name,
+        url: remoteAccount.url,
+        handle: remoteAccount.handle,
+        avatarUrl: remoteAccount.avatarUrl,
+      },
+      post: null,
+      inReplyTo: null,
+      createdAt: '2026-03-03T00:00:00.000Z',
+    },
+  ];
+
+  const findSocialPost = (id: string) => socialPosts.find((post) => post.id === id);
+  const getSocialTemplatePost = () => socialPosts[1] ?? socialPosts[0] ?? null;
+
+  const blockedAccounts = [
+    {
+      ...remoteAccount,
+      blockedByMe: true,
+      followedByMe: false,
+    },
+  ];
+
+  const blockedDomains = [
+    {
+      id: 'domain-remote',
+      name: 'remote.example',
+      handle: 'https://remote.example',
+      followedByMe: false,
+    },
   ];
 
   function applyLimit<T>(items: T[], url: URL): T[] {
@@ -273,8 +451,29 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
       return jsonResponse(cloneFixture(ghostFixtures.api.admin.site));
     }
 
+    if (pathname.endsWith('/ghost/api/admin/identities/') && method === 'GET') {
+      return jsonResponse({
+        identities: [{ token: identityToken }],
+      });
+    }
+
     if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'GET') {
-      return jsonResponse(cloneFixture(ghostFixtures.api.admin.settings));
+      const payload = cloneFixture(ghostFixtures.api.admin.settings) as Record<string, unknown>;
+      const settings = Array.isArray(payload.settings)
+        ? (payload.settings as Array<Record<string, unknown>>)
+        : [];
+      const setSettingValue = (key: string, value: unknown) => {
+        const existing = settings.find((setting) => setting.key === key);
+        if (existing) {
+          existing.value = value;
+        } else {
+          settings.push({ key, value, group: 'social_web' });
+        }
+      };
+      setSettingValue('social_web', socialWebEnabled);
+      setSettingValue('explore_ping', true);
+      setSettingValue('explore_ping_growth', false);
+      return jsonResponse(payload);
     }
 
     if (pathname.endsWith('/ghost/api/admin/tinybird/token/') && method === 'GET') {
@@ -816,20 +1015,307 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/settings/') && method === 'PUT') {
-      const payload = cloneFixture(ghostFixtures.settingsAdmin.edit) as Record<string, unknown>;
-      if (payload.status && payload.payload) {
-        return jsonResponse({
-          settings: [
-            {
-              key: 'title',
-              value: 'Updated Blog',
-              group: 'site',
-              updated_at: '2026-01-01T00:00:00.000Z',
-            },
-          ],
-        });
+      const rawBody = String(init?.body ?? '');
+      const parsedBody = rawBody
+        ? (JSON.parse(rawBody) as { settings?: Array<{ key?: string; value?: unknown }> })
+        : {};
+      const editedSettings = Array.isArray(parsedBody.settings) ? parsedBody.settings : [];
+      const settingEntry = editedSettings[0] ?? { key: 'title', value: 'Updated Blog' };
+      if (settingEntry.key === 'social_web') {
+        socialWebEnabled = Boolean(settingEntry.value);
       }
-      return jsonResponse(payload);
+
+      return jsonResponse({
+        settings: [
+          {
+            key: settingEntry.key ?? 'title',
+            value: settingEntry.value ?? 'Updated Blog',
+            group: 'social_web',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      });
+    }
+
+    if (!socialWebEnabled && pathname.startsWith('/.ghost/activitypub/v1/')) {
+      return jsonResponse({ error: 'Social web disabled' }, 404);
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/account/me') && method === 'GET') {
+      return jsonResponse(socialAccount);
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/account/${encodeURIComponent(remoteAccount.handle)}`,
+      ) &&
+      method === 'GET'
+    ) {
+      return jsonResponse(remoteAccount);
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/account') && method === 'PUT') {
+      const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      Object.assign(socialAccount, {
+        name: body.name,
+        handle: body.username ? `@${String(body.username)}@myblog.ghost.io` : socialAccount.handle,
+        bio: body.bio,
+        avatarUrl: body.avatarUrl,
+        bannerImageUrl: body.bannerImageUrl,
+      });
+      return jsonResponse({});
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/actions/search') && method === 'GET') {
+      const query = url.searchParams.get('query') ?? '';
+      const accounts =
+        query.includes('alice') || query.includes('remote') || query.includes('http')
+          ? [remoteAccount]
+          : [socialAccount];
+      return jsonResponse({ accounts });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/feed/notes') && method === 'GET') {
+      const next = url.searchParams.get('next');
+      const posts = next ? [socialPosts[1]] : [socialPosts[0]];
+      return jsonResponse({ posts, next: next ? null : 'notes-next' });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/feed/reader') && method === 'GET') {
+      const next = url.searchParams.get('next');
+      const posts = next ? [socialPosts[1]] : [socialPosts[0]];
+      return jsonResponse({ posts, next: next ? null : 'reader-next' });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/notifications') && method === 'GET') {
+      return jsonResponse({ notifications: socialNotifications, next: null });
+    }
+
+    if (
+      pathname.endsWith('/.ghost/activitypub/v1/notifications/unread/count') &&
+      method === 'GET'
+    ) {
+      return jsonResponse({ count: notificationsUnreadCount });
+    }
+
+    if (
+      pathname.endsWith('/.ghost/activitypub/v1/notifications/unread/reset') &&
+      method === 'PUT'
+    ) {
+      notificationsUnreadCount = 0;
+      return new Response(null, { status: 200 });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/posts/me') && method === 'GET') {
+      return jsonResponse({ posts: [socialPosts[1]], next: null });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/posts/${encodeURIComponent(remoteAccount.handle)}`,
+      ) &&
+      method === 'GET'
+    ) {
+      return jsonResponse({ posts: [socialPosts[0]], next: null });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/posts/me/liked') && method === 'GET') {
+      return jsonResponse({ posts: [socialPosts[1]], next: null });
+    }
+
+    if (
+      pathname.endsWith('/.ghost/activitypub/v1/account/me/follows/followers') &&
+      method === 'GET'
+    ) {
+      return jsonResponse({ accounts: [remoteAccount], next: null });
+    }
+
+    if (
+      pathname.endsWith('/.ghost/activitypub/v1/account/me/follows/following') &&
+      method === 'GET'
+    ) {
+      return jsonResponse({ accounts: [remoteAccount], next: null });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/account/${encodeURIComponent(remoteAccount.handle)}/follows/followers`,
+      ) &&
+      method === 'GET'
+    ) {
+      return jsonResponse({ accounts: [socialAccount], next: null });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/account/${encodeURIComponent(remoteAccount.handle)}/follows/following`,
+      ) &&
+      method === 'GET'
+    ) {
+      return jsonResponse({ accounts: [], next: null });
+    }
+
+    if (pathname.startsWith('/.ghost/activitypub/v1/post/') && method === 'GET') {
+      const encodedId = pathname.replace('/.ghost/activitypub/v1/post/', '');
+      const post = findSocialPost(decodeURIComponent(encodedId));
+      if (post) {
+        return jsonResponse(post);
+      }
+    }
+
+    if (
+      pathname.endsWith(`/.ghost/activitypub/v1/replies/${encodeURIComponent(remotePostId)}`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse({
+        ancestors: { chain: [], hasMore: false },
+        post: findSocialPost(remotePostId),
+        children: [{ post: findSocialPost(localNoteId), chain: [], hasMore: false }],
+        next: null,
+      });
+    }
+
+    if (
+      pathname.endsWith('/.ghost/activitypub/v1/actions/follow/%40alice%40remote.example') &&
+      method === 'POST'
+    ) {
+      return jsonResponse(remoteAccount);
+    }
+
+    if (
+      pathname.endsWith('/.ghost/activitypub/v1/actions/unfollow/%40alice%40remote.example') &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 202 });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/like/${encodeURIComponent(remotePostId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return jsonResponse({ ok: true });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/unlike/${encodeURIComponent(remotePostId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 202 });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/repost/${encodeURIComponent(remotePostId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return jsonResponse({ ok: true });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/derepost/${encodeURIComponent(remotePostId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 202 });
+    }
+
+    if (
+      pathname.endsWith(`/.ghost/activitypub/v1/post/${encodeURIComponent(localNoteId)}`) &&
+      method === 'DELETE'
+    ) {
+      return new Response(null, { status: 204 });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/actions/note') && method === 'POST') {
+      const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      const template = getSocialTemplatePost();
+      if (!template) {
+        return jsonResponse({ error: 'No social post template available' }, 500);
+      }
+      const created = {
+        ...template,
+        id: `https://myblog.ghost.io/.ghost/activitypub/note/${nextNoteId++}`,
+        content: String(body.content ?? ''),
+        excerpt: String(body.content ?? ''),
+      };
+      socialPosts.unshift(created);
+      return jsonResponse({ post: created });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/reply/${encodeURIComponent(remotePostId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      const template = getSocialTemplatePost();
+      if (!template) {
+        return jsonResponse({ error: 'No social post template available' }, 500);
+      }
+      const created = {
+        ...template,
+        id: `https://myblog.ghost.io/.ghost/activitypub/note/${nextNoteId++}`,
+        content: String(body.content ?? ''),
+        excerpt: String(body.content ?? ''),
+      };
+      return jsonResponse({ post: created });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/blocks/accounts') && method === 'GET') {
+      return jsonResponse({ blocked_accounts: blockedAccounts, next: null });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/blocks/domains') && method === 'GET') {
+      return jsonResponse({ blocked_domains: blockedDomains, next: null });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/block/${encodeURIComponent(remoteAccount.apId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 201 });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/unblock/${encodeURIComponent(remoteAccount.apId)}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 200 });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/block/domain/${encodeURIComponent('https://remote.example')}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 201 });
+    }
+
+    if (
+      pathname.endsWith(
+        `/.ghost/activitypub/v1/actions/unblock/domain/${encodeURIComponent('https://remote.example')}`,
+      ) &&
+      method === 'POST'
+    ) {
+      return new Response(null, { status: 200 });
+    }
+
+    if (pathname.endsWith('/.ghost/activitypub/v1/upload/image') && method === 'POST') {
+      return jsonResponse({
+        fileUrl: 'https://myblog.ghost.io/content/images/social-upload.png',
+      });
     }
 
     if (pathname.endsWith('/ghost/api/admin/db/') && method === 'GET') {

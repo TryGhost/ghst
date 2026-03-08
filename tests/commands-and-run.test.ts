@@ -11,6 +11,7 @@ import { setCredentialStoreForTests } from '../src/lib/credentials.js';
 import { ExitCode } from '../src/lib/errors.js';
 import { setMigrateSourceLoaderForTests } from '../src/lib/migrate.js';
 import { setPromptHandlerForTests } from '../src/lib/prompts.js';
+import { resetSocialWebIdentityCacheForTests } from '../src/lib/socialweb-client.js';
 import { fixtureIds } from './helpers/ghost-fixtures.js';
 import { createMemoryCredentialStore } from './helpers/mock-credentials.js';
 import {
@@ -53,6 +54,7 @@ describe('run + commands', () => {
     delete process.env.GHST_OUTPUT;
     delete process.env.GHST_MCP_AUTH_TOKEN;
     setCredentialStoreForTests(createMemoryCredentialStore());
+    resetSocialWebIdentityCacheForTests();
 
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -70,6 +72,7 @@ describe('run + commands', () => {
     setWebhookListenRunnerForTests(null);
     setMigrateSourceLoaderForTests(null);
     setCredentialStoreForTests(null);
+    resetSocialWebIdentityCacheForTests();
     vi.restoreAllMocks();
     process.chdir(previousCwd);
 
@@ -2205,5 +2208,296 @@ describe('run + commands', () => {
         'unknown',
       ]),
     ).resolves.toBe(ExitCode.USAGE_ERROR);
+  });
+
+  test('covers socialweb command flows over the identity-token bridge', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    await fs.writeFile(path.join(workDir, 'photo.jpg'), 'image');
+
+    for (const argv of [
+      ['socialweb', 'status', '--json'],
+      ['socialweb', 'profile', '--json'],
+      ['socialweb', 'search', 'alice', '--json'],
+      ['socialweb', 'notes', '--all', '--json'],
+      ['socialweb', 'reader', '--json'],
+      ['socialweb', 'notifications', '--json'],
+      ['socialweb', 'notifications-count', '--json'],
+      ['socialweb', 'posts', '--json'],
+      ['socialweb', 'likes', '--json'],
+      ['socialweb', 'followers', '--limit', '1', '--json'],
+      ['socialweb', 'following', '--limit', '1', '--json'],
+      ['socialweb', 'post', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'thread', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'follow', '@alice@remote.example', '--json'],
+      ['socialweb', 'unfollow', '@alice@remote.example', '--json'],
+      ['socialweb', 'like', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'unlike', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'repost', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'derepost', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'delete', 'https://myblog.ghost.io/.ghost/activitypub/note/1', '--json'],
+      ['socialweb', 'blocked-accounts', '--limit', '1', '--json'],
+      ['socialweb', 'blocked-domains', '--limit', '1', '--json'],
+      ['socialweb', 'block', 'https://remote.example/users/alice', '--json'],
+      ['socialweb', 'unblock', 'https://remote.example/users/alice', '--json'],
+      ['socialweb', 'block-domain', 'https://remote.example', '--json'],
+      ['socialweb', 'unblock-domain', 'https://remote.example', '--json'],
+      ['socialweb', 'upload', path.join(workDir, 'photo.jpg'), '--json'],
+      ['socialweb', 'enable', '--json'],
+    ] as const) {
+      await expect(
+        run(['node', 'ghst', '--url', 'https://myblog.ghost.io', '--staff-token', KEY, ...argv]),
+      ).resolves.toBe(ExitCode.SUCCESS);
+    }
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'profile-update',
+        '--name',
+        'Updated Owner',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(logSpy.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining(['Name: Updated Owner']),
+    );
+
+    const stdinDescriptor = Object.getOwnPropertyDescriptor(process.stdin, Symbol.asyncIterator);
+    Object.defineProperty(process.stdin, Symbol.asyncIterator, {
+      configurable: true,
+      value: async function* () {
+        yield Buffer.from('stdin note');
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'note',
+        '--stdin',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    if (stdinDescriptor) {
+      Object.defineProperty(process.stdin, Symbol.asyncIterator, stdinDescriptor);
+    }
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'reply',
+        'https://remote.example/posts/1',
+        '--content',
+        'reply text',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'disable',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'notes',
+        '--all',
+        '--next',
+        'cursor',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+  });
+
+  test('covers socialweb human output and validation branches', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    await fs.writeFile(path.join(workDir, 'photo.jpg'), 'image');
+
+    for (const argv of [
+      ['socialweb', 'status'],
+      ['socialweb', 'profile'],
+      ['socialweb', 'search', 'alice'],
+      ['socialweb', 'notes'],
+      ['socialweb', 'notifications'],
+      ['socialweb', 'followers', '--limit', '1'],
+      ['socialweb', 'thread', 'https://remote.example/posts/1'],
+      ['socialweb', 'follow', '@alice@remote.example'],
+      ['socialweb', 'blocked-domains', '--limit', '1'],
+      ['socialweb', 'block-domain', 'https://remote.example'],
+      ['socialweb', 'unblock-domain', 'https://remote.example'],
+      ['socialweb', 'unfollow', '@alice@remote.example'],
+      ['socialweb', 'upload', path.join(workDir, 'photo.jpg')],
+      ['socialweb', 'disable'],
+      ['socialweb', 'enable'],
+    ] as const) {
+      await expect(
+        run(['node', 'ghst', '--url', 'https://myblog.ghost.io', '--staff-token', KEY, ...argv]),
+      ).resolves.toBe(ExitCode.SUCCESS);
+    }
+
+    const printed = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(printed).toContain('Social web: enabled');
+    expect(printed).toContain('Handle: @index@myblog.ghost.io');
+    expect(printed).toContain('@alice@remote.example');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'profile',
+        'alice',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'follow',
+        'alice',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'profile-update',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'note',
+        '--content',
+        'hello',
+        '--stdin',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'block-domain',
+        'not-a-url',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+  });
+
+  test('preserves raw mutation payloads in socialweb json mode', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+
+    for (const argv of [
+      ['socialweb', 'unfollow', '@alice@remote.example', '--json'],
+      ['socialweb', 'unlike', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'derepost', 'https://remote.example/posts/1', '--json'],
+      ['socialweb', 'delete', 'https://myblog.ghost.io/.ghost/activitypub/note/1', '--json'],
+      ['socialweb', 'block', 'https://remote.example/users/alice', '--json'],
+      ['socialweb', 'unblock', 'https://remote.example/users/alice', '--json'],
+      ['socialweb', 'block-domain', 'https://remote.example', '--json'],
+      ['socialweb', 'unblock-domain', 'https://remote.example', '--json'],
+    ] as const) {
+      logSpy.mockClear();
+      await expect(
+        run(['node', 'ghst', '--url', 'https://myblog.ghost.io', '--staff-token', KEY, ...argv]),
+      ).resolves.toBe(ExitCode.SUCCESS);
+      expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toBe('{}');
+    }
+  });
+
+  test('warns when socialweb is enabled but backend readiness is still unavailable', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/account/me') && method === 'GET') {
+          return new Response(JSON.stringify({ error: 'Social web disabled' }), {
+            status: 404,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'enable',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    const printed = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(printed).toContain('Reachable: no');
+    expect(printed).toContain(
+      'Warning: Social web is enabled, but the social web service is not reachable yet.',
+    );
   });
 });

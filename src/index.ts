@@ -16,6 +16,7 @@ import { registerPageCommands } from './commands/page.js';
 import { registerPostCommands } from './commands/post.js';
 import { registerSettingCommands } from './commands/setting.js';
 import { registerSiteCommands } from './commands/site.js';
+import { registerSocialWebCommands } from './commands/socialweb.js';
 import { registerStatsCommands } from './commands/stats.js';
 import { registerTagCommands } from './commands/tag.js';
 import { registerThemeCommands } from './commands/theme.js';
@@ -54,6 +55,7 @@ export function buildProgram(): Command {
   registerImageCommands(program);
   registerThemeCommands(program);
   registerSiteCommands(program);
+  registerSocialWebCommands(program);
   registerStatsCommands(program);
   registerSettingCommands(program);
   registerConfigCommands(program);

@@ -4,7 +4,7 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `stats`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `socialweb`, `stats`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD parity status: strict phase 1-4 command/action/flag parity in place with guard tests; only `snippet` remains intentionally deferred pending confirmed Ghost Admin API contract.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 - Documentation split:
@@ -85,6 +85,7 @@ pnpm build
 - `ghst image upload`
 - `ghst theme list|upload|activate|validate|dev`
 - `ghst site info`
+- `ghst socialweb status|enable|disable|profile|profile-update|search|notes|reader|notifications|notifications-count|posts|likes|followers|following|post|thread|follow|unfollow|like|unlike|repost|derepost|delete|note|reply|blocked-accounts|blocked-domains|block|unblock|block-domain|unblock-domain|upload`
 - `ghst stats overview|web|growth|posts|email|post`
 - `ghst setting list|get|set`
 - `ghst migrate wordpress|medium|substack|csv|json|export`
@@ -119,6 +120,8 @@ pnpm build
 - `bulk` subcommands exist for all mutable phase 1-4 resources: `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`.
 - `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
 - `stats web` and `stats post ... web` use Ghost Admin stats routes where available and internal Tinybird reads for web traffic datasets Ghost does not wrap.
+- `socialweb` uses the existing staff-token Admin API flow to mint a short-lived identity JWT from `/ghost/api/admin/identities/`, then uses that bearer token against `/.ghost/activitypub/v1/*`.
+- `socialweb` requires an Owner/Admin staff token and is intentionally limited to Ghost's private social web admin surface; it does not expose public federation endpoints or MCP tooling.
 - `stats growth` clips broader Ghost member/MRR/subscription histories client-side to the selected window when upstream endpoints cannot express the full range.
 - `stats post ... growth` clips Ghost lifetime post-growth history client-side to the selected window.
 - Ghost analytics semantics: `source` and `utm_*` filters are session-scoped, while post/member-status filters are hit-scoped.
