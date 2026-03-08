@@ -109,7 +109,7 @@ pnpm build
 ## Parity Notes
 
 - `post create|update` supports `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
-- `post publish` supports `--newsletter`, `--email-segment`, and `--email-only`.
+- `post publish|schedule` supports `--newsletter`, `--email-segment`, and `--email-only`.
 - `post delete` supports either `<id>` or `--filter` (non-interactive delete requires `--yes`).
 - `post bulk` supports `--action` and PRD aliases `--update`/`--delete` plus update fields including `--add-tag` and `--authors`.
 - `member list --status` composes with `--filter`.
@@ -125,7 +125,7 @@ pnpm build
 - MCP now exposes first-class stats tools via the `stats` tool group rather than requiring raw `ghost_api_request` calls.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
-- MCP parity additions include `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
+- MCP parity additions include `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
 - Deferred MCP/CLI blocker: `snippet` / `ghost_snippet_list`.
 - Deferred blocker tracker doc: `docs/snippet-contract-tracker.md`.
 

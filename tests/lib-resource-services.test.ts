@@ -382,6 +382,50 @@ describe('resource service helpers', () => {
     });
   });
 
+  test('sends scheduled email delivery options as query params instead of request body', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      schedulePost({}, fixtureIds.postId, '2026-03-01T10:00:00Z', {
+        newsletter: 'weekly',
+        email_only: true,
+        email_segment: 'status:paid',
+      }),
+    ).resolves.toMatchObject({
+      posts: [{ id: fixtureIds.postId }],
+    });
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [
+        {
+          status: 'scheduled',
+          published_at: '2026-03-01T10:00:00Z',
+          updated_at: expect.any(String),
+        },
+      ],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
   test('returns zero-op bulk result when no resources match', async () => {
     installGhostFixtureFetchMock({
       onRequest: ({ pathname, method }) => {

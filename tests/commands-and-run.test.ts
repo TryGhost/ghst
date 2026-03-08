@@ -527,7 +527,20 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'post', 'schedule', fixtureIds.postId, '--at', '2026-03-01T10:00:00Z']),
+      run([
+        'node',
+        'ghst',
+        'post',
+        'schedule',
+        fixtureIds.postId,
+        '--at',
+        '2026-03-01T10:00:00Z',
+        '--newsletter',
+        'weekly',
+        '--email-only',
+        '--email-segment',
+        'status:paid',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'post', 'unschedule', fixtureIds.postId])).resolves.toBe(
       ExitCode.SUCCESS,
@@ -1150,6 +1163,62 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'completion', 'bad-shell'])).resolves.toBe(
       ExitCode.USAGE_ERROR,
     );
+  });
+
+  test('post schedule forwards email delivery flags as query params', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'post',
+        'schedule',
+        fixtureIds.postId,
+        '--at',
+        '2026-03-01T10:00:00Z',
+        '--newsletter',
+        'weekly',
+        '--email-only',
+        '--email-segment',
+        'status:paid',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [
+        {
+          status: 'scheduled',
+          published_at: '2026-03-01T10:00:00Z',
+          updated_at: expect.any(String),
+        },
+      ],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
   });
 
   test('uses env output mode for json errors', async () => {

@@ -171,7 +171,7 @@ ghst label bulk --filter "name:'legacy'" --action delete --yes
 Scheduling:
 
 ```bash
-ghst post schedule <post-id> --at 2026-03-01T10:00:00Z
+ghst post schedule <post-id> --at 2026-03-01T10:00:00Z --newsletter weekly --email-only --email-segment status:paid
 ghst post unschedule <post-id>
 ```
 

@@ -114,7 +114,7 @@ describe('mcp core tool registration', () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
 
-    expect(tools.size).toBe(48);
+    expect(tools.size).toBe(49);
 
     const run = async (
       name: string,
@@ -138,6 +138,13 @@ describe('mcp core tool registration', () => {
     await run('ghost_post_update', { id: fixtureIds.postId, title: 'Updated Tool Post' });
     await run('ghost_post_delete', { id: fixtureIds.postId, confirm: true });
     await run('ghost_post_publish', { id: fixtureIds.postId });
+    await run('ghost_post_schedule', {
+      id: fixtureIds.postId,
+      at: '2026-03-01T10:00:00Z',
+      newsletter: 'weekly',
+      email_only: true,
+      email_segment: 'status:paid',
+    });
     await fs.writeFile(path.join(workDir, 'image.jpg'), 'fake-image', 'utf8');
     await run('ghost_image_upload', { file_path: path.join(workDir, 'image.jpg') });
 
@@ -273,6 +280,56 @@ describe('mcp core tool registration', () => {
     await expect(tool?.handler({ path: '/%2E%2E%2Fmembers/' }) as Promise<unknown>).rejects.toThrow(
       'encoded path separators',
     );
+  });
+
+  test('ghost_post_schedule forwards email delivery flags as query params', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+    const tool = tools.get('ghost_post_schedule');
+
+    expect(tool, 'Tool ghost_post_schedule should be registered').toBeDefined();
+    const result = await tool?.handler({
+      id: fixtureIds.postId,
+      at: '2026-03-01T10:00:00Z',
+      newsletter: 'weekly',
+      email_only: true,
+      email_segment: 'status:paid',
+    });
+
+    expect(result).toMatchObject({
+      content: [{ type: 'text' }],
+      structuredContent: { posts: [{ id: fixtureIds.postId }] },
+    });
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [
+        {
+          status: 'scheduled',
+          published_at: '2026-03-01T10:00:00Z',
+          updated_at: expect.any(String),
+        },
+      ],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
   });
 
   test('can register a narrow tool subset', () => {

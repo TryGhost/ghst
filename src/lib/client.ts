@@ -362,10 +362,16 @@ export class GhostClient {
         source,
       }),
 
-    edit: (id: string, post: Record<string, unknown>, source?: 'html') =>
+    edit: (
+      id: string,
+      post: Record<string, unknown>,
+      source?: 'html',
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
       this.request<Record<string, unknown>>('PUT', `/posts/${id}/`, {
         body: { posts: [post] },
         source,
+        params,
       }),
 
     copy: (id: string) => this.request<Record<string, unknown>>('POST', `/posts/${id}/copy/`),
