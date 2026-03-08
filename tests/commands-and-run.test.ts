@@ -194,6 +194,307 @@ describe('run + commands', () => {
     delete process.env.MY_GHOST_KEY;
   });
 
+  test('shows project link in auth list while leaving auth status unchanged', async () => {
+    const logSpy = vi.mocked(console.log);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://project.ghost.io',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://active.ghost.io',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await fs.mkdir(path.join(workDir, '.ghst'), { recursive: true });
+    await fs.writeFile(
+      path.join(workDir, '.ghst', 'config.json'),
+      `${JSON.stringify({ site: 'project' }, null, 2)}\n`,
+      'utf8',
+    );
+
+    let start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
+    const statusOutput = logSpy.mock.calls
+      .slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(statusOutput).toContain('Active site: active.ghost.io');
+    expect(statusOutput).toContain('* active.ghost.io');
+    expect(statusOutput).not.toContain('Project link:');
+    expect(statusOutput).not.toContain('* project.ghost.io');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    const statusJson = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '')) as {
+      active: string | null;
+      sites: string[];
+      projectLink?: string;
+      effectiveSite?: string | null;
+    };
+    expect(statusJson).toEqual({
+      active: 'active',
+      sites: ['project', 'active'],
+    });
+    expect(logSpy.mock.calls.length).toBe(start + 1);
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    const listOutput = logSpy.mock.calls
+      .slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(listOutput).toContain('Active site: active.ghost.io');
+    expect(listOutput).toContain(
+      'Project link: project.ghost.io (overrides active site in this directory)',
+    );
+    expect(listOutput).toContain('  active.ghost.io');
+    expect(listOutput).toContain('* project.ghost.io');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    const listJson = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '')) as {
+      active: string | null;
+      projectLink?: string;
+      effectiveSite: string | null;
+      sites: string[];
+    };
+    expect(listJson).toEqual({
+      active: 'active',
+      projectLink: 'project',
+      effectiveSite: 'project',
+      sites: ['project', 'active'],
+    });
+    expect(logSpy.mock.calls.length).toBe(start + 1);
+  });
+
+  test('renders configured domains instead of internal aliases in auth status and list output', async () => {
+    const logSpy = vi.mocked(console.log);
+
+    await fs.writeFile(
+      path.join(configDir, 'config.json'),
+      `${JSON.stringify(
+        {
+          version: 2,
+          active: 'team-alpha',
+          sites: {
+            'team-alpha': {
+              url: 'https://newsroom.example.com',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+            'editorial-prod': {
+              url: 'https://members.example.org',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    );
+    await fs.mkdir(path.join(workDir, '.ghst'), { recursive: true });
+    await fs.writeFile(
+      path.join(workDir, '.ghst', 'config.json'),
+      `${JSON.stringify({ site: 'editorial-prod' }, null, 2)}\n`,
+      'utf8',
+    );
+
+    let start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
+    const statusOutput = logSpy.mock.calls
+      .slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(statusOutput).toContain('Active site: newsroom.example.com');
+    expect(statusOutput).toContain('* newsroom.example.com');
+    expect(statusOutput).toContain('  members.example.org');
+    expect(statusOutput).not.toContain('team-alpha');
+    expect(statusOutput).not.toContain('editorial-prod');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    const statusJson = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '')) as {
+      active: string | null;
+      sites: string[];
+    };
+    expect(statusJson).toEqual({
+      active: 'team-alpha',
+      sites: ['team-alpha', 'editorial-prod'],
+    });
+    expect(logSpy.mock.calls.length).toBe(start + 1);
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    const listOutput = logSpy.mock.calls
+      .slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(listOutput).toContain('Active site: newsroom.example.com');
+    expect(listOutput).toContain(
+      'Project link: members.example.org (overrides active site in this directory)',
+    );
+    expect(listOutput).toContain('  newsroom.example.com');
+    expect(listOutput).toContain('* members.example.org');
+    expect(listOutput).not.toContain('team-alpha');
+    expect(listOutput).not.toContain('editorial-prod');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    const listJson = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '')) as {
+      active: string | null;
+      projectLink?: string;
+      effectiveSite: string | null;
+      sites: string[];
+    };
+    expect(listJson).toEqual({
+      active: 'team-alpha',
+      projectLink: 'editorial-prod',
+      effectiveSite: 'editorial-prod',
+      sites: ['team-alpha', 'editorial-prod'],
+    });
+    expect(logSpy.mock.calls.length).toBe(start + 1);
+  });
+
+  test('interactive auth switch shows bare domains and accepts a displayed domain', async () => {
+    const logSpy = vi.mocked(console.log);
+
+    await fs.writeFile(
+      path.join(configDir, 'config.json'),
+      `${JSON.stringify(
+        {
+          version: 2,
+          active: 'team-alpha',
+          sites: {
+            'team-alpha': {
+              url: 'https://newsroom.example.com',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+            'editorial-prod': {
+              url: 'https://members.example.org',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    );
+
+    const ttyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    setPromptForTests(async () => 'members.example.org');
+
+    await expect(run(['node', 'ghst', 'auth', 'switch'])).resolves.toBe(ExitCode.SUCCESS);
+
+    if (ttyDescriptor) {
+      Object.defineProperty(process.stdin, 'isTTY', ttyDescriptor);
+    }
+
+    const switchOutput = logSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(switchOutput).toContain('Configured sites:');
+    expect(switchOutput).toContain('* newsroom.example.com');
+    expect(switchOutput).toContain('  members.example.org');
+    expect(switchOutput).toContain("Active site set to 'members.example.org'.");
+    expect(switchOutput).not.toContain('https://');
+    expect(switchOutput).not.toContain('team-alpha');
+    expect(switchOutput).not.toContain('editorial-prod');
+
+    const config = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
+      active: string;
+    };
+    expect(config.active).toBe('editorial-prod');
+  });
+
+  test('interactive auth switch shows aliases only for duplicate domains', async () => {
+    const logSpy = vi.mocked(console.log);
+
+    await fs.writeFile(
+      path.join(configDir, 'config.json'),
+      `${JSON.stringify(
+        {
+          version: 2,
+          active: 'primary',
+          sites: {
+            primary: {
+              url: 'https://same.example.com',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+            secondary: {
+              url: 'https://same.example.com',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+            unique: {
+              url: 'https://unique.example.org',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    );
+
+    const ttyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    setPromptForTests(async () => 'same.example.com [secondary]');
+
+    await expect(run(['node', 'ghst', 'auth', 'switch'])).resolves.toBe(ExitCode.SUCCESS);
+
+    if (ttyDescriptor) {
+      Object.defineProperty(process.stdin, 'isTTY', ttyDescriptor);
+    }
+
+    const switchOutput = logSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(switchOutput).toContain('* same.example.com [primary]');
+    expect(switchOutput).toContain('  same.example.com [secondary]');
+    expect(switchOutput).toContain('  unique.example.org');
+    expect(switchOutput).toContain("Active site set to 'same.example.com [secondary]'.");
+    expect(switchOutput).not.toContain('unique.example.org [unique]');
+
+    const config = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
+      active: string;
+    };
+    expect(config.active).toBe('secondary');
+  });
+
   test('continues interactive auth when browser auto-open fails', async () => {
     const errorSpy = vi.spyOn(console, 'error');
     setOpenUrlForTests(async () => {
