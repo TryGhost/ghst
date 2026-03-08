@@ -4,7 +4,7 @@ import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { ExitCode, GhstError } from './errors.js';
-import { activateTheme, uploadTheme } from './themes.js';
+import { activateTheme, getUploadedThemeName, uploadTheme } from './themes.js';
 import type { GlobalOptions } from './types.js';
 
 interface ThemeDevOptions {
@@ -42,15 +42,6 @@ async function zipDirectory(directoryPath: string): Promise<string> {
   });
 
   return zipPath;
-}
-
-function getUploadedThemeName(payload: Record<string, unknown>): string | undefined {
-  const themes = Array.isArray(payload.themes)
-    ? (payload.themes as Array<Record<string, unknown>>)
-    : [];
-  const uploaded = themes[0] ?? payload;
-  const name = String(uploaded.name ?? '').trim();
-  return name || undefined;
 }
 
 async function uploadAndMaybeActivate(

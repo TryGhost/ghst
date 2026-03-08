@@ -174,7 +174,13 @@ describe('mcp core tool registration', () => {
     await run('ghost_site_info', {});
     await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-zip', 'utf8');
     await run('ghost_theme_upload', { file_path: path.join(workDir, 'theme.zip') });
-    await run('ghost_theme_upload', { file_path: path.join(workDir, 'theme.zip'), activate: true });
+    const activatedThemeResponse = await run('ghost_theme_upload', {
+      file_path: path.join(workDir, 'theme.zip'),
+      activate: true,
+    });
+    expect(activatedThemeResponse.structuredContent).toMatchObject({
+      themes: [{ name: 'uploaded-theme', active: true }],
+    });
     await run('ghost_webhook_create', {
       event: 'post.published',
       target_url: 'https://example.com/hook',

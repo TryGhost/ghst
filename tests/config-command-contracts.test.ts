@@ -6,6 +6,7 @@ const configMocks = vi.hoisted(() => ({
   readUserConfig: vi.fn(),
   writeUserConfig: vi.fn(),
 }));
+const STAFF_ACCESS_TOKEN = 'abc123:00112233445566778899aabbccddeeff';
 
 vi.mock('../src/lib/config.js', async () => {
   const actual =
@@ -20,7 +21,7 @@ vi.mock('../src/lib/config.js', async () => {
 
 import { run } from '../src/index.js';
 
-describe('config command coverage', () => {
+describe('config command contracts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -36,7 +37,7 @@ describe('config command coverage', () => {
       sites: {
         prod: {
           url: 'https://prod.example.com',
-          staffAccessToken: 'abc123:00112233445566778899aabbccddeeff',
+          staffAccessToken: STAFF_ACCESS_TOKEN,
           apiVersion: 'v6.0',
           addedAt: '2026-03-01T00:00:00.000Z',
         },
@@ -57,7 +58,7 @@ describe('config command coverage', () => {
     vi.restoreAllMocks();
   });
 
-  test('covers show, list, and get redaction behavior', async () => {
+  test('redacts sensitive values in show, list, and json get output by default', async () => {
     await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'config', 'list'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(
@@ -69,17 +70,17 @@ describe('config command coverage', () => {
       .mock.calls.map((call) => String(call[0]))
       .join('\n');
     expect(output).toContain('<redacted>');
-    expect(output).not.toContain('top-secret');
+    expect(output).not.toContain(STAFF_ACCESS_TOKEN);
     expect(output).not.toContain('nested-secret');
   });
 
-  test('covers config get missing-path error', async () => {
+  test('returns not found when a requested config path does not exist', async () => {
     await expect(run(['node', 'ghst', 'config', 'get', 'sites.prod.missing'])).resolves.toBe(
       ExitCode.NOT_FOUND,
     );
   });
 
-  test('covers config set success branches', async () => {
+  test('writes validated config changes for supported mutable paths', async () => {
     await expect(run(['node', 'ghst', 'config', 'set', 'active', 'prod'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -99,7 +100,7 @@ describe('config command coverage', () => {
     );
   });
 
-  test('covers config set validation and usage errors', async () => {
+  test('rejects invalid values, missing aliases, and unsupported paths', async () => {
     await expect(run(['node', 'ghst', 'config', 'set', 'defaults.limit', '0'])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,
     );

@@ -43,7 +43,7 @@ import {
   getStatsWebTable,
 } from '../../lib/stats.js';
 import { createTag, deleteTag, getTag, listTags, updateTag } from '../../lib/tags.js';
-import { activateTheme, uploadTheme } from '../../lib/themes.js';
+import { activateTheme, getUploadedThemeName, uploadTheme } from '../../lib/themes.js';
 import { listTiers } from '../../lib/tiers.js';
 import type { GlobalOptions } from '../../lib/types.js';
 import { listUsers } from '../../lib/users.js';
@@ -780,16 +780,18 @@ export function registerCoreTools(
       },
       async (args) => {
         const payload = await uploadTheme(global, args.file_path);
+        let resultPayload = payload;
+
         if (args.activate) {
-          const themes = Array.isArray(payload.themes) ? payload.themes : [];
-          const first = (themes[0] as Record<string, unknown> | undefined) ?? payload;
-          const name = String(first.name ?? '').trim();
-          if (name) {
-            await activateTheme(global, name);
+          const name = getUploadedThemeName(payload);
+          if (!name) {
+            throw new Error('Theme uploaded, but activation could not determine the theme name.');
           }
+
+          resultPayload = await activateTheme(global, name);
         }
 
-        return toolResult(payload);
+        return toolResult(resultPayload);
       },
     );
 

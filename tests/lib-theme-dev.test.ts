@@ -30,6 +30,14 @@ vi.mock('node:fs', async () => {
 vi.mock('../src/lib/themes.js', () => ({
   uploadTheme: (...args: unknown[]) => themeDevMocks.uploadTheme(...args),
   activateTheme: (...args: unknown[]) => themeDevMocks.activateTheme(...args),
+  getUploadedThemeName: (payload: Record<string, unknown>) => {
+    const themes = Array.isArray(payload.themes)
+      ? (payload.themes as Array<Record<string, unknown>>)
+      : [];
+    const uploadedTheme = themes[0] ?? payload;
+    const name = String(uploadedTheme.name ?? '').trim();
+    return name || undefined;
+  },
 }));
 
 import { runThemeDev } from '../src/lib/theme-dev.js';

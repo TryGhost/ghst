@@ -72,7 +72,7 @@ vi.mock('../src/lib/output.js', async () => {
 
 import { run } from '../src/index.js';
 
-describe('thin command coverage', () => {
+describe('thin command contracts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -97,7 +97,7 @@ describe('thin command coverage', () => {
     vi.restoreAllMocks();
   });
 
-  test('covers image json and validation paths', async () => {
+  test('uploads each requested image and prints a combined json payload', async () => {
     await expect(
       run([
         'node',
@@ -115,6 +115,24 @@ describe('thin command coverage', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
 
     expect(thinMocks.uploadImage).toHaveBeenCalledTimes(2);
+    expect(thinMocks.uploadImage).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Object),
+      expect.objectContaining({
+        filePath: 'photo.jpg',
+        purpose: 'profile_image',
+        ref: 'hero',
+      }),
+    );
+    expect(thinMocks.uploadImage).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Object),
+      expect.objectContaining({
+        filePath: 'cover.png',
+        purpose: 'profile_image',
+        ref: 'hero',
+      }),
+    );
     expect(thinMocks.printJson).toHaveBeenCalledWith(
       {
         images: [
@@ -130,7 +148,7 @@ describe('thin command coverage', () => {
     );
   });
 
-  test('covers setting json, coercion, and validation paths', async () => {
+  test('coerces setting values before writing and routes list/get through json mode', async () => {
     await expect(run(['node', 'ghst', 'setting', 'list', '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -156,14 +174,15 @@ describe('thin command coverage', () => {
     );
   });
 
-  test('covers site info json output', async () => {
+  test('uses human and json printers for site info based on output mode', async () => {
     await expect(run(['node', 'ghst', 'site', 'info', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'site', 'info'])).resolves.toBe(ExitCode.SUCCESS);
 
     expect(thinMocks.printJson).toHaveBeenCalledWith({ site: { title: 'Demo' } }, undefined);
-    expect(thinMocks.printSiteHuman).not.toHaveBeenCalled();
+    expect(thinMocks.printSiteHuman).toHaveBeenCalledWith({ site: { title: 'Demo' } });
   });
 
-  test('covers user json outputs and validation path', async () => {
+  test('normalizes user list pagination and chooses the correct printer for each output mode', async () => {
     await expect(run(['node', 'ghst', 'user', 'list', '--limit', 'all', '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -178,6 +197,22 @@ describe('thin command coverage', () => {
       expect.objectContaining({ limit: undefined }),
       true,
     );
+    expect(thinMocks.getUser).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        id: 'user-1',
+        params: { include: undefined, fields: undefined },
+      }),
+    );
+    expect(thinMocks.getCurrentUser).toHaveBeenCalledWith(expect.any(Object), {
+      include: undefined,
+      fields: undefined,
+    });
+
+    thinMocks.printJson.mockClear();
+    await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(thinMocks.printJson).not.toHaveBeenCalled();
+    expect(thinMocks.printUserHuman).toHaveBeenCalledWith({ users: [{ id: 'me' }] });
 
     await expect(run(['node', 'ghst', 'user', 'list', '--page', '0'])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,

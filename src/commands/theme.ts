@@ -8,7 +8,7 @@ import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printThemeHuman, printThemeListHuman } from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
 import { runThemeDev } from '../lib/theme-dev.js';
-import { activateTheme, listThemes, uploadTheme } from '../lib/themes.js';
+import { activateTheme, getUploadedThemeName, listThemes, uploadTheme } from '../lib/themes.js';
 import {
   ThemeActivateInputSchema,
   ThemeDevInputSchema,
@@ -199,24 +199,29 @@ export function registerThemeCommands(program: Command): void {
       }
 
       const payload = await uploadTheme(global, uploadPath);
+      let resultPayload = payload;
 
       if (parsed.data.activate) {
-        const themes = Array.isArray(payload.themes)
-          ? (payload.themes as Array<Record<string, unknown>>)
-          : [];
-        const uploadedTheme = themes[0] ?? payload;
-        const name = String(uploadedTheme.name ?? '').trim();
-        if (name) {
-          await activateTheme(global, name);
+        const name = getUploadedThemeName(payload);
+        if (!name) {
+          throw new GhstError(
+            'Theme uploaded, but activation could not determine the theme name.',
+            {
+              code: 'GENERAL_ERROR',
+              exitCode: ExitCode.GENERAL_ERROR,
+            },
+          );
         }
+
+        resultPayload = await activateTheme(global, name);
       }
 
       if (global.json) {
-        printJson(payload, global.jq);
+        printJson(resultPayload, global.jq);
         return;
       }
 
-      printThemeHuman(payload);
+      printThemeHuman(resultPayload);
     });
 
   theme

@@ -107,6 +107,62 @@ describe('run + commands', () => {
     }
   });
 
+  async function loginMyblog(site = 'myblog'): Promise<void> {
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        '--site',
+        site,
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+  }
+
+  async function seedSmokeFixtures(): Promise<void> {
+    await fs.writeFile(path.join(workDir, 'post.html'), '<p>Hello</p>', 'utf8');
+    await fs.writeFile(path.join(workDir, 'post.lexical.json'), '{"root":{}}', 'utf8');
+    await fs.writeFile(path.join(workDir, 'post.md'), '# Hello\n\nMarkdown body', 'utf8');
+    await fs.writeFile(path.join(workDir, 'post-raw.html'), '<section>Raw HTML</section>', 'utf8');
+    await fs.writeFile(
+      path.join(workDir, 'post-from.json'),
+      '{"posts":[{"title":"From JSON"}]}',
+      'utf8',
+    );
+    await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
+    await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
+    await fs.writeFile(path.join(workDir, 'photo.jpg'), 'fake-image', 'utf8');
+    await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-zip', 'utf8');
+    await fs.writeFile(path.join(workDir, 'import.json'), '{"db":[{"meta":{},"data":{}}]}', 'utf8');
+    await fs.writeFile(
+      path.join(workDir, 'migrate.csv'),
+      'title,html\nImported Post,<p>Hello</p>\n',
+      'utf8',
+    );
+
+    const themeDir = path.join(workDir, 'theme-dev');
+    await fs.mkdir(themeDir, { recursive: true });
+    await fs.writeFile(path.join(themeDir, 'package.json'), '{"name":"theme-dev"}', 'utf8');
+  }
+
+  function logOutputSince(start: number): string {
+    return vi
+      .mocked(console.log)
+      .mock.calls.slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+  }
+
+  function lastLogJson<T>(): T {
+    return JSON.parse(String(vi.mocked(console.log).mock.calls.at(-1)?.[0] ?? 'null')) as T;
+  }
+
   test('handles help and unknown command paths', async () => {
     await expect(run(['node', 'ghst', '--help'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'nope'])).resolves.toBe(ExitCode.USAGE_ERROR);
@@ -123,7 +179,7 @@ describe('run + commands', () => {
     expect(script).toContain('--no-color');
   });
 
-  test('covers auth flows including interactive switch branch', async () => {
+  test('runs auth flows including non-interactive login and interactive switching', async () => {
     const openedUrls: string[] = [];
     setOpenUrlForTests(async (url) => {
       openedUrls.push(url);
@@ -722,53 +778,79 @@ describe('run + commands', () => {
     expect(errorOutput).toContain('Re-run with --url https://john.ghost.io.');
   });
 
-  test('covers post/page/tag/member/newsletter/tier/offer/label/webhook/user/image/theme/site/setting/migrate/config/api/completion command flows', async () => {
-    await expect(
-      run([
-        'node',
-        'ghst',
-        'auth',
-        'login',
-        '--non-interactive',
-        '--url',
-        'https://myblog.ghost.io',
-        '--staff-token',
-        KEY,
-        '--site',
-        'myblog',
-      ]),
-    ).resolves.toBe(ExitCode.SUCCESS);
+  test('keeps auth and config smoke paths focused on observable state', async () => {
+    const logSpy = vi.mocked(console.log);
 
-    await fs.writeFile(path.join(workDir, 'post.html'), '<p>Hello</p>', 'utf8');
-    await fs.writeFile(path.join(workDir, 'post.lexical.json'), '{"root":{}}', 'utf8');
-    await fs.writeFile(path.join(workDir, 'post.md'), '# Hello\n\nMarkdown body', 'utf8');
-    await fs.writeFile(path.join(workDir, 'post-raw.html'), '<section>Raw HTML</section>', 'utf8');
-    await fs.writeFile(
-      path.join(workDir, 'post-from.json'),
-      '{"posts":[{"title":"From JSON"}]}',
-      'utf8',
-    );
-    await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
-    await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
-    await fs.writeFile(path.join(workDir, 'photo.jpg'), 'fake-image', 'utf8');
-    await fs.writeFile(path.join(workDir, 'theme.zip'), 'fake-zip', 'utf8');
-    await fs.writeFile(path.join(workDir, 'import.json'), '{"db":[{"meta":{},"data":{}}]}', 'utf8');
-    await fs.writeFile(
-      path.join(workDir, 'migrate.csv'),
-      'title,html\nImported Post,<p>Hello</p>\n',
-      'utf8',
-    );
+    await loginMyblog();
 
-    await expect(run(['node', 'ghst', 'post', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    let start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain('Active site: myblog.ghost.io');
+
+    await expect(run(['node', 'ghst', 'config', 'set', 'defaults.limit', '25'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    const config = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
+      active?: string;
+      defaults?: { limit?: number };
+    };
+    expect(config.active).toBe('myblog');
+    expect(config.defaults?.limit).toBe(25);
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'config', 'path'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain(path.join(configDir, 'config.json'));
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain('"credentialRef": "site:myblog"');
+    expect(logOutputSince(start)).not.toContain(KEY);
+
+    await expect(run(['node', 'ghst', 'config', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(
+      lastLogJson<{ active: string; defaults: { limit: number }; sites: string[] }>(),
+    ).toMatchObject({
+      active: 'myblog',
+      defaults: { limit: 25 },
+      sites: ['myblog'],
+    });
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'config', 'get', 'defaults.limit'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(logOutputSince(start)).toContain('25');
+  });
+
+  test('keeps a small content-resource smoke path with real payload assertions', async () => {
+    await seedSmokeFixtures();
+    await loginMyblog();
+
+    await expect(run(['node', 'ghst', 'post', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'post', 'list', '--limit', 'all'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
     await expect(
       run(['node', 'ghst', 'post', 'list', '--json', '--jq', '.posts[].title']),
     ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'post', 'get', '--slug', fixtureIds.postSlug])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
+    await expect(
+      run(['node', 'ghst', 'post', 'get', '--slug', fixtureIds.postSlug, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ posts: Array<{ title: string }> }>().posts[0]?.title).toBe('Fixture Post');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'post',
+        'create',
+        '--title',
+        'Created',
+        '--markdown-file',
+        './post.md',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run([
         'node',
@@ -797,6 +879,7 @@ describe('run + commands', () => {
         'One,Two',
         '--authors',
         'a@example.com',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
@@ -896,7 +979,7 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'post', 'delete', '--filter', 'status:draft', '--yes']),
+      run(['node', 'ghst', 'post', 'delete', '--filter', 'status:draft', '--yes', '--json']),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
@@ -919,11 +1002,22 @@ describe('run + commands', () => {
     }
 
     await expect(run(['node', 'ghst', 'page', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'page', 'get', '--slug', fixtureIds.pageSlug])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
     await expect(
-      run(['node', 'ghst', 'page', 'create', '--title', 'Contact', '--html', '<p>Hi</p>']),
+      run(['node', 'ghst', 'page', 'get', '--slug', fixtureIds.pageSlug, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ pages: Array<{ title: string }> }>().pages[0]?.title).toBe('Fixture Page');
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'page',
+        'create',
+        '--title',
+        'Contact',
+        '--html',
+        '<p>Hi</p>',
+        '--json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'page', 'update', fixtureIds.pageId, '--title', 'Updated Page']),
@@ -959,15 +1053,26 @@ describe('run + commands', () => {
         '--action',
         'delete',
         '--yes',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-
     await expect(run(['node', 'ghst', 'tag', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'tag', 'get', '--slug', fixtureIds.tagSlug])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
     await expect(
-      run(['node', 'ghst', 'tag', 'create', '--name', 'My Tag', '--accent-color', '#ffffff']),
+      run(['node', 'ghst', 'tag', 'get', '--slug', fixtureIds.tagSlug, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ tags: Array<{ name: string }> }>().tags[0]?.name).toBe('Fixture Tag');
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'tag',
+        'create',
+        '--name',
+        'My Tag',
+        '--accent-color',
+        '#ffffff',
+        '--json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'tag', 'update', fixtureIds.tagId, '--name', 'Updated Tag']),
@@ -1000,9 +1105,9 @@ describe('run + commands', () => {
         '--action',
         'delete',
         '--yes',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-
     await expect(run(['node', 'ghst', 'member', 'list', '--status', 'paid'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -1062,10 +1167,19 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'member', 'delete', fixtureIds.memberId, '--yes']),
     ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(fs.readFile(path.join(workDir, 'members-export.csv'), 'utf8')).resolves.toContain(
+      'email',
+    );
 
-    await expect(run(['node', 'ghst', 'newsletter', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'newsletter', 'get', fixtureIds.newsletterId])).resolves.toBe(
+    await expect(run(['node', 'ghst', 'newsletter', 'list', '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
+    );
+    expect(lastLogJson<{ newsletters: Array<{ id: string }> }>().newsletters[0]?.id).toMatch(/\S+/);
+    await expect(
+      run(['node', 'ghst', 'newsletter', 'get', fixtureIds.newsletterId, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ newsletters: Array<{ id: string }> }>().newsletters[0]?.id).toBe(
+      fixtureIds.newsletterId,
     );
     await expect(run(['node', 'ghst', 'newsletter', 'create', '--name', 'Weekly'])).resolves.toBe(
       ExitCode.SUCCESS,
@@ -1093,15 +1207,18 @@ describe('run + commands', () => {
         'update',
         '--status',
         'archived',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-
     await expect(run(['node', 'ghst', 'tier', 'list', '--include', 'benefits'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
-    await expect(run(['node', 'ghst', 'tier', 'get', fixtureIds.tierId])).resolves.toBe(
+    await expect(run(['node', 'ghst', 'tier', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ tiers: Array<{ id: string }> }>().tiers[0]?.id).toMatch(/\S+/);
+    await expect(run(['node', 'ghst', 'tier', 'get', fixtureIds.tierId, '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    expect(lastLogJson<{ tiers: Array<{ id: string }> }>().tiers[0]?.id).toBe(fixtureIds.tierId);
     await expect(
       run(['node', 'ghst', 'tier', 'create', '--name', 'Premium', '--monthly-price', '500']),
     ).resolves.toBe(ExitCode.SUCCESS);
@@ -1120,13 +1237,15 @@ describe('run + commands', () => {
         'update',
         '--active',
         'true',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'offer', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'offer', 'get', fixtureIds.offerId])).resolves.toBe(
+    await expect(run(['node', 'ghst', 'offer', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ offers: Array<{ id: string }> }>().offers[0]?.id).toMatch(/\S+/);
+    await expect(run(['node', 'ghst', 'offer', 'get', fixtureIds.offerId, '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    expect(lastLogJson<{ offers: Array<{ id: string }> }>().offers[0]?.id).toBe(fixtureIds.offerId);
     await expect(
       run(['node', 'ghst', 'offer', 'create', '--name', 'Sale', '--code', 'sale']),
     ).resolves.toBe(ExitCode.SUCCESS);
@@ -1145,13 +1264,15 @@ describe('run + commands', () => {
         'update',
         '--status',
         'archived',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'label', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'label', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ labels: Array<{ id: string }> }>().labels[0]?.id).toMatch(/\S+/);
     await expect(
-      run(['node', 'ghst', 'label', 'get', '--slug', fixtureIds.labelSlug]),
+      run(['node', 'ghst', 'label', 'get', '--slug', fixtureIds.labelSlug, '--json']),
     ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ labels: Array<{ id: string }> }>().labels[0]?.id).toBe(fixtureIds.labelId);
     await expect(run(['node', 'ghst', 'label', 'create', '--name', 'VIP'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -1186,8 +1307,134 @@ describe('run + commands', () => {
         '--action',
         'delete',
         '--yes',
+        '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+  });
+
+  test('keeps site, setting, user, and image flows wired with output-aware checks', async () => {
+    const logSpy = vi.mocked(console.log);
+    await seedSmokeFixtures();
+    await loginMyblog();
+
+    await expect(run(['node', 'ghst', 'site', 'info', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ site: { title: string; url: string } }>().site).toMatchObject({
+      title: 'ghst',
+      url: 'https://ghst.ghost.io/',
+    });
+
+    let start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'site', 'info'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain('ghst');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'setting', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain('title');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'setting', 'get', 'title'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain('ghst');
+
+    await expect(
+      run(['node', 'ghst', 'setting', 'set', 'title', 'Updated Blog', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(
+      lastLogJson<{ settings: Array<{ key: string; value: string }> }>().settings[0],
+    ).toMatchObject({
+      key: 'title',
+      value: 'Updated Blog',
+    });
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'user', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(logOutputSince(start)).toContain(fixtureIds.userEmail);
+
+    await expect(run(['node', 'ghst', 'user', 'get', fixtureIds.userId, '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(lastLogJson<{ users: Array<{ id: string }> }>().users[0]?.id).toBe(fixtureIds.userId);
+
+    await expect(
+      run(['node', 'ghst', 'user', 'get', '--slug', fixtureIds.userSlug, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ users: Array<{ slug: string }> }>().users[0]?.slug).toBe(
+      fixtureIds.userSlug,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'user', 'get', '--email', fixtureIds.userEmail, '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ users: Array<{ email: string }> }>().users[0]?.email).toBe(
+      fixtureIds.userEmail,
+    );
+
+    await expect(run(['node', 'ghst', 'user', 'me', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ users: Array<{ id: string }> }>().users[0]?.id).toBe(fixtureIds.userId);
+
+    await expect(run(['node', 'ghst', 'image', 'upload', './photo.jpg', '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(JSON.stringify(lastLogJson<{ images?: Array<Record<string, unknown>> }>())).toContain(
+      '/content/images/',
+    );
+  });
+
+  test('keeps theme, webhook, and mcp smoke paths behind explicit test runners', async () => {
+    const logSpy = vi.mocked(console.log);
+    await seedSmokeFixtures();
+    await loginMyblog();
+
+    const stdioRunner = vi.fn(async () => undefined);
+    const httpRunner = vi.fn(async () => undefined);
+    setMcpRunnersForTests({
+      stdio: stdioRunner,
+      http: httpRunner,
+    });
+
+    const webhookRunner = vi.fn(async (_global, listenOptions) => {
+      listenOptions.onEvent?.({ type: 'ready', forwardTo: listenOptions.forwardTo });
+    });
+    setWebhookListenRunnerForTests(webhookRunner);
+
+    const themeRunner = vi.fn(async (_global, devOptions) => {
+      devOptions.onEvent?.({ type: 'uploaded', source: 'initial' });
+      return { themes: [{ name: 'uploaded-theme', active: true }] };
+    });
+    setThemeDevRunnerForTests(themeRunner);
+    setThemeValidatorForTests(async () => ({ results: { errors: [] } }));
+
+    await expect(run(['node', 'ghst', 'theme', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+
+    await expect(run(['node', 'ghst', 'theme', 'upload', './theme.zip', '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(lastLogJson<{ themes: Array<{ name: string }> }>().themes[0]?.name).toBe(
+      'uploaded-theme',
+    );
+    await expect(
+      run(['node', 'ghst', 'theme', 'upload', './theme.zip', '--activate', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(
+      lastLogJson<{ themes: Array<{ name: string; active: boolean }> }>().themes[0],
+    ).toMatchObject({
+      name: 'uploaded-theme',
+      active: true,
+    });
+    await expect(run(['node', 'ghst', 'theme', 'activate', fixtureIds.themeName])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(run(['node', 'ghst', 'theme', 'validate', './theme.zip'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(logOutputSince(logSpy.mock.calls.length - 1)).toContain('Theme validation completed');
+
+    await expect(
+      run(['node', 'ghst', 'theme', 'dev', './theme-dev', '--watch', '--activate']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(themeRunner).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ path: './theme-dev', watch: true, activate: true }),
+    );
 
     await expect(
       run([
@@ -1216,18 +1463,6 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId, '--yes']),
     ).resolves.toBe(ExitCode.SUCCESS);
-    setWebhookListenRunnerForTests(async (_global, listenOptions) => {
-      listenOptions.onEvent?.({
-        type: 'ready',
-        host: listenOptions.host,
-        port: listenOptions.port,
-        forwardTo: listenOptions.forwardTo,
-      });
-      listenOptions.onEvent?.({
-        type: 'forwarded',
-        status: 200,
-      });
-    });
     await expect(
       run([
         'node',
@@ -1254,120 +1489,14 @@ describe('run + commands', () => {
         'http://localhost:3000/webhooks',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'user', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'user', 'get', fixtureIds.userId])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(run(['node', 'ghst', 'user', 'get', '--slug', fixtureIds.userSlug])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(
-      run(['node', 'ghst', 'user', 'get', '--email', fixtureIds.userEmail]),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'image', 'upload', './photo.jpg'])).resolves.toBe(
-      ExitCode.SUCCESS,
+    expect(webhookRunner).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        publicUrl: 'https://hooks.example.com/ghost',
+        forwardTo: 'http://localhost:3000/webhooks',
+      }),
     );
 
-    await expect(run(['node', 'ghst', 'theme', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'theme', 'upload', './theme.zip'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(run(['node', 'ghst', 'theme', 'activate', fixtureIds.themeName])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    const themeDir = path.join(workDir, 'theme-dev');
-    await fs.mkdir(themeDir, { recursive: true });
-    await fs.writeFile(path.join(themeDir, 'package.json'), '{"name":"theme-dev"}', 'utf8');
-    setThemeDevRunnerForTests(async (_global, devOptions) => {
-      devOptions.onEvent?.({ type: 'uploaded', source: 'initial', activeTheme: 'uploaded-theme' });
-      return { themes: [{ name: 'uploaded-theme', active: true }] };
-    });
-    await expect(
-      run(['node', 'ghst', 'theme', 'dev', './theme-dev', '--watch', '--activate']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'site', 'info'])).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'setting', 'list'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'setting', 'get', 'title'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'setting', 'set', 'title', 'Updated Blog'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-
-    await expect(run(['node', 'ghst', 'migrate', 'csv', '--file', './migrate.csv'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(run(['node', 'ghst', 'migrate', 'json', '--file', './import.json'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(
-      run(['node', 'ghst', 'migrate', 'export', '--output', './export.zip']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-
-    await expect(run(['node', 'ghst', 'config', 'path'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'config', 'show'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'config', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'config', 'set', 'defaults.limit', '25'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(run(['node', 'ghst', 'config', 'get', 'defaults.limit'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-
-    await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'api', '/site/'])).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run(['node', 'ghst', 'api', '/ghost/api/admin/site/', '--method', 'GET']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run(['node', 'ghst', 'api', '/settings/', '--query', 'limit=1', 'status=published']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--input', './payload.json']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--content-api', '--method', 'GET']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run([
-        'node',
-        'ghst',
-        'api',
-        '/posts/',
-        '--method',
-        'POST',
-        '--body',
-        '{"title":"Inline"}',
-        '--field',
-        'status=draft',
-      ]),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--paginate', '--include-headers']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'api', '/site/', '--paginate'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--field', 'status=draft']),
-    ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--body', '{}', '--input', './payload.json']),
-    ).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(
-      run(['node', 'ghst', 'api', '../../../members/', '--method', 'GET']),
-    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
-    await expect(
-      run(['node', 'ghst', 'api', '/%2E%2E%2Fmembers/', '--method', 'GET']),
-    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
-
-    setMcpRunnersForTests({
-      stdio: async () => undefined,
-      http: async () => undefined,
-    });
     await expect(run(['node', 'ghst', 'mcp', 'stdio'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'mcp', 'stdio', '--tools', 'posts,tags'])).resolves.toBe(
       ExitCode.SUCCESS,
@@ -1390,7 +1519,7 @@ describe('run + commands', () => {
         '--port',
         '3100',
         '--tools',
-        'posts,tags',
+        'posts',
         '--auth-token',
         'token-123',
       ]),
@@ -1458,12 +1587,96 @@ describe('run + commands', () => {
         'token-123',
       ]),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    expect(stdioRunner).toHaveBeenCalledTimes(2);
+    expect(httpRunner).toHaveBeenCalledTimes(2);
+  });
+
+  test('keeps stats, api, migrate, and completion smoke paths tied to file or json outputs', async () => {
+    await seedSmokeFixtures();
+    await loginMyblog();
+
+    await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'api', '/site/'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ site: { title: string } }>().site.title).toBe('ghst');
+    await expect(
+      run(['node', 'ghst', 'api', '/ghost/api/admin/site/', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/settings/', '--query', 'limit=1', 'status=published']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--input', './payload.json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--content-api', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'api',
+        '/posts/',
+        '--method',
+        'POST',
+        '--body',
+        '{"title":"Inline"}',
+        '--field',
+        'status=draft',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--paginate', '--include-headers']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'api', '/site/', '--paginate'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--field', 'status=draft']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--body', '{}', '--input', './payload.json']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
+      run(['node', 'ghst', 'api', '../../../members/', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+    await expect(
+      run(['node', 'ghst', 'api', '/%2E%2E%2Fmembers/', '--method', 'GET']),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run(['node', 'ghst', 'stats', 'posts', '--csv', '--output', './posts.csv']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(fs.readFile(path.join(workDir, 'posts.csv'), 'utf8')).resolves.toContain(
+      'post_id,title',
+    );
+
+    await expect(
+      run(['node', 'ghst', 'migrate', 'csv', '--file', './migrate.csv', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ imported?: number }>().imported).toBe(1);
+    await expect(run(['node', 'ghst', 'migrate', 'json', '--file', './import.json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+
+    await expect(
+      run(['node', 'ghst', 'migrate', 'export', '--output', './export.zip', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ ok: boolean; output: string }>().output).toBe('./export.zip');
+    await expect(fs.stat(path.join(workDir, 'export.zip'))).resolves.toBeTruthy();
 
     await expect(run(['node', 'ghst', 'completion'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'completion', 'bash'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(vi.mocked(console.log).mock.calls.at(-1)?.[0] ?? '')).toContain('--debug');
     await expect(run(['node', 'ghst', 'completion', 'zsh'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(vi.mocked(console.log).mock.calls.at(-1)?.[0] ?? '')).toContain('#compdef ghst');
     await expect(run(['node', 'ghst', 'completion', 'fish'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(vi.mocked(console.log).mock.calls.at(-1)?.[0] ?? '')).toContain(
+      'complete -c ghst',
+    );
     await expect(run(['node', 'ghst', 'completion', 'powershell'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(vi.mocked(console.log).mock.calls.at(-1)?.[0] ?? '')).toContain(
+      'Register-ArgumentCompleter',
+    );
     await expect(run(['node', 'ghst', 'completion', 'bad-shell'])).resolves.toBe(
       ExitCode.USAGE_ERROR,
     );
@@ -1550,7 +1763,7 @@ describe('run + commands', () => {
     expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"summary"');
   });
 
-  test('covers phase2 validation and non-interactive branches', async () => {
+  test('validates phase 2 resource commands across non-interactive and error branches', async () => {
     await expect(
       run([
         'node',
@@ -1695,7 +1908,7 @@ describe('run + commands', () => {
     expect(seenOptions?.corsOrigin).toBe('https://app.example.com');
   });
 
-  test('covers phase3 validation, permission, and migrate edge branches', async () => {
+  test('validates phase 3 commands across permission, validation, and migrate edge cases', async () => {
     await expect(
       run([
         'node',
@@ -1737,17 +1950,22 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    const stdoutTty = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
     await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
       ExitCode.USAGE_ERROR,
     );
     Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
     setPromptHandlerForTests(async () => 'no');
     await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
       ExitCode.OPERATION_CANCELLED,
     );
     if (stdinTty) {
       Object.defineProperty(process.stdin, 'isTTY', stdinTty);
+    }
+    if (stdoutTty) {
+      Object.defineProperty(process.stdout, 'isTTY', stdoutTty);
     }
 
     await expect(run(['node', 'ghst', 'user', 'get'])).resolves.toBe(ExitCode.VALIDATION_ERROR);
@@ -1980,7 +2198,7 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.AUTH_ERROR);
   });
 
-  test('covers stats commands across summary, json, jq, and csv outputs', async () => {
+  test('renders stats summaries across json, jq, human, and csv outputs', async () => {
     const logSpy = vi.spyOn(console, 'log');
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
@@ -2141,7 +2359,7 @@ describe('run + commands', () => {
     );
   });
 
-  test('covers remaining stats command views and validation branches', async () => {
+  test('handles remaining stats views and validation failures', async () => {
     const logSpy = vi.spyOn(console, 'log');
 
     for (const argv of [
@@ -2210,7 +2428,7 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.USAGE_ERROR);
   });
 
-  test('covers socialweb command flows over the identity-token bridge', async () => {
+  test('runs socialweb commands through the identity-token bridge', async () => {
     const logSpy = vi.spyOn(console, 'log');
     await fs.writeFile(path.join(workDir, 'photo.jpg'), 'image');
 
@@ -2343,7 +2561,7 @@ describe('run + commands', () => {
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
   });
 
-  test('covers socialweb human output and validation branches', async () => {
+  test('renders socialweb human output and validates invalid inputs', async () => {
     const logSpy = vi.spyOn(console, 'log');
     await fs.writeFile(path.join(workDir, 'photo.jpg'), 'image');
 

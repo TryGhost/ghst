@@ -29,6 +29,15 @@ export async function uploadTheme(
   return client.themes.upload(formData);
 }
 
+export function getUploadedThemeName(payload: Record<string, unknown>): string | undefined {
+  const themes = Array.isArray(payload.themes)
+    ? (payload.themes as Array<Record<string, unknown>>)
+    : [];
+  const uploadedTheme = themes[0] ?? payload;
+  const name = String(uploadedTheme.name ?? '').trim();
+  return name || undefined;
+}
+
 export async function activateTheme(
   global: GlobalOptions,
   name: string,

@@ -85,7 +85,7 @@ vi.mock('../src/lib/output.js', async () => {
 
 import { run } from '../src/index.js';
 
-describe('stats command coverage', () => {
+describe('stats command contracts', () => {
   let tempRoot = '';
 
   beforeEach(async () => {
@@ -175,7 +175,7 @@ describe('stats command coverage', () => {
     vi.restoreAllMocks();
   });
 
-  test('covers json branches across stats views', async () => {
+  test('routes json subcommands to the matching stats services', async () => {
     await expect(run(['node', 'ghst', '--json', 'stats', 'web'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', '--json', 'stats', 'growth'])).resolves.toBe(
       ExitCode.SUCCESS,
@@ -195,9 +195,39 @@ describe('stats command coverage', () => {
     ).resolves.toBe(ExitCode.SUCCESS);
 
     expect(statsMocks.printJson).toHaveBeenCalledTimes(7);
+    expect(statsMocks.getStatsWeb).toHaveBeenCalledWith(expect.any(Object), {});
+    expect(statsMocks.getStatsGrowth).toHaveBeenCalledWith(expect.any(Object), {
+      from: undefined,
+      limit: undefined,
+      range: undefined,
+      timezone: undefined,
+      to: undefined,
+    });
+    expect(statsMocks.getStatsPosts).toHaveBeenCalledWith(expect.any(Object), {
+      from: undefined,
+      limit: 5,
+      range: undefined,
+      timezone: undefined,
+      to: undefined,
+    });
+    expect(statsMocks.getStatsPost).toHaveBeenCalledWith(expect.any(Object), { id: 'post-1' });
+    expect(statsMocks.getStatsPostGrowth).toHaveBeenCalledWith(expect.any(Object), {
+      id: 'post-1',
+    });
+    expect(statsMocks.getStatsPostNewsletter).toHaveBeenCalledWith(expect.any(Object), {
+      id: 'post-1',
+    });
+    expect(statsMocks.getStatsPostReferrers).toHaveBeenCalledWith(expect.any(Object), {
+      id: 'post-1',
+      range: undefined,
+      from: undefined,
+      to: undefined,
+      timezone: undefined,
+      limit: 10,
+    });
   });
 
-  test('covers csv and repeated option handling for email views', async () => {
+  test('writes csv output and preserves repeated --post filters for email reports', async () => {
     const newslettersCsvPath = path.join(tempRoot, 'newsletters.csv');
     const subscribersCsvPath = path.join(tempRoot, 'subscribers.csv');
 
@@ -238,6 +268,7 @@ describe('stats command coverage', () => {
       expect.objectContaining({
         newsletterId: 'newsletter-1',
         postIds: ['post-1', 'post-2'],
+        limit: 10,
       }),
     );
     await expect(fs.readFile(newslettersCsvPath, 'utf8')).resolves.toContain(
@@ -248,7 +279,7 @@ describe('stats command coverage', () => {
     );
   });
 
-  test('covers validation guards for csv mode', async () => {
+  test('rejects invalid csv combinations and invalid numeric limits', async () => {
     await expect(
       run(['node', 'ghst', 'stats', 'web', 'sources', '--output', 'out.csv']),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
@@ -260,7 +291,7 @@ describe('stats command coverage', () => {
     );
   });
 
-  test('covers remaining human output branches', async () => {
+  test('uses human printers for email click, subscriber, and post drilldown reports', async () => {
     await expect(
       run(['node', 'ghst', 'stats', 'email', 'clicks', '--newsletter', 'newsletter-1']),
     ).resolves.toBe(ExitCode.SUCCESS);
@@ -280,7 +311,7 @@ describe('stats command coverage', () => {
     expect(statsMocks.printStatsPostReferrersHuman).toHaveBeenCalled();
   });
 
-  test('covers post view validation branches', async () => {
+  test('validates that post drilldown views require a post id', async () => {
     await expect(run(['node', 'ghst', 'stats', 'post', ''])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,
     );
@@ -298,7 +329,7 @@ describe('stats command coverage', () => {
     );
   });
 
-  test('covers email subscribers json and unsupported view branches', async () => {
+  test('prints subscriber summaries as json and rejects unknown email subviews', async () => {
     await expect(run(['node', 'ghst', '--json', 'stats', 'email', 'subscribers'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -322,7 +353,7 @@ describe('stats command coverage', () => {
     );
   });
 
-  test('covers email clicks csv and subscriber validation branches', async () => {
+  test('allows csv clicks exports and validates subscriber filters', async () => {
     await expect(
       run(['node', 'ghst', 'stats', 'email', 'clicks', '--newsletter', 'newsletter-1', '--csv']),
     ).resolves.toBe(ExitCode.SUCCESS);
@@ -331,7 +362,7 @@ describe('stats command coverage', () => {
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
   });
 
-  test('covers newsletter summary json and human branches', async () => {
+  test('switches newsletter summaries between json and human output modes', async () => {
     await expect(run(['node', 'ghst', '--json', 'stats', 'email'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'stats', 'email'])).resolves.toBe(ExitCode.SUCCESS);
 
@@ -356,7 +387,7 @@ describe('stats command coverage', () => {
     expect(statsMocks.printStatsNewslettersHuman).toHaveBeenCalled();
   });
 
-  test('covers posts human and growth validation branches', async () => {
+  test('prints posts summaries in human mode and validates growth limits', async () => {
     await expect(run(['node', 'ghst', 'stats', 'posts'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'stats', 'growth', '--limit', '0'])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,

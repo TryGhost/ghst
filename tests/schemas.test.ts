@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'vitest';
+import type { ZodTypeAny } from 'zod';
+import { UserConfigSchema } from '../src/schemas/config.js';
 import { ImageUploadInputSchema } from '../src/schemas/image.js';
 import {
   LabelBulkInputSchema,
   LabelCreateInputSchema,
   LabelGetInputSchema,
-  LabelListInputSchema,
   LabelUpdateInputSchema,
 } from '../src/schemas/label.js';
 import {
   MemberBulkInputSchema,
   MemberCreateInputSchema,
   MemberGetInputSchema,
-  MemberListInputSchema,
   MemberUpdateInputSchema,
 } from '../src/schemas/member.js';
 import {
@@ -26,39 +26,30 @@ import {
   NewsletterBulkInputSchema,
   NewsletterCreateInputSchema,
   NewsletterGetInputSchema,
-  NewsletterListInputSchema,
   NewsletterUpdateInputSchema,
 } from '../src/schemas/newsletter.js';
 import {
   OfferBulkInputSchema,
   OfferCreateInputSchema,
   OfferGetInputSchema,
-  OfferListInputSchema,
   OfferUpdateInputSchema,
 } from '../src/schemas/offer.js';
 import {
   PageBulkInputSchema,
   PageCopyInputSchema,
   PageCreateInputSchema,
-  PageGetInputSchema,
-  PageListInputSchema,
   PageUpdateInputSchema,
 } from '../src/schemas/page.js';
 import {
   PostBulkInputSchema,
-  PostCopyInputSchema,
   PostCreateInputSchema,
   PostDeleteInputSchema,
-  PostGetInputSchema,
-  PostListInputSchema,
   PostScheduleInputSchema,
-  PostUnscheduleInputSchema,
   PostUpdateInputSchema,
 } from '../src/schemas/post.js';
 import { SettingGetInputSchema, SettingSetInputSchema } from '../src/schemas/setting.js';
 import { SiteInfoInputSchema } from '../src/schemas/site.js';
 import {
-  SocialWebBlockDomainInputSchema,
   SocialWebContentInputSchema,
   SocialWebFollowsInputSchema,
   SocialWebHandleActionInputSchema,
@@ -73,6 +64,7 @@ import {
 import {
   StatsNewsletterClicksInputSchema,
   StatsPostInputSchema,
+  StatsPostReferrersInputSchema,
   StatsPostsInputSchema,
   StatsWebInputSchema,
   StatsWebTableInputSchema,
@@ -81,7 +73,6 @@ import {
   TagBulkInputSchema,
   TagCreateInputSchema,
   TagGetInputSchema,
-  TagListInputSchema,
   TagUpdateInputSchema,
 } from '../src/schemas/tag.js';
 import {
@@ -94,10 +85,9 @@ import {
   TierBulkInputSchema,
   TierCreateInputSchema,
   TierGetInputSchema,
-  TierListInputSchema,
   TierUpdateInputSchema,
 } from '../src/schemas/tier.js';
-import { UserGetInputSchema, UserListInputSchema } from '../src/schemas/user.js';
+import { UserGetInputSchema, UserListInputSchema, UserMeInputSchema } from '../src/schemas/user.js';
 import {
   WebhookCreateInputSchema,
   WebhookDeleteInputSchema,
@@ -105,456 +95,354 @@ import {
   WebhookUpdateInputSchema,
 } from '../src/schemas/webhook.js';
 
+function expectValid<T>(schema: ZodTypeAny, input: unknown): T {
+  return schema.parse(input) as T;
+}
+
+function expectInvalid(schema: ZodTypeAny, input: unknown, message?: string): void {
+  const result = schema.safeParse(input);
+  expect(result.success).toBe(false);
+  if (!result.success && message) {
+    expect(result.error.issues.map((issue) => issue.message).join(' | ')).toContain(message);
+  }
+}
+
 describe('post schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(PostListInputSchema.parse({ limit: 'all', status: 'draft' }).limit).toBe('all');
-    expect(PostGetInputSchema.parse({ slug: 'welcome' }).slug).toBe('welcome');
+  test('allow json imports but enforce scheduling and content-source guardrails', () => {
+    expectValid<{ fromJson: string }>(PostCreateInputSchema, {
+      fromJson: './post.json',
+    });
+    expectValid<{ at: string; emailOnly?: boolean }>(PostScheduleInputSchema, {
+      id: 'post-1',
+      at: '2026-03-01T10:00:00Z',
+      emailOnly: true,
+    });
 
-    expect(
-      PostCreateInputSchema.parse({
-        title: 'hello',
-        status: 'draft',
-        html: '<p>hi</p>',
-      }).title,
-    ).toBe('hello');
-
-    expect(
-      PostCreateInputSchema.parse({
-        fromJson: './post.json',
-        markdownFile: './post.md',
-      }).fromJson,
-    ).toBe('./post.json');
-    expect(PostCreateInputSchema.parse({ fromJson: './post.json' }).status).toBeUndefined();
-
-    expect(
-      PostUpdateInputSchema.parse({
-        id: 'id1',
-        title: 'new',
-      }).title,
-    ).toBe('new');
-    expect(
-      PostUpdateInputSchema.parse({
-        id: 'id1',
-        featureImage: 'https://example.com/cat.jpg',
-      }).featureImage,
-    ).toBe('https://example.com/cat.jpg');
-
-    expect(() =>
-      PostCreateInputSchema.parse({ title: 'bad', html: 'x', lexicalFile: 'y' }),
-    ).toThrow();
-    expect(() => PostUpdateInputSchema.parse({ id: 'id1' })).toThrow();
-    expect(PostScheduleInputSchema.parse({ id: 'id1', at: '2026-03-01T10:00:00Z' }).id).toBe('id1');
-    expect(PostUnscheduleInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(PostCopyInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(PostDeleteInputSchema.parse({ filter: 'status:draft', yes: true }).filter).toBe(
-      'status:draft',
+    expectInvalid(PostCreateInputSchema, { title: 'Hello', status: 'scheduled' }, 'publish-at');
+    expectInvalid(
+      PostCreateInputSchema,
+      { title: 'Hello', html: '<p>hi</p>', markdownFile: './post.md' },
+      'Use only one content source',
     );
-    expect(
-      PostBulkInputSchema.parse({
-        filter: 'status:draft',
-        action: 'update',
-        status: 'published',
-      }).action,
-    ).toBe('update');
-    expect(() => PostBulkInputSchema.parse({ filter: 'status:draft', action: 'delete' })).toThrow();
-    expect(() =>
-      PostBulkInputSchema.parse({
-        filter: 'status:draft',
-        action: 'update',
-        delete: true,
-        status: 'published',
-      }),
-    ).toThrow();
+  });
+
+  test('require a selector and a real patch for updates', () => {
+    expectValid<{ title: string }>(PostUpdateInputSchema, {
+      slug: 'welcome',
+      title: 'Updated',
+    });
+
+    expectInvalid(PostUpdateInputSchema, { id: 'post-1' }, 'Provide at least one update field');
+    expectInvalid(PostUpdateInputSchema, { title: 'Updated' }, 'Provide an id argument or --slug');
+    expectInvalid(
+      PostUpdateInputSchema,
+      { id: 'post-1', html: '<p>hi</p>', htmlFile: './post.html' },
+      'Use only one content source',
+    );
+  });
+
+  test('protect destructive delete and bulk operations', () => {
+    expectValid<{ filter: string }>(PostDeleteInputSchema, { filter: 'status:draft', yes: true });
+    expectValid<{ action?: string; delete?: boolean; yes?: boolean }>(PostBulkInputSchema, {
+      filter: 'status:draft',
+      action: 'delete',
+      yes: true,
+    });
+
+    expectInvalid(PostDeleteInputSchema, { id: 'post-1', filter: 'status:draft' }, 'Use either');
+    expectInvalid(PostBulkInputSchema, { filter: 'status:draft', action: 'delete' }, '--yes');
+    expectInvalid(
+      PostBulkInputSchema,
+      { filter: 'status:draft', action: 'update' },
+      'Bulk update requires at least one',
+    );
   });
 });
 
-describe('page schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(PageListInputSchema.parse({ limit: 5 }).limit).toBe(5);
-    expect(PageGetInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(PageCreateInputSchema.parse({ title: 'About', status: 'draft' }).title).toBe('About');
-    expect(PageUpdateInputSchema.parse({ id: 'id1', title: 'New' }).title).toBe('New');
+describe('page and tag schemas', () => {
+  test('default page creation state and require publishAt for scheduled pages', () => {
+    expect(expectValid<{ status: string }>(PageCreateInputSchema, { title: 'About' }).status).toBe(
+      'draft',
+    );
+    expectValid<{ id: string }>(PageCopyInputSchema, { id: 'page-1' });
 
-    expect(() => PageUpdateInputSchema.parse({ slug: 'about' })).toThrow();
-    expect(PageCopyInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(
-      PageBulkInputSchema.parse({
-        filter: 'status:draft',
-        action: 'update',
-        status: 'published',
-      }).action,
-    ).toBe('update');
+    expectInvalid(PageCreateInputSchema, { title: 'About', status: 'scheduled' }, 'publish-at');
+    expectInvalid(
+      PageUpdateInputSchema,
+      { id: 'page-1', html: '<p>hi</p>', htmlFile: './page.html' },
+      'Use only one of --html, --html-file, or --lexical-file.',
+    );
+    expectInvalid(PageBulkInputSchema, { filter: 'status:draft', action: 'delete' }, '--yes');
   });
-});
 
-describe('tag schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(TagListInputSchema.parse({ limit: 'all' }).limit).toBe('all');
-    expect(TagGetInputSchema.parse({ slug: 'news' }).slug).toBe('news');
-    expect(TagCreateInputSchema.parse({ name: 'News', accentColor: '#ffffff' }).name).toBe('News');
-    expect(TagUpdateInputSchema.parse({ id: 'id1', name: 'Updated' }).name).toBe('Updated');
+  test('enforce tag selector, update fields, and color validation', () => {
+    expectValid<{ name: string }>(TagCreateInputSchema, { name: 'News', accentColor: '#ffffff' });
+    expectValid<{ slugLookup?: string; name?: string }>(TagUpdateInputSchema, {
+      slugLookup: 'news',
+      name: 'Newsroom',
+    });
+    expectValid<{ slug?: string }>(TagGetInputSchema, { slug: 'news' });
 
-    expect(() => TagCreateInputSchema.parse({ name: 'x', accentColor: 'red' })).toThrow();
-    expect(() => TagUpdateInputSchema.parse({ id: 'id1' })).toThrow();
-    expect(
-      TagBulkInputSchema.parse({
-        filter: 'visibility:public',
-        action: 'update',
-        visibility: 'internal',
-      }).action,
-    ).toBe('update');
+    expectInvalid(TagCreateInputSchema, { name: 'News', accentColor: 'red' });
+    expectInvalid(TagUpdateInputSchema, { id: 'tag-1' }, 'Provide at least one update field');
+    expectInvalid(
+      TagBulkInputSchema,
+      { filter: 'visibility:public', action: 'update' },
+      '--visibility',
+    );
   });
 });
 
 describe('member schemas', () => {
-  test('validates list/get/create/update/bulk', () => {
-    expect(MemberListInputSchema.parse({ limit: 5 }).limit).toBe(5);
-    expect(MemberGetInputSchema.parse({ email: 'x@example.com' }).email).toBe('x@example.com');
-    expect(
-      MemberCreateInputSchema.parse({
-        email: 'x@example.com',
-        name: 'X',
-      }).email,
-    ).toBe('x@example.com');
-    expect(
-      MemberUpdateInputSchema.parse({
-        id: 'id1',
-        note: 'Updated',
-      }).note,
-    ).toBe('Updated');
+  test('require tiers for complimentary and expiry flows', () => {
+    expectValid<{ email: string }>(MemberCreateInputSchema, {
+      email: 'x@example.com',
+      comp: true,
+      tier: 'tier-1',
+    });
+    expectValid<{ id?: string; expiry?: string }>(MemberUpdateInputSchema, {
+      id: 'member-1',
+      tier: 'tier-1',
+      expiry: '2027-01-01T00:00:00Z',
+    });
 
-    expect(
-      MemberBulkInputSchema.parse({
-        action: 'unsubscribe',
-        all: true,
-      }).action,
-    ).toBe('unsubscribe');
-    expect(
-      MemberBulkInputSchema.parse({
-        update: true,
-        all: true,
-        labels: 'VIP',
-      }).update,
-    ).toBe(true);
-
-    expect(() => MemberGetInputSchema.parse({})).toThrow();
-    expect(() =>
-      MemberBulkInputSchema.parse({ action: 'unsubscribe', all: true, filter: "id:'id1'" }),
-    ).toThrow();
-    expect(() =>
-      MemberBulkInputSchema.parse({ action: 'add-label', filter: "id:'id1'" }),
-    ).toThrow();
-    expect(() =>
-      MemberBulkInputSchema.parse({
-        delete: true,
-        all: true,
-      }),
-    ).toThrow();
-    expect(() =>
-      MemberBulkInputSchema.parse({
-        action: 'delete',
-        all: true,
-      }),
-    ).toThrow();
-    expect(
-      MemberBulkInputSchema.parse({
-        action: 'delete',
-        all: true,
-        yes: true,
-      }).action,
-    ).toBe('delete');
-  });
-});
-
-describe('site schemas', () => {
-  test('validates site info input', () => {
-    expect(SiteInfoInputSchema.parse({})).toEqual({});
-  });
-});
-
-describe('newsletter schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(NewsletterListInputSchema.parse({ limit: 'all' }).limit).toBe('all');
-    expect(NewsletterGetInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(
-      NewsletterCreateInputSchema.parse({
-        name: 'Weekly',
-        status: 'active',
-      }).name,
-    ).toBe('Weekly');
-    expect(
-      NewsletterUpdateInputSchema.parse({
-        id: 'id1',
-        name: 'Updated',
-      }).name,
-    ).toBe('Updated');
-    expect(
-      NewsletterBulkInputSchema.parse({
-        filter: 'status:active',
-        action: 'update',
-        status: 'archived',
-      }).status,
-    ).toBe('archived');
-  });
-});
-
-describe('tier schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(TierListInputSchema.parse({ limit: 1 }).limit).toBe(1);
-    expect(TierGetInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(
-      TierCreateInputSchema.parse({
-        name: 'Premium',
-        monthlyPrice: 500,
-      }).name,
-    ).toBe('Premium');
-    expect(
-      TierUpdateInputSchema.parse({
-        id: 'id1',
-        trialDays: 14,
-      }).trialDays,
-    ).toBe(14);
-    expect(
-      TierBulkInputSchema.parse({
-        filter: 'type:paid',
-        action: 'update',
-        active: true,
-      }).active,
-    ).toBe(true);
-  });
-});
-
-describe('offer schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(OfferListInputSchema.parse({ filter: 'status:active' }).filter).toBe('status:active');
-    expect(OfferGetInputSchema.parse({ id: 'id1' }).id).toBe('id1');
-    expect(
-      OfferCreateInputSchema.parse({
-        name: 'Sale',
-        code: 'sale',
-      }).code,
-    ).toBe('sale');
-    expect(
-      OfferUpdateInputSchema.parse({
-        id: 'id1',
-        status: 'archived',
-      }).status,
-    ).toBe('archived');
-    expect(
-      OfferBulkInputSchema.parse({
-        filter: 'status:active',
-        action: 'update',
-        status: 'archived',
-      }).status,
-    ).toBe('archived');
-
-    expect(() => OfferUpdateInputSchema.parse({ id: 'id1' })).toThrow();
-  });
-});
-
-describe('label schemas', () => {
-  test('validates list/get/create/update', () => {
-    expect(LabelListInputSchema.parse({ limit: 'all' }).limit).toBe('all');
-    expect(LabelGetInputSchema.parse({ slug: 'vip' }).slug).toBe('vip');
-    expect(LabelCreateInputSchema.parse({ name: 'VIP' }).name).toBe('VIP');
-    expect(LabelUpdateInputSchema.parse({ id: 'id1', name: 'VIP 2' }).name).toBe('VIP 2');
-    expect(
-      LabelBulkInputSchema.parse({
-        filter: "name:'VIP'",
-        action: 'update',
-        name: 'VIP 2',
-      }).action,
-    ).toBe('update');
-
-    expect(() => LabelGetInputSchema.parse({})).toThrow();
-    expect(() => LabelGetInputSchema.parse({ id: 'id1', slug: 'vip' })).toThrow();
-    expect(() =>
-      LabelUpdateInputSchema.parse({ id: 'id1', slugLookup: 'vip', name: 'x' }),
-    ).toThrow();
-    expect(() =>
-      LabelBulkInputSchema.parse({
-        filter: "name:'VIP'",
-        action: 'delete',
-      }),
-    ).toThrow();
-  });
-});
-
-describe('phase3 schemas', () => {
-  test('validates user/webhook/image/theme/setting/migrate schemas', () => {
-    expect(UserListInputSchema.parse({ limit: 'all' }).limit).toBe('all');
-    expect(UserGetInputSchema.parse({ email: 'owner@example.com' }).email).toBe(
-      'owner@example.com',
+    expectInvalid(MemberCreateInputSchema, { email: 'x@example.com', comp: true }, '--tier');
+    expectInvalid(
+      MemberUpdateInputSchema,
+      { email: 'x@example.com', expiry: '2027-01-01T00:00:00Z' },
+      '--tier',
     );
-    expect(() => UserGetInputSchema.parse({})).toThrow();
-    expect(() => UserGetInputSchema.parse({ id: 'id1', slug: 'slug' })).toThrow();
+    expectInvalid(MemberUpdateInputSchema, { id: 'member-1' }, 'Provide at least one update field');
+  });
 
+  test('enforce member selectors and bulk destructive safeguards', () => {
+    expectValid<{ email?: string }>(MemberGetInputSchema, { email: 'x@example.com' });
+    expectValid<{ update?: boolean; labels?: string }>(MemberBulkInputSchema, {
+      update: true,
+      all: true,
+      labels: 'VIP',
+    });
+
+    expectInvalid(MemberGetInputSchema, { id: 'member-1', email: 'x@example.com' }, 'Use either');
+    expectInvalid(MemberBulkInputSchema, { delete: true, all: true }, '--yes');
+    expectInvalid(
+      MemberBulkInputSchema,
+      { action: 'add-label', filter: "id:'member-1'" },
+      '--label-id is required',
+    );
+    expectInvalid(
+      MemberBulkInputSchema,
+      { action: 'unsubscribe', all: true, filter: 'status:paid' },
+      '--all',
+    );
+  });
+});
+
+describe('newsletter, tier, offer, and label schemas', () => {
+  test('require real updates for newsletters, tiers, offers, and labels', () => {
+    expectValid<{ id: string }>(NewsletterGetInputSchema, { id: 'newsletter-1' });
+    expectValid<{ senderEmail?: string | null }>(NewsletterCreateInputSchema, {
+      name: 'Weekly',
+      senderEmail: null,
+    });
+    expectValid<{ name: string }>(TierCreateInputSchema, { name: 'Premium', monthlyPrice: 500 });
+    expectValid<{ code: string }>(OfferCreateInputSchema, { name: 'Sale', code: 'sale' });
+    expectValid<{ slug?: string }>(LabelGetInputSchema, { slug: 'vip' });
+    expectValid<{ name: string }>(LabelCreateInputSchema, { name: 'VIP' });
+
+    expectInvalid(
+      NewsletterUpdateInputSchema,
+      { id: 'newsletter-1' },
+      'Provide at least one update field',
+    );
+    expectInvalid(
+      NewsletterBulkInputSchema,
+      { filter: 'status:active', action: 'update' },
+      '--status or --visibility',
+    );
+    expectInvalid(TierUpdateInputSchema, { id: 'tier-1' }, 'Provide at least one update field');
+    expectInvalid(
+      TierBulkInputSchema,
+      { filter: 'type:paid', action: 'update' },
+      'at least one update field',
+    );
+    expectInvalid(OfferUpdateInputSchema, { id: 'offer-1' }, 'Provide at least one update field');
+    expectInvalid(OfferBulkInputSchema, { filter: 'status:active', action: 'update' }, '--status');
+    expectInvalid(LabelUpdateInputSchema, { id: 'label-1' }, 'Provide at least one update field');
+    expectInvalid(LabelBulkInputSchema, { filter: "name:'VIP'", action: 'delete' }, '--yes');
+  });
+
+  test('validate identity selectors and basic value formats', () => {
+    expectValid<{ id: string }>(TierGetInputSchema, { id: 'tier-1' });
+    expectValid<{ id: string }>(OfferGetInputSchema, { id: 'offer-1' });
+
+    expectInvalid(LabelGetInputSchema, {}, 'Provide an id argument or --slug');
+    expectInvalid(LabelGetInputSchema, { id: 'label-1', slug: 'vip' }, 'Use either');
+    expectInvalid(TierCreateInputSchema, { name: 'Premium', currency: 'US' });
+    expectInvalid(OfferCreateInputSchema, { name: 'Sale', code: 'sale', amount: -1 });
+  });
+});
+
+describe('phase 3 schemas', () => {
+  test('enforce user selectors plus webhook and theme mutation requirements', () => {
+    expectValid<{ limit?: number | string }>(UserListInputSchema, { limit: 'all' });
+    expectValid<{ email?: string }>(UserGetInputSchema, { email: 'owner@example.com' });
+    expectValid<{ include?: string }>(UserMeInputSchema, { include: 'roles' });
+    expectValid<{ event: string }>(WebhookCreateInputSchema, {
+      event: 'post.published',
+      targetUrl: 'https://example.com/hook',
+    });
+    expectValid<{ id: string }>(WebhookDeleteInputSchema, { id: 'hook-1', yes: true });
+    expectValid<{ filePath: string }>(ImageUploadInputSchema, { filePath: './image.jpg' });
+    expectValid<{ path: string }>(ThemeUploadInputSchema, { path: './theme.zip', activate: true });
+    expectValid<{ name: string }>(ThemeActivateInputSchema, { name: 'casper' });
+    expectValid<{ path: string }>(ThemeValidateInputSchema, { path: './theme' });
+    expectValid<{ key: string }>(SettingGetInputSchema, { key: 'title' });
+    expectValid<{ value: string }>(SettingSetInputSchema, { key: 'title', value: 'My Blog' });
+
+    expectInvalid(UserGetInputSchema, {}, 'Provide exactly one selector');
+    expectInvalid(
+      UserGetInputSchema,
+      { id: 'user-1', slug: 'owner' },
+      'Provide exactly one selector',
+    );
+    expectInvalid(WebhookUpdateInputSchema, { id: 'hook-1' }, 'Provide at least one update field');
+    expectInvalid(WebhookListenInputSchema, { publicUrl: 'https://example.com/hook' });
+    expectInvalid(ThemeDevInputSchema, { path: './theme', debounceMs: 0 });
+  });
+
+  test('validate config auth requirements and migration file/url inputs', () => {
     expect(
-      WebhookCreateInputSchema.parse({
-        event: 'post.published',
-        targetUrl: 'https://example.com/hook',
-      }).event,
-    ).toBe('post.published');
-    expect(WebhookUpdateInputSchema.parse({ id: 'id1', name: 'Updated' }).name).toBe('Updated');
-    expect(() => WebhookUpdateInputSchema.parse({ id: 'id1' })).toThrow();
-    expect(WebhookDeleteInputSchema.parse({ id: 'id1', yes: true }).id).toBe('id1');
-    expect(
-      WebhookListenInputSchema.parse({
-        publicUrl: 'https://example.com/hook',
-        forwardTo: 'http://localhost:3000/webhooks',
-      }).publicUrl,
-    ).toBe('https://example.com/hook');
+      expectValid<{ version: number }>(UserConfigSchema, {
+        sites: {
+          demo: {
+            url: 'https://demo.example.com',
+            credentialRef: 'site:demo',
+            addedAt: '2026-03-01T00:00:00.000Z',
+          },
+        },
+      }).version,
+    ).toBe(2);
+    expectValid<{ file: string }>(MigrateWordpressInputSchema, { file: './wp.xml' });
+    expectValid<{ file: string }>(MigrateMediumInputSchema, { file: './medium.zip' });
+    expectValid<{ url: string }>(MigrateSubstackInputSchema, {
+      file: './substack.zip',
+      url: 'https://example.com',
+    });
+    expectValid<{ file: string }>(MigrateCsvInputSchema, { file: './posts.csv' });
+    expectValid<{ file: string }>(MigrateJsonInputSchema, { file: './import.json' });
+    expectValid<{ output: string }>(MigrateExportInputSchema, { output: './backup.zip' });
 
-    expect(ImageUploadInputSchema.parse({ filePath: './image.jpg' }).filePath).toBe('./image.jpg');
-
-    expect(ThemeUploadInputSchema.parse({ path: './theme.zip' }).path).toBe('./theme.zip');
-    expect(ThemeActivateInputSchema.parse({ name: 'casper' }).name).toBe('casper');
-    expect(ThemeValidateInputSchema.parse({ path: './theme' }).path).toBe('./theme');
-    expect(ThemeDevInputSchema.parse({ path: './theme', watch: true }).path).toBe('./theme');
-
-    expect(SettingGetInputSchema.parse({ key: 'title' }).key).toBe('title');
-    expect(SettingSetInputSchema.parse({ key: 'title', value: 'My Blog' }).value).toBe('My Blog');
-
-    expect(MigrateWordpressInputSchema.parse({ file: './wp.xml' }).file).toBe('./wp.xml');
-    expect(MigrateMediumInputSchema.parse({ file: './medium.zip' }).file).toBe('./medium.zip');
-    expect(
-      MigrateSubstackInputSchema.parse({ file: './substack.zip', url: 'https://example.com' }).url,
-    ).toBe('https://example.com');
-    expect(MigrateCsvInputSchema.parse({ file: './posts.csv' }).file).toBe('./posts.csv');
-    expect(MigrateJsonInputSchema.parse({ file: './import.json' }).file).toBe('./import.json');
-    expect(MigrateExportInputSchema.parse({ output: './backup.zip' }).output).toBe('./backup.zip');
+    expectInvalid(
+      UserConfigSchema,
+      {
+        sites: {
+          demo: {
+            url: 'https://demo.example.com',
+            addedAt: '2026-03-01T00:00:00.000Z',
+          },
+        },
+      },
+      'site config must include staffAccessToken or credentialRef',
+    );
+    expectInvalid(MigrateSubstackInputSchema, { file: './substack.zip', url: 'not-a-url' });
   });
 });
 
 describe('socialweb schemas', () => {
-  test('validates socialweb profile, pagination, and note inputs', () => {
-    expect(SocialWebProfileInputSchema.parse({ handle: 'me' }).handle).toBe('me');
-    expect(SocialWebProfileInputSchema.parse({ handle: '@alice@remote.example' }).handle).toBe(
-      '@alice@remote.example',
+  test('default to the local profile and enforce federated handles elsewhere', () => {
+    expect(expectValid<{ handle: string }>(SocialWebProfileInputSchema, {}).handle).toBe('me');
+    expectValid<{ query: string }>(SocialWebSearchInputSchema, { query: 'alice' });
+    expectValid<{ filePath: string }>(SocialWebUploadInputSchema, { filePath: './photo.jpg' });
+
+    expectInvalid(SocialWebHandleActionInputSchema, { handle: 'me' }, 'federated handle');
+    expectInvalid(SocialWebHandleActionInputSchema, { handle: 'alice' }, 'federated handle');
+    expectInvalid(SocialWebIdInputSchema, { id: 'not-a-url' });
+  });
+
+  test('enforce pagination, profile updates, and content-source exclusivity', () => {
+    expectValid<{ limit?: number; all?: boolean }>(SocialWebPaginatedInputSchema, {
+      limit: 25,
+      all: true,
+    });
+    expectValid<{ handle: string }>(SocialWebFollowsInputSchema, { handle: 'me', limit: 10 });
+    expectValid<{ username?: string }>(SocialWebProfileUpdateInputSchema, {
+      username: 'alice',
+      avatarUrl: 'https://remote.example/avatar.png',
+    });
+    expectValid<{ content?: string; imageAlt?: string }>(SocialWebContentInputSchema, {
+      content: 'hello social web',
+      imageUrl: 'https://remote.example/image.png',
+      imageAlt: 'Alt text',
+    });
+    expectValid<{ id: string }>(SocialWebReplyInputSchema, {
+      id: 'https://remote.example/posts/1',
+      stdin: true,
+    });
+
+    expectInvalid(
+      SocialWebPaginatedInputSchema,
+      { all: true, next: 'cursor' },
+      '--all cannot be combined',
     );
-    expect(() => SocialWebProfileInputSchema.parse({ handle: 'alice' })).toThrow();
-
-    expect(
-      SocialWebProfileUpdateInputSchema.parse({
-        name: 'Alice',
-        username: 'alice',
-        bio: 'Remote account',
-        avatarUrl: 'https://remote.example/avatar.png',
-        bannerImageUrl: 'https://remote.example/banner.png',
-      }).username,
-    ).toBe('alice');
-    expect(() => SocialWebProfileUpdateInputSchema.parse({})).toThrow();
-
-    expect(SocialWebSearchInputSchema.parse({ query: 'alice' }).query).toBe('alice');
-    expect(SocialWebPaginatedInputSchema.parse({ limit: 25, all: true }).limit).toBe(25);
-    expect(() => SocialWebPaginatedInputSchema.parse({ all: true, next: 'cursor' })).toThrow();
-
-    expect(SocialWebFollowsInputSchema.parse({ handle: 'me', limit: 10, all: true }).limit).toBe(
-      10,
+    expectInvalid(
+      SocialWebFollowsInputSchema,
+      { handle: 'me', all: true, next: 'cursor' },
+      '--all cannot be combined',
     );
-    expect(() =>
-      SocialWebFollowsInputSchema.parse({ handle: 'me', all: true, next: 'cursor' }),
-    ).toThrow();
-    expect(SocialWebHandleActionInputSchema.parse({ handle: '@alice@remote.example' }).handle).toBe(
-      '@alice@remote.example',
+    expectInvalid(SocialWebProfileUpdateInputSchema, {}, 'Provide at least one profile field');
+    expectInvalid(
+      SocialWebContentInputSchema,
+      { content: 'hello', stdin: true },
+      'Provide exactly one content source',
     );
-    expect(() => SocialWebHandleActionInputSchema.parse({ handle: 'alice' })).toThrow();
-    expect(() => SocialWebHandleActionInputSchema.parse({ handle: 'me' })).toThrow();
-
-    expect(SocialWebIdInputSchema.parse({ id: 'https://remote.example/posts/1' }).id).toBe(
-      'https://remote.example/posts/1',
+    expectInvalid(
+      SocialWebContentInputSchema,
+      { stdin: true, imageFile: './photo.jpg', imageUrl: 'https://remote.example/image.png' },
+      'Provide at most one image source',
     );
-    expect(() => SocialWebIdInputSchema.parse({ id: 'not-a-url' })).toThrow();
-
-    expect(SocialWebBlockDomainInputSchema.parse({ url: 'https://remote.example' }).url).toBe(
-      'https://remote.example',
-    );
-    expect(SocialWebUploadInputSchema.parse({ filePath: './photo.jpg' }).filePath).toBe(
-      './photo.jpg',
-    );
-
-    expect(
-      SocialWebContentInputSchema.parse({
-        content: 'hello social web',
-        imageUrl: 'https://remote.example/image.png',
-        imageAlt: 'Alt',
-      }).content,
-    ).toBe('hello social web');
-    expect(() =>
-      SocialWebContentInputSchema.parse({
-        content: 'hello',
-        stdin: true,
-      }),
-    ).toThrow();
-    expect(() =>
-      SocialWebContentInputSchema.parse({
-        content: 'hello',
-        imageFile: './photo.jpg',
-        imageUrl: 'https://remote.example/image.png',
-      }),
-    ).toThrow();
-
-    expect(
-      SocialWebReplyInputSchema.parse({
-        id: 'https://remote.example/posts/1',
-        stdin: true,
-      }).id,
-    ).toBe('https://remote.example/posts/1');
   });
 });
 
 describe('stats schemas', () => {
-  test('validates range, filters, and scoped analytics inputs', () => {
+  test('normalize analytics filters and apply default limits where the commands expect them', () => {
     expect(
-      StatsWebInputSchema.parse({
-        range: '30d',
-        audience: 'paid',
-        source: 'twitter.com',
+      expectValid<{ location?: string }>(StatsWebInputSchema, {
         location: 'us',
-        device: 'desktop',
-        utmSource: 'twitter',
+        audience: 'paid',
       }).location,
     ).toBe('US');
-
+    expect(expectValid<{ limit: number }>(StatsWebTableInputSchema, {}).limit).toBe(10);
     expect(
-      StatsWebTableInputSchema.parse({
-        from: '2026-02-01',
-        to: '2026-03-01',
+      expectValid<{ limit: number }>(StatsNewsletterClicksInputSchema, {
+        newsletterId: 'newsletter-id',
       }).limit,
     ).toBe(10);
-
+    expect(expectValid<{ limit: number }>(StatsPostsInputSchema, {}).limit).toBe(5);
+    expectValid<{ id: string }>(StatsPostInputSchema, { id: 'post-1', range: '7d' });
     expect(
-      StatsNewsletterClicksInputSchema.parse({
-        newsletterId: 'newsletter-id',
-        postIds: ['post-id'],
-      }).newsletterId,
-    ).toBe('newsletter-id');
+      expectValid<{ limit: number }>(StatsPostReferrersInputSchema, { id: 'post-1' }).limit,
+    ).toBe(10);
+  });
 
-    expect(
-      StatsPostsInputSchema.parse({
-        range: '30d',
-      }).limit,
-    ).toBe(5);
+  test('reject invalid ranges, timezones, and required identifiers', () => {
+    expectInvalid(
+      StatsWebInputSchema,
+      { from: '2026-03-01', to: '2026-02-01' },
+      '--from must be on or before --to',
+    );
+    expectInvalid(
+      StatsWebInputSchema,
+      { timezone: 'Mars/Phobos' },
+      'Timezone must be a valid IANA timezone name',
+    );
+    expectInvalid(StatsNewsletterClicksInputSchema, { newsletterId: '' });
+    expectInvalid(StatsPostInputSchema, { id: '' });
+  });
+});
 
-    expect(StatsPostInputSchema.parse({ id: 'post-id', range: '7d' }).id).toBe('post-id');
-
-    expect(() =>
-      StatsWebInputSchema.parse({
-        from: '2026-03-01',
-        to: '2026-02-01',
-      }),
-    ).toThrow();
-
-    expect(() =>
-      StatsWebInputSchema.parse({
-        timezone: 'Mars/Phobos',
-      }),
-    ).toThrow();
-
-    expect(() =>
-      StatsNewsletterClicksInputSchema.parse({
-        newsletterId: '',
-      }),
-    ).toThrow();
+describe('site schema', () => {
+  test('accepts an empty input object', () => {
+    expect(SiteInfoInputSchema.parse({})).toEqual({});
   });
 });

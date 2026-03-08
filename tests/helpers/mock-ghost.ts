@@ -1004,7 +1004,17 @@ export function createGhostFixtureFetchHandler(options: CreateGhostFixtureMockOp
     }
 
     if (pathname.endsWith('/ghost/api/admin/themes/uploaded-theme/activate/') && method === 'PUT') {
-      return jsonResponse(cloneFixture(ghostFixtures.themes.activate));
+      const fixture = cloneFixture(ghostFixtures.themes.activate) as {
+        themes?: Array<{ name?: string; package?: { name?: string } }>;
+      };
+      const theme = fixture.themes?.[0];
+      if (theme) {
+        theme.name = 'uploaded-theme';
+        if (theme.package) {
+          theme.package.name = 'uploaded-theme';
+        }
+      }
+      return jsonResponse(fixture);
     }
 
     if (

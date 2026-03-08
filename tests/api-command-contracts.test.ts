@@ -41,7 +41,7 @@ vi.mock('../src/lib/output.js', async () => {
 
 import { run } from '../src/index.js';
 
-describe('api command coverage', () => {
+describe('api command contracts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiMocks.resolveConnectionConfig.mockResolvedValue({
@@ -56,7 +56,7 @@ describe('api command coverage', () => {
     vi.restoreAllMocks();
   });
 
-  test('covers field parsing, object merge, and pagination merge', async () => {
+  test('merges inline JSON, parsed fields, and paginated collection responses', async () => {
     apiMocks.rawRequestWithMeta
       .mockResolvedValueOnce({
         status: 200,
@@ -126,7 +126,7 @@ describe('api command coverage', () => {
     );
   });
 
-  test('covers field-only bodies and include-headers output', async () => {
+  test('uses field pairs as the request body and can include response headers in output', async () => {
     apiMocks.rawRequestWithMeta.mockResolvedValue({
       status: 200,
       headers: { etag: 'abc' },
@@ -154,7 +154,7 @@ describe('api command coverage', () => {
     );
   });
 
-  test('stops paginating when the payload is not a collection', async () => {
+  test('stops pagination when the payload does not expose a collection key', async () => {
     apiMocks.rawRequestWithMeta.mockResolvedValue({
       status: 200,
       headers: {},

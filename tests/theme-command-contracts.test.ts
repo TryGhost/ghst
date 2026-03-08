@@ -38,9 +38,11 @@ vi.mock('../src/lib/output.js', async () => {
 
 import { run } from '../src/index.js';
 
-describe('theme command coverage', () => {
+describe('theme command contracts', () => {
   let tempRoot = '';
   let themeZipPath = '';
+  const uploadedThemePayload = { themes: [{ name: 'uploaded-theme' }] };
+  const activatedThemePayload = { themes: [{ name: 'uploaded-theme', active: true }] };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -49,8 +51,8 @@ describe('theme command coverage', () => {
     await fs.writeFile(themeZipPath, 'zip', 'utf8');
 
     themeMocks.listThemes.mockResolvedValue({ themes: [{ name: 'demo-theme' }] });
-    themeMocks.uploadTheme.mockResolvedValue({ themes: [{ name: 'demo-theme' }] });
-    themeMocks.activateTheme.mockResolvedValue({ themes: [{ name: 'demo-theme', active: true }] });
+    themeMocks.uploadTheme.mockResolvedValue(uploadedThemePayload);
+    themeMocks.activateTheme.mockResolvedValue(activatedThemePayload);
 
     setThemeValidatorForTests(null);
     setThemeDevRunnerForTests(null);
@@ -64,16 +66,33 @@ describe('theme command coverage', () => {
     vi.restoreAllMocks();
   });
 
-  test('covers list, upload, and activate json branches', async () => {
-    await expect(run(['node', 'ghst', 'theme', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+  test('uploads with --activate using the uploaded theme name and returns the activated payload', async () => {
     await expect(
       run(['node', 'ghst', 'theme', 'upload', themeZipPath, '--activate', '--json']),
     ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(themeMocks.uploadTheme).toHaveBeenCalledWith(expect.any(Object), themeZipPath);
+    expect(themeMocks.activateTheme).toHaveBeenCalledWith(expect.any(Object), 'uploaded-theme');
+    expect(themeMocks.printJson).toHaveBeenCalledWith(activatedThemePayload, undefined);
+  });
+
+  test('fails loudly when upload activation cannot determine the uploaded theme name', async () => {
+    themeMocks.uploadTheme.mockResolvedValue({ themes: [{}] });
+
+    await expect(
+      run(['node', 'ghst', 'theme', 'upload', themeZipPath, '--activate', '--json']),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
+
+    expect(themeMocks.activateTheme).not.toHaveBeenCalled();
+  });
+
+  test('routes list and explicit activation through json output', async () => {
+    await expect(run(['node', 'ghst', 'theme', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'theme', 'activate', 'demo-theme', '--json'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
 
-    expect(themeMocks.printJson).toHaveBeenCalledTimes(3);
+    expect(themeMocks.printJson).toHaveBeenCalledTimes(2);
     expect(themeMocks.activateTheme).toHaveBeenCalledWith(expect.any(Object), 'demo-theme');
 
     await expect(run(['node', 'ghst', 'theme', 'upload', ''])).resolves.toBe(
@@ -84,7 +103,7 @@ describe('theme command coverage', () => {
     );
   });
 
-  test('covers validate json and human branches', async () => {
+  test('renders validation results in json and human modes', async () => {
     setThemeValidatorForTests(async () => ({ results: { errors: [] } }));
 
     await expect(run(['node', 'ghst', 'theme', 'validate', themeZipPath, '--json'])).resolves.toBe(
@@ -104,7 +123,7 @@ describe('theme command coverage', () => {
     );
   });
 
-  test('covers theme validation error result shapes', async () => {
+  test('treats both nested and top-level validation errors as failures', async () => {
     setThemeValidatorForTests(async () => ({
       results: {
         error: {
@@ -124,7 +143,7 @@ describe('theme command coverage', () => {
     );
   });
 
-  test('covers dev event logging branches and validation', async () => {
+  test('renders theme dev events differently in json and human modes', async () => {
     setThemeDevRunnerForTests(async (_global, options) => {
       options.onEvent?.({ type: 'uploaded', source: 'watch' });
       options.onEvent?.({ type: 'error', message: 'upload failed' });
