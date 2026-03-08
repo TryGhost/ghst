@@ -34,7 +34,7 @@
       "name": "<fixture-user-name>",
       "paid_subscription_canceled_notification": false,
       "paid_subscription_started_notification": false,
-      "profile_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=x&d=mp",
+      "profile_image": "https://www.gravatar.com/avatar/fixture-hash?s=250&r=x&d=mp",
       "recommendation_notifications": false,
       "slug": "<userSlug>",
       "status": "active",

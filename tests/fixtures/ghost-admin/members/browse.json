@@ -1,7 +1,7 @@
 {
   "members": [
     {
-      "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+      "avatar_image": "https://www.gravatar.com/avatar/fixture-hash?s=250&r=g&d=blank",
       "can_comment": true,
       "commenting": {
         "disabled": false,
@@ -35,7 +35,7 @@
       "status": "free",
       "subscribed": true,
       "subscriptions": [],
-      "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=<memberUuid>&key=<token>",
+      "unsubscribe_url": "https://ghst.ghost.io/unsubscribe/?uuid=fixture-member-uuid&key=fixture-token",
       "updated_at": "<datetime>",
       "uuid": "<memberUuid>"
     }

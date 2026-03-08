@@ -14,7 +14,7 @@
       "in_reply_to_id": null,
       "in_reply_to_snippet": "Fixture comment",
       "member": {
-        "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+        "avatar_image": "https://www.gravatar.com/avatar/fixture-hash?s=250&r=g&d=blank",
         "can_comment": true,
         "commenting": {
           "disabled": false,
