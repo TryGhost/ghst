@@ -37,6 +37,40 @@ import {
 import { getSetting, listSettings, setSetting } from '../../lib/settings.js';
 import { getSiteInfo } from '../../lib/site.js';
 import {
+  blockAccount,
+  blockDomain,
+  createNote,
+  deleteSocialWebPost,
+  derepostPost,
+  disableSocialWeb,
+  enableSocialWeb,
+  followAccount,
+  getNotificationsCount,
+  getSocialWebPost,
+  getSocialWebProfile,
+  getSocialWebStatus,
+  getSocialWebThread,
+  likePost,
+  listBlockedAccounts,
+  listBlockedDomains,
+  listFollowers,
+  listFollowing,
+  listNotes,
+  listNotifications,
+  listReader,
+  listSocialWebLikes,
+  listSocialWebPosts,
+  replyToPost,
+  repostPost,
+  searchSocialWeb,
+  unblockAccount,
+  unblockDomain,
+  unfollowAccount,
+  unlikePost,
+  updateSocialWebProfile,
+  uploadSocialWebImage,
+} from '../../lib/socialweb.js';
+import {
   getStatsGrowth,
   getStatsNewsletterClicks,
   getStatsNewsletterSubscribers,
@@ -69,6 +103,7 @@ export type McpToolGroup =
   | 'users'
   | 'api'
   | 'search'
+  | 'socialweb'
   | 'stats';
 
 export const MCP_TOOL_GROUPS: readonly McpToolGroup[] = [
@@ -82,6 +117,7 @@ export const MCP_TOOL_GROUPS: readonly McpToolGroup[] = [
   'users',
   'api',
   'search',
+  'socialweb',
   'stats',
 ] as const;
 
@@ -111,6 +147,95 @@ const commentBrowseArgs = {
   page: z.number().int().positive().optional(),
   filter: z.string().optional(),
 };
+
+const socialWebHandleSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value === 'me' || /^@?[^@\s]+@[^@\s]+$/.test(value), {
+    message: 'handle must be me or a federated handle like @user@domain',
+  });
+
+const socialWebRemoteHandleSchema = socialWebHandleSchema.refine((value) => value !== 'me', {
+  message: 'handle must be a federated handle like @user@domain',
+});
+
+const socialWebUrlSchema = z.string().url();
+
+const socialWebPaginationArgs = {
+  limit: z.number().int().positive().max(100).optional(),
+  next: z.string().min(1).optional(),
+  all_pages: z.boolean().optional(),
+};
+
+const socialWebPaginationSchema = z
+  .object({
+    ...socialWebPaginationArgs,
+  })
+  .superRefine((value, context) => {
+    if (value.all_pages && value.next) {
+      context.addIssue({
+        code: 'custom',
+        message: 'all_pages cannot be combined with next.',
+        path: ['all_pages'],
+      });
+    }
+  });
+
+const socialWebHandlePaginationSchema = z
+  .object({
+    handle: socialWebHandleSchema.optional(),
+    ...socialWebPaginationArgs,
+  })
+  .superRefine((value, context) => {
+    if (value.all_pages && value.next) {
+      context.addIssue({
+        code: 'custom',
+        message: 'all_pages cannot be combined with next.',
+        path: ['all_pages'],
+      });
+    }
+  });
+
+const socialWebProfileUpdateSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    username: z.string().min(1).optional(),
+    bio: z.string().optional(),
+    avatar_url: socialWebUrlSchema.optional(),
+    banner_image_url: socialWebUrlSchema.optional(),
+  })
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.username !== undefined ||
+      value.bio !== undefined ||
+      value.avatar_url !== undefined ||
+      value.banner_image_url !== undefined,
+    {
+      message: 'Provide at least one profile field to update.',
+      path: ['name'],
+    },
+  );
+
+const socialWebContentSchema = z
+  .object({
+    content: z.string().min(1),
+    image_file: z.string().min(1).optional(),
+    image_url: socialWebUrlSchema.optional(),
+    image_alt: z.string().min(1).optional(),
+  })
+  .superRefine((value, context) => {
+    const imageSources = [value.image_file !== undefined, value.image_url !== undefined].filter(
+      Boolean,
+    ).length;
+    if (imageSources > 1) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Provide at most one image source with image_file or image_url.',
+        path: ['image_file'],
+      });
+    }
+  });
 
 const statsTableViewSchema = z.enum([
   'content',
@@ -166,6 +291,16 @@ function mapStatsWebArgs(args: StatsWebArgsInput) {
     utmContent: args.utm_content,
     utmTerm: args.utm_term,
     limit: args.limit,
+  };
+}
+
+function mapSocialWebPaginationArgs(args: { limit?: number; next?: string; all_pages?: boolean }) {
+  return {
+    params: {
+      limit: args.limit,
+      next: args.next,
+    },
+    allPages: Boolean(args.all_pages),
   };
 }
 
@@ -1079,6 +1214,391 @@ export function registerCoreTools(
         }),
       },
       async (args) => toolResult(await runSearch(global, args.query, args.limit ?? 10)),
+    );
+  }
+
+  if (enabledGroups.has('socialweb')) {
+    server.registerTool(
+      'ghost_socialweb_status',
+      {
+        description: 'Show Ghost social web settings and connectivity status.',
+      },
+      async () => toolResult(await getSocialWebStatus(global)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_enable',
+      {
+        description: 'Enable Ghost social web and return the resulting status.',
+      },
+      async () => toolResult(await enableSocialWeb(global)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_disable',
+      {
+        description: 'Disable Ghost social web and return the resulting status.',
+      },
+      async () => toolResult(await disableSocialWeb(global)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_profile',
+      {
+        description: 'Get a social web profile by federated handle or me.',
+        inputSchema: z.object({
+          handle: socialWebHandleSchema.optional(),
+        }),
+      },
+      async (args) => toolResult(await getSocialWebProfile(global, args.handle ?? 'me')),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_profile_update',
+      {
+        description: 'Update the current social web profile.',
+        inputSchema: socialWebProfileUpdateSchema,
+      },
+      async (args) =>
+        toolResult(
+          await updateSocialWebProfile(global, {
+            name: args.name,
+            username: args.username,
+            bio: args.bio,
+            avatarUrl: args.avatar_url,
+            bannerImageUrl: args.banner_image_url,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_search',
+      {
+        description: 'Search social web accounts.',
+        inputSchema: z.object({
+          query: z.string().min(1),
+        }),
+      },
+      async (args) => toolResult(await searchSocialWeb(global, args.query)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_notes',
+      {
+        description: 'List the social web note feed.',
+        inputSchema: socialWebPaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(await listNotes(global, pagination.params, pagination.allPages));
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_reader',
+      {
+        description: 'List the social web reader feed.',
+        inputSchema: socialWebPaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(await listReader(global, pagination.params, pagination.allPages));
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_notifications',
+      {
+        description: 'List social web notifications.',
+        inputSchema: socialWebPaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(await listNotifications(global, pagination.params, pagination.allPages));
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_notifications_count',
+      {
+        description: 'Get the unread social web notification count.',
+      },
+      async () => toolResult(await getNotificationsCount(global)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_posts',
+      {
+        description: 'List posts for a social web account.',
+        inputSchema: socialWebHandlePaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(
+          await listSocialWebPosts(
+            global,
+            args.handle ?? 'me',
+            pagination.params,
+            pagination.allPages,
+          ),
+        );
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_likes',
+      {
+        description: 'List posts liked by the current social web account.',
+        inputSchema: socialWebPaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(await listSocialWebLikes(global, pagination.params, pagination.allPages));
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_followers',
+      {
+        description: 'List followers for a social web account.',
+        inputSchema: socialWebHandlePaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(
+          await listFollowers(global, args.handle ?? 'me', pagination.params, pagination.allPages),
+        );
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_following',
+      {
+        description: 'List followed accounts for a social web account.',
+        inputSchema: socialWebHandlePaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(
+          await listFollowing(global, args.handle ?? 'me', pagination.params, pagination.allPages),
+        );
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_post',
+      {
+        description: 'Get a social web post by ActivityPub id.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await getSocialWebPost(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_thread',
+      {
+        description: 'Get a social web thread by ActivityPub id.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await getSocialWebThread(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_follow',
+      {
+        description: 'Follow a federated social web account.',
+        inputSchema: z.object({
+          handle: socialWebRemoteHandleSchema,
+        }),
+      },
+      async (args) => toolResult(await followAccount(global, args.handle)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_unfollow',
+      {
+        description: 'Unfollow a federated social web account.',
+        inputSchema: z.object({
+          handle: socialWebRemoteHandleSchema,
+        }),
+      },
+      async (args) => toolResult(await unfollowAccount(global, args.handle)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_like',
+      {
+        description: 'Like a social web post.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await likePost(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_unlike',
+      {
+        description: 'Unlike a social web post.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await unlikePost(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_repost',
+      {
+        description: 'Repost a social web post.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await repostPost(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_derepost',
+      {
+        description: 'Undo a repost on a social web post.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await derepostPost(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_delete',
+      {
+        description: 'Delete a social web post authored by the current account.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await deleteSocialWebPost(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_note',
+      {
+        description: 'Create a new social web note.',
+        inputSchema: socialWebContentSchema,
+      },
+      async (args) =>
+        toolResult(
+          await createNote(global, {
+            content: args.content,
+            imageFile: args.image_file,
+            imageUrl: args.image_url,
+            imageAlt: args.image_alt,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_reply',
+      {
+        description: 'Reply to a social web post.',
+        inputSchema: socialWebContentSchema.extend({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await replyToPost(global, args.id, {
+            content: args.content,
+            imageFile: args.image_file,
+            imageUrl: args.image_url,
+            imageAlt: args.image_alt,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_blocked_accounts',
+      {
+        description: 'List blocked social web accounts.',
+        inputSchema: socialWebPaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(
+          await listBlockedAccounts(global, pagination.params, pagination.allPages),
+        );
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_blocked_domains',
+      {
+        description: 'List blocked social web domains.',
+        inputSchema: socialWebPaginationSchema,
+      },
+      async (args) => {
+        const pagination = mapSocialWebPaginationArgs(args);
+        return toolResult(await listBlockedDomains(global, pagination.params, pagination.allPages));
+      },
+    );
+
+    server.registerTool(
+      'ghost_socialweb_block',
+      {
+        description: 'Block a social web account by ActivityPub id.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await blockAccount(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_unblock',
+      {
+        description: 'Unblock a social web account by ActivityPub id.',
+        inputSchema: z.object({
+          id: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await unblockAccount(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_block_domain',
+      {
+        description: 'Block a social web domain.',
+        inputSchema: z.object({
+          url: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await blockDomain(global, args.url)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_unblock_domain',
+      {
+        description: 'Unblock a social web domain.',
+        inputSchema: z.object({
+          url: socialWebUrlSchema,
+        }),
+      },
+      async (args) => toolResult(await unblockDomain(global, args.url)),
+    );
+
+    server.registerTool(
+      'ghost_socialweb_upload',
+      {
+        description: 'Upload an image for social web notes and replies.',
+        inputSchema: z.object({
+          file_path: z.string().min(1),
+        }),
+      },
+      async (args) => toolResult(await uploadSocialWebImage(global, args.file_path)),
     );
   }
 

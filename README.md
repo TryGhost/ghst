@@ -333,15 +333,20 @@ Supported tool groups:
 - `comments`
 - `site`
 - `settings`
-- `stats`
 - `users`
 - `api`
 - `search`
+- `socialweb`
+- `stats`
 
 The `stats` MCP tools mirror the CLI analytics surface, including `ghst stats overview`,
 `ghst stats web`, `ghst stats growth`, `ghst stats posts`, `ghst stats email subscribers`,
 and `ghst stats post <post-id> referrers`. The same Ghost analytics filter and range semantics
 shown above apply to both the CLI and MCP stats tooling.
+
+The `socialweb` MCP tools mirror the private `ghst socialweb` admin surface for status,
+profile, feeds, interactions, moderation, and uploads. They use the same Owner/Admin
+identity-token bridge as the CLI and remain limited to Ghost's private social web admin APIs.
 
 ## Safe Operation
 

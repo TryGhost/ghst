@@ -107,6 +107,7 @@ pnpm build
 - `api`
 - `search`
 - `stats`
+- `socialweb`
 
 ## Parity Notes
 
@@ -125,12 +126,13 @@ pnpm build
 - `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
 - `stats web` and `stats post ... web` use Ghost Admin stats routes where available and internal Tinybird reads for web traffic datasets Ghost does not wrap.
 - `socialweb` uses the existing staff-token Admin API flow to mint a short-lived identity JWT from `/ghost/api/admin/identities/`, then uses that bearer token against `/.ghost/activitypub/v1/*`.
-- `socialweb` requires an Owner/Admin staff token and is intentionally limited to Ghost's private social web admin surface; it does not expose public federation endpoints or MCP tooling.
+- `socialweb` requires an Owner/Admin staff token and is intentionally limited to Ghost's private social web admin surface; neither the CLI nor MCP expose public federation endpoints.
 - `stats growth` clips broader Ghost member/MRR/subscription histories client-side to the selected window when upstream endpoints cannot express the full range.
 - `stats post ... growth` clips Ghost lifetime post-growth history client-side to the selected window.
 - Ghost analytics semantics: `source` and `utm_*` filters are session-scoped, while post/member-status filters are hit-scoped.
 - MCP now exposes first-class stats tools via the `stats` tool group rather than requiring raw `ghost_api_request` calls.
 - MCP now exposes first-class comment moderation tools via the `comments` tool group, including list/get/thread/replies/likes/reports/hide/show/delete.
+- MCP now exposes first-class social web tools via the `socialweb` tool group, covering status/profile/feed/interaction/moderation/upload flows.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
 - MCP parity additions include `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.

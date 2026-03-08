@@ -126,6 +126,7 @@ describe('mcp core tool registration', () => {
         'ghost_user_list',
         'ghost_api_request',
         'ghost_search',
+        'ghost_socialweb_status',
         'ghost_stats_overview',
       ]),
     );
@@ -254,6 +255,144 @@ describe('mcp core tool registration', () => {
       query: "o'hara",
     });
 
+    const socialStatusResponse = await run('ghost_socialweb_status', {});
+    expect(socialStatusResponse.structuredContent).toHaveProperty('settings.social_web', true);
+
+    const socialProfileResponse = await run('ghost_socialweb_profile', {});
+    expect(socialProfileResponse.structuredContent).toHaveProperty('handle');
+
+    const socialProfileUpdateResponse = await run('ghost_socialweb_profile_update', {
+      name: 'Updated Owner',
+      username: 'updated-owner',
+      bio: 'Updated bio',
+      avatar_url: 'https://myblog.ghost.io/content/images/updated-avatar.png',
+    });
+    expect(socialProfileUpdateResponse.structuredContent).toHaveProperty(
+      'handle',
+      '@updated-owner@myblog.ghost.io',
+    );
+
+    const socialSearchResponse = await run('ghost_socialweb_search', {
+      query: 'alice',
+    });
+    expect(socialSearchResponse.structuredContent).toHaveProperty('accounts');
+
+    const socialNotesResponse = await run('ghost_socialweb_notes', { all_pages: true });
+    const socialNotesStructured = socialNotesResponse.structuredContent as Record<string, unknown>;
+    expect(socialNotesResponse.structuredContent).toHaveProperty('posts');
+    expect(Array.isArray(socialNotesStructured.posts)).toBe(true);
+    expect((socialNotesStructured.posts as unknown[]).length).toBeGreaterThan(1);
+
+    const socialReaderResponse = await run('ghost_socialweb_reader', { limit: 1 });
+    expect(socialReaderResponse.structuredContent).toHaveProperty('posts');
+
+    const socialNotificationsResponse = await run('ghost_socialweb_notifications', { limit: 1 });
+    expect(socialNotificationsResponse.structuredContent).toHaveProperty('notifications');
+
+    const socialNotificationCountResponse = await run('ghost_socialweb_notifications_count', {});
+    expect(socialNotificationCountResponse.structuredContent).toHaveProperty('count', 3);
+
+    const socialPostsResponse = await run('ghost_socialweb_posts', { handle: 'me' });
+    expect(socialPostsResponse.structuredContent).toHaveProperty('posts');
+
+    const socialLikesResponse = await run('ghost_socialweb_likes', { limit: 1 });
+    expect(socialLikesResponse.structuredContent).toHaveProperty('posts');
+
+    const socialFollowersResponse = await run('ghost_socialweb_followers', { limit: 1 });
+    expect(socialFollowersResponse.structuredContent).toHaveProperty('accounts');
+
+    const socialFollowingResponse = await run('ghost_socialweb_following', { limit: 1 });
+    expect(socialFollowingResponse.structuredContent).toHaveProperty('accounts');
+
+    const socialPostResponse = await run('ghost_socialweb_post', {
+      id: 'https://remote.example/posts/1',
+    });
+    expect(socialPostResponse.structuredContent).toHaveProperty('id');
+
+    const socialThreadResponse = await run('ghost_socialweb_thread', {
+      id: 'https://remote.example/posts/1',
+    });
+    expect(socialThreadResponse.structuredContent).toHaveProperty('children');
+
+    const socialFollowResponse = await run('ghost_socialweb_follow', {
+      handle: '@alice@remote.example',
+    });
+    expect(socialFollowResponse.structuredContent).toHaveProperty(
+      'handle',
+      '@alice@remote.example',
+    );
+
+    await run('ghost_socialweb_unfollow', {
+      handle: '@alice@remote.example',
+    });
+    await run('ghost_socialweb_like', {
+      id: 'https://remote.example/posts/1',
+    });
+    await run('ghost_socialweb_unlike', {
+      id: 'https://remote.example/posts/1',
+    });
+    await run('ghost_socialweb_repost', {
+      id: 'https://remote.example/posts/1',
+    });
+    await run('ghost_socialweb_derepost', {
+      id: 'https://remote.example/posts/1',
+    });
+    await run('ghost_socialweb_delete', {
+      id: 'https://myblog.ghost.io/.ghost/activitypub/note/1',
+    });
+
+    const socialNoteResponse = await run('ghost_socialweb_note', {
+      content: 'Tool note',
+      image_url: 'https://example.com/note.png',
+      image_alt: 'Note image',
+    });
+    expect(socialNoteResponse.structuredContent).toHaveProperty('post');
+
+    const socialReplyResponse = await run('ghost_socialweb_reply', {
+      id: 'https://remote.example/posts/1',
+      content: 'Tool reply',
+      image_file: path.join(workDir, 'image.jpg'),
+      image_alt: 'Reply image',
+    });
+    expect(socialReplyResponse.structuredContent).toHaveProperty('post');
+
+    const socialBlockedAccountsResponse = await run('ghost_socialweb_blocked_accounts', {
+      limit: 1,
+    });
+    expect(socialBlockedAccountsResponse.structuredContent).toHaveProperty('blocked_accounts');
+
+    const socialBlockedDomainsResponse = await run('ghost_socialweb_blocked_domains', {
+      limit: 1,
+    });
+    expect(socialBlockedDomainsResponse.structuredContent).toHaveProperty('blocked_domains');
+
+    await run('ghost_socialweb_block', {
+      id: 'https://remote.example/users/alice',
+    });
+    await run('ghost_socialweb_unblock', {
+      id: 'https://remote.example/users/alice',
+    });
+    await run('ghost_socialweb_block_domain', {
+      url: 'https://remote.example',
+    });
+    await run('ghost_socialweb_unblock_domain', {
+      url: 'https://remote.example',
+    });
+
+    const socialUploadResponse = await run('ghost_socialweb_upload', {
+      file_path: path.join(workDir, 'image.jpg'),
+    });
+    expect(socialUploadResponse.structuredContent).toHaveProperty(
+      'fileUrl',
+      'https://myblog.ghost.io/content/images/social-upload.png',
+    );
+
+    const socialDisableResponse = await run('ghost_socialweb_disable', {});
+    expect(socialDisableResponse.structuredContent).toHaveProperty('settings.social_web', false);
+
+    const socialEnableResponse = await run('ghost_socialweb_enable', {});
+    expect(socialEnableResponse.structuredContent).toHaveProperty('settings.social_web', true);
+
     const overviewResponse = await run('ghost_stats_overview', { range: '30d' });
     expect(overviewResponse.structuredContent).toHaveProperty('summary');
 
@@ -331,6 +470,25 @@ describe('mcp core tool registration', () => {
     );
   });
 
+  test('rejects socialweb all_pages combined with next to preserve cli parity', async () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+
+    const tool = tools.get('ghost_socialweb_notes');
+    expect(tool).toBeDefined();
+    const parsed = (
+      tool?.meta.inputSchema as {
+        safeParse: (value: unknown) => { success: boolean; error?: Error };
+      }
+    ).safeParse({
+      all_pages: true,
+      next: 'notes-next',
+    });
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.message).toContain('all_pages cannot be combined with next');
+  });
+
   test('ghost_post_schedule forwards email delivery flags as query params', async () => {
     const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
     installGhostFixtureFetchMock({
@@ -392,10 +550,51 @@ describe('mcp core tool registration', () => {
     ]);
   });
 
+  test('can register only socialweb tools', () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['socialweb']));
+
+    expect(Array.from(tools.keys())).toEqual([
+      'ghost_socialweb_status',
+      'ghost_socialweb_enable',
+      'ghost_socialweb_disable',
+      'ghost_socialweb_profile',
+      'ghost_socialweb_profile_update',
+      'ghost_socialweb_search',
+      'ghost_socialweb_notes',
+      'ghost_socialweb_reader',
+      'ghost_socialweb_notifications',
+      'ghost_socialweb_notifications_count',
+      'ghost_socialweb_posts',
+      'ghost_socialweb_likes',
+      'ghost_socialweb_followers',
+      'ghost_socialweb_following',
+      'ghost_socialweb_post',
+      'ghost_socialweb_thread',
+      'ghost_socialweb_follow',
+      'ghost_socialweb_unfollow',
+      'ghost_socialweb_like',
+      'ghost_socialweb_unlike',
+      'ghost_socialweb_repost',
+      'ghost_socialweb_derepost',
+      'ghost_socialweb_delete',
+      'ghost_socialweb_note',
+      'ghost_socialweb_reply',
+      'ghost_socialweb_blocked_accounts',
+      'ghost_socialweb_blocked_domains',
+      'ghost_socialweb_block',
+      'ghost_socialweb_unblock',
+      'ghost_socialweb_block_domain',
+      'ghost_socialweb_unblock_domain',
+      'ghost_socialweb_upload',
+    ]);
+  });
+
   test('parses tool groups from csv', () => {
     expect(parseToolGroups(undefined)).toEqual(new Set(MCP_TOOL_GROUPS));
     expect(parseToolGroups('all')).toEqual(new Set(MCP_TOOL_GROUPS));
     expect(parseToolGroups('posts,comments,tags')).toEqual(new Set(['posts', 'comments', 'tags']));
+    expect(parseToolGroups('socialweb,stats')).toEqual(new Set(['socialweb', 'stats']));
     expect(parseToolGroups('posts,unknown')).toEqual(new Set(['posts']));
     expect(parseToolGroups('unknown')).toEqual(new Set());
     expect(parseToolGroups('')).toEqual(new Set());
