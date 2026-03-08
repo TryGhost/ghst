@@ -194,6 +194,85 @@ function getGhostStaffSettingsUrl(url: string): string {
   return `${normalizedUrl}/ghost/#/settings/staff`;
 }
 
+function formatConfiguredSiteDisplay(
+  alias: string | null | undefined,
+  sites: Record<string, { url: string }>,
+): string {
+  if (!alias) {
+    return '(none)';
+  }
+
+  const url = sites[alias]?.url;
+  if (!url) {
+    return alias;
+  }
+
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+function formatSiteDomain(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+function formatSwitchSiteOption(
+  alias: string,
+  sites: Record<string, { url: string }>,
+): string {
+  const site = sites[alias];
+  if (!site) {
+    return alias;
+  }
+
+  const domain = formatSiteDomain(site.url);
+  const duplicateCount = Object.values(sites).filter(
+    (configuredSite) => formatSiteDomain(configuredSite.url) === domain,
+  ).length;
+
+  if (duplicateCount > 1) {
+    return `${domain} [${alias}]`;
+  }
+
+  return domain;
+}
+
+function resolveConfiguredSiteSelection(
+  input: string | null | undefined,
+  sites: Record<string, { url: string }>,
+): string | null {
+  const candidate = input?.trim();
+  if (!candidate) {
+    return null;
+  }
+
+  if (sites[candidate]) {
+    return candidate;
+  }
+
+  for (const alias of Object.keys(sites)) {
+    if (formatSwitchSiteOption(alias, sites) === candidate) {
+      return alias;
+    }
+  }
+
+  const matches = Object.entries(sites)
+    .filter(([, site]) => formatSiteDomain(site.url) === candidate)
+    .map(([alias]) => alias);
+
+  if (matches.length === 1) {
+    return matches[0] ?? null;
+  }
+
+  return null;
+}
+
 async function resolveGhostAdminOrigin(inputUrl: string): Promise<string> {
   const maxRedirects = 5;
   let probeUrl = getGhostAdminEntryUrl(inputUrl);
@@ -391,10 +470,10 @@ export function registerAuthCommands(program: Command): void {
         return;
       }
 
-      console.log(`Active site: ${config.active ?? '(none)'}`);
+      console.log(`Active site: ${formatConfiguredSiteDisplay(config.active, config.sites)}`);
       for (const [alias, site] of Object.entries(config.sites)) {
         const marker = config.active === alias ? '*' : ' ';
-        console.log(`${marker} ${alias} -> ${site.url}`);
+        console.log(`${marker} ${formatSiteDomain(site.url)}`);
       }
     });
 
@@ -430,19 +509,21 @@ export function registerAuthCommands(program: Command): void {
         return;
       }
 
-      console.log(`Active site: ${config.active ?? '(none)'}`);
+      console.log(`Active site: ${formatConfiguredSiteDisplay(config.active, config.sites)}`);
       if (projectSite) {
-        console.log(`Project link: ${projectSite} (overrides active site in this directory)`);
+        console.log(
+          `Project link: ${formatConfiguredSiteDisplay(projectSite, config.sites)} (overrides active site in this directory)`,
+        );
       }
       for (const [alias, site] of Object.entries(config.sites)) {
         const marker = effectiveSite === alias ? '*' : ' ';
-        console.log(`${marker} ${alias} -> ${site.url}`);
+        console.log(`${marker} ${formatSiteDomain(site.url)}`);
       }
     });
 
   auth
     .command('switch [site]')
-    .description('Switch active site alias (interactive if omitted)')
+    .description('Switch active site (interactive if omitted)')
     .action(async (site: string | undefined) => {
       const config = await readUserConfig();
       const aliases = Object.keys(config.sites);
@@ -466,22 +547,23 @@ export function registerAuthCommands(program: Command): void {
         console.log('Configured sites:');
         for (const alias of aliases) {
           const marker = config.active === alias ? '*' : ' ';
-          console.log(`${marker} ${alias}`);
+          console.log(`${marker} ${formatSwitchSiteOption(alias, config.sites)}`);
         }
 
-        targetSite = await promptFn('Switch to site alias: ');
+        targetSite = await promptFn('Switch to site domain or alias: ');
       }
 
-      if (!targetSite || !config.sites[targetSite]) {
-        throw new GhstError(`Unknown site alias: ${targetSite ?? '(empty)'}`, {
+      const resolvedTargetSite = resolveConfiguredSiteSelection(targetSite, config.sites);
+      if (!resolvedTargetSite) {
+        throw new GhstError(`Unknown site alias or domain: ${targetSite ?? '(empty)'}`, {
           exitCode: ExitCode.NOT_FOUND,
           code: 'SITE_NOT_FOUND',
         });
       }
 
-      config.active = targetSite;
+      config.active = resolvedTargetSite;
       await writeUserConfig(config);
-      console.log(`Active site set to '${targetSite}'.`);
+      console.log(`Active site set to '${formatSwitchSiteOption(resolvedTargetSite, config.sites)}'.`);
     });
 
   auth
