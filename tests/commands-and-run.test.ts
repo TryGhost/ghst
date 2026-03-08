@@ -194,6 +194,95 @@ describe('run + commands', () => {
     delete process.env.MY_GHOST_KEY;
   });
 
+  test('shows project link in auth list while leaving auth status unchanged', async () => {
+    const logSpy = vi.mocked(console.log);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://project.ghost.io',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://active.ghost.io',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await fs.mkdir(path.join(workDir, '.ghst'), { recursive: true });
+    await fs.writeFile(
+      path.join(workDir, '.ghst', 'config.json'),
+      `${JSON.stringify({ site: 'project' }, null, 2)}\n`,
+      'utf8',
+    );
+
+    let start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status'])).resolves.toBe(ExitCode.SUCCESS);
+    const statusOutput = logSpy.mock.calls
+      .slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(statusOutput).toContain('Active site: active');
+    expect(statusOutput).toContain('* active -> https://active.ghost.io');
+    expect(statusOutput).not.toContain('Project link:');
+    expect(statusOutput).not.toContain('* project -> https://project.ghost.io');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'status', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    const statusJson = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '')) as {
+      active: string | null;
+      sites: string[];
+      projectLink?: string;
+      effectiveSite?: string | null;
+    };
+    expect(statusJson).toEqual({
+      active: 'active',
+      sites: ['project', 'active'],
+    });
+    expect(logSpy.mock.calls.length).toBe(start + 1);
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'list'])).resolves.toBe(ExitCode.SUCCESS);
+    const listOutput = logSpy.mock.calls
+      .slice(start)
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(listOutput).toContain('Active site: active');
+    expect(listOutput).toContain('Project link: project (overrides active site in this directory)');
+    expect(listOutput).toContain('  active -> https://active.ghost.io');
+    expect(listOutput).toContain('* project -> https://project.ghost.io');
+
+    start = logSpy.mock.calls.length;
+    await expect(run(['node', 'ghst', 'auth', 'list', '--json'])).resolves.toBe(ExitCode.SUCCESS);
+    const listJson = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '')) as {
+      active: string | null;
+      projectLink?: string;
+      effectiveSite: string | null;
+      sites: string[];
+    };
+    expect(listJson).toEqual({
+      active: 'active',
+      projectLink: 'project',
+      effectiveSite: 'project',
+      sites: ['project', 'active'],
+    });
+    expect(logSpy.mock.calls.length).toBe(start + 1);
+  });
+
   test('continues interactive auth when browser auto-open fails', async () => {
     const errorSpy = vi.spyOn(console, 'error');
     setOpenUrlForTests(async () => {

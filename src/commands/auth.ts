@@ -371,6 +371,40 @@ export function registerAuthCommands(program: Command): void {
       const global = getGlobalOptions(command);
       const config = await readUserConfig();
       const aliases = Object.keys(config.sites);
+
+      if (global.json) {
+        console.log(
+          JSON.stringify(
+            {
+              active: config.active ?? null,
+              sites: aliases,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      if (aliases.length === 0) {
+        console.log('No configured sites. Run ghst auth login.');
+        return;
+      }
+
+      console.log(`Active site: ${config.active ?? '(none)'}`);
+      for (const [alias, site] of Object.entries(config.sites)) {
+        const marker = config.active === alias ? '*' : ' ';
+        console.log(`${marker} ${alias} -> ${site.url}`);
+      }
+    });
+
+  auth
+    .command('list')
+    .description('List configured sites')
+    .action(async (_, command) => {
+      const global = getGlobalOptions(command);
+      const config = await readUserConfig();
+      const aliases = Object.keys(config.sites);
       const projectConfig = await readProjectConfig();
       const projectSite = projectConfig?.site ?? null;
       const effectiveSite = projectSite ?? config.active ?? null;
@@ -403,24 +437,6 @@ export function registerAuthCommands(program: Command): void {
       for (const [alias, site] of Object.entries(config.sites)) {
         const marker = effectiveSite === alias ? '*' : ' ';
         console.log(`${marker} ${alias} -> ${site.url}`);
-      }
-    });
-
-  auth
-    .command('list')
-    .description('List configured sites')
-    .action(async (_, command) => {
-      const global = getGlobalOptions(command);
-      const config = await readUserConfig();
-      const aliases = Object.keys(config.sites);
-
-      if (global.json) {
-        console.log(JSON.stringify({ sites: aliases }, null, 2));
-        return;
-      }
-
-      for (const alias of aliases) {
-        console.log(alias);
       }
     });
 
