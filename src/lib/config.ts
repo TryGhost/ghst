@@ -123,20 +123,45 @@ export function getProjectConfigPath(cwd = process.cwd()): string {
   return path.join(cwd, '.ghst', 'config.json');
 }
 
-async function findProjectConfigPath(cwd = process.cwd()): Promise<string | null> {
+async function findEnclosingRepoRoot(cwd = process.cwd()): Promise<string | null> {
   let dir = path.resolve(cwd);
   const root = path.parse(dir).root;
+
+  while (true) {
+    const gitPath = path.join(dir, '.git');
+    try {
+      await fs.access(gitPath);
+      return dir;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    if (dir === root) {
+      return null;
+    }
+
+    dir = path.dirname(dir);
+  }
+}
+
+async function findProjectConfigPath(cwd = process.cwd()): Promise<string | null> {
+  let dir = path.resolve(cwd);
+  const stopDir = (await findEnclosingRepoRoot(dir)) ?? dir;
 
   while (true) {
     const candidate = path.join(dir, '.ghst', 'config.json');
     try {
       await fs.access(candidate);
       return candidate;
-    } catch {
-      // not found at this level, keep walking up
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
     }
 
-    if (dir === root) {
+    if (dir === stopDir) {
       return null;
     }
 
