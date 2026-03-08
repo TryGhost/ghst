@@ -128,7 +128,7 @@ Connection resolution order:
 - Validation schemas: `src/schemas/*`
 - MCP server/tools: `src/mcp/*`
 - Tests: `tests/*`
-- Ghost fixture scripts: `scripts/update-ghost-fixtures.ts`
+- Ghost fixture scripts: `scripts/check-ghost-fixtures.ts`, `scripts/capture-ghost-fixtures.ts`
 - CI workflows: `.github/workflows/*`
 
 ## Development Workflow
@@ -174,13 +174,7 @@ CI reference:
 
 When changing behavior that depends on Ghost Admin API fixture mocks:
 
-1. Refresh fixtures:
-
-```bash
-pnpm fixtures:ghost:update
-```
-
-2. Verify fixture drift:
+1. Run the offline fixture contract check:
 
 ```bash
 pnpm fixtures:ghost:check
@@ -188,8 +182,9 @@ pnpm fixtures:ghost:check
 
 Important notes:
 
-- Fixture generation performs real writes/deletes on the configured Ghost site.
-- Use a development or staging Ghost instance, not production.
+- Fixture-backed tests use committed static JSON only.
+- `pnpm fixtures:ghost:check` is fully offline and should be deterministic.
+- `pnpm fixtures:ghost:capture` is an optional lightweight local snapshot tool for manual inspection only; it is not part of the normal validation workflow.
 - Fixture details are documented in `tests/fixtures/ghost-admin/README.md`.
 
 ## Coding Guidelines

@@ -1,0 +1,13 @@
+{
+  "offers": [
+    {
+      "amount": 10,
+      "cadence": "month",
+      "code": "fixture-offer",
+      "id": "<offerId>",
+      "name": "<fixture-offer-name>",
+      "status": "active",
+      "type": "percent"
+    }
+  ]
+}

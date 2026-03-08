@@ -1,0 +1,115 @@
+{
+  "themes": [
+    {
+      "active": true,
+      "name": "<themeName>",
+      "package": {
+        "author": {
+          "email": "<email>",
+          "name": "Ghost Foundation",
+          "url": "https://ghost.org"
+        },
+        "config": {
+          "card_assets": true,
+          "custom": {
+            "background_color": {
+              "default": "#faf6e9",
+              "type": "color"
+            },
+            "email_signup_text": {
+              "default": "Subscribe for daily recipes. No spam, just food.",
+              "type": "text"
+            },
+            "enter_tag_slugs_for_homepage_sections": {
+              "group": "homepage",
+              "type": "text"
+            },
+            "footer_text": {
+              "type": "text"
+            },
+            "header_action": {
+              "default": "Subscribe",
+              "group": "homepage",
+              "options": ["Subscribe", "Search", "No action"],
+              "type": "select"
+            },
+            "navigation_layout": {
+              "default": "Logo in the middle",
+              "options": ["Logo on the left", "Logo in the middle", "Stacked"],
+              "type": "select"
+            },
+            "primary_header": {
+              "default": "Delicious meals in under 15 minutes",
+              "group": "homepage",
+              "type": "text"
+            },
+            "secondary_header": {
+              "default": "A new recipe everyday, directly in your inbox.",
+              "group": "homepage",
+              "type": "text"
+            },
+            "style": {
+              "default": "Elegant",
+              "options": ["Elegant", "Playful"],
+              "type": "select"
+            }
+          },
+          "image_sizes": {
+            "l": {
+              "width": 960
+            },
+            "m": {
+              "width": 720
+            },
+            "s": {
+              "width": 300
+            },
+            "xl": {
+              "width": 1200
+            },
+            "xs": {
+              "width": 150
+            },
+            "xxl": {
+              "width": 2000
+            }
+          },
+          "posts_per_page": 12
+        },
+        "description": "A Ghost theme",
+        "devDependencies": {
+          "@tryghost/shared-theme-assets": "2.5.2",
+          "autoprefixer": "10.4.27",
+          "beeper": "2.1.0",
+          "cssnano": "7.1.2",
+          "gscan": "5.2.5",
+          "gulp": "5.0.1",
+          "gulp-concat": "2.6.1",
+          "gulp-livereload": "4.0.2",
+          "gulp-postcss": "10.0.0",
+          "gulp-uglify": "3.0.2",
+          "gulp-zip": "5.1.0",
+          "ordered-read-streams": "2.0.0",
+          "postcss": "8.5.6",
+          "postcss-easy-import": "4.0.0",
+          "pump": "3.0.3"
+        },
+        "docs": "https://taste.ghost.io/about/",
+        "engines": {
+          "ghost": ">=5.0.0"
+        },
+        "keywords": ["ghost", "theme", "ghost-theme"],
+        "license": "MIT",
+        "name": "taste",
+        "private": true,
+        "scripts": {
+          "dev": "gulp",
+          "test": "gscan .",
+          "zip": "gulp zip"
+        },
+        "version": "1.0.0"
+      },
+      "templates": []
+    }
+  ]
+}

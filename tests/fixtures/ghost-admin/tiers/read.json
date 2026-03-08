@@ -1,0 +1,21 @@
+{
+  "tiers": [
+    {
+      "active": true,
+      "benefits": [],
+      "created_at": "<datetime>",
+      "currency": "USD",
+      "description": null,
+      "id": "<tierId>",
+      "monthly_price": 500,
+      "name": "ghst",
+      "slug": "<tierSlug>",
+      "trial_days": 0,
+      "type": "paid",
+      "updated_at": "<datetime>",
+      "visibility": "public",
+      "welcome_page_url": null,
+      "yearly_price": 5000
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Validation error, cannot save post.",
+  "payload": {
+    "errors": [
+      {
+        "code": null,
+        "context": "Validation failed for status.",
+        "details": [
+          {
+            "dataPath": ".posts[0].status",
+            "keyword": "enum",
+            "message": "should be equal to one of the allowed values",
+            "params": {
+              "allowedValues": ["published", "draft", "scheduled", "sent"]
+            },
+            "schemaPath": "#/properties/status/enum"
+          }
+        ],
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Validation error, cannot save post.",
+        "property": "status",
+        "type": "ValidationError"
+      }
+    ]
+  },
+  "status": 422
+}

@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "count": {
+        "direct_replies": 1,
+        "likes": 0,
+        "replies": 1,
+        "reports": 0
+      },
+      "created_at": "<datetime>",
+      "edited_at": null,
+      "html": "<fixture-comment-html>",
+      "id": "<commentId>",
+      "in_reply_to_id": null,
+      "in_reply_to_snippet": null,
+      "liked": false,
+      "member": {
+        "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+        "can_comment": true,
+        "commenting": {
+          "disabled": false,
+          "disabled_reason": null,
+          "disabled_until": null
+        },
+        "email": "<memberEmail>",
+        "expertise": null,
+        "id": "<memberId>",
+        "name": "<fixture-member-updated-name>",
+        "uuid": "<memberUuid>"
+      },
+      "parent_id": null,
+      "replies": [
+        {
+          "count": {
+            "direct_replies": 0,
+            "likes": 0,
+            "reports": 0
+          },
+          "created_at": "<datetime>",
+          "edited_at": null,
+          "html": "<fixture-reply-html>",
+          "id": "<commentReplyId>",
+          "in_reply_to_id": null,
+          "in_reply_to_snippet": null,
+          "liked": false,
+          "member": {
+            "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+            "can_comment": true,
+            "commenting": {
+              "disabled": false,
+              "disabled_reason": null,
+              "disabled_until": null
+            },
+            "email": "<memberEmail>",
+            "expertise": null,
+            "id": "<memberId>",
+            "name": "<fixture-member-updated-name>",
+            "uuid": "<memberUuid>"
+          },
+          "parent_id": "<commentId>",
+          "status": "published"
+        }
+      ],
+      "status": "published"
+    }
+  ]
+}

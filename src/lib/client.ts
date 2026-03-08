@@ -17,6 +17,8 @@ export interface GhostPaginatedResponse extends Record<string, unknown> {
   meta?: Record<string, unknown>;
 }
 
+export type GhostCommentStatus = 'published' | 'hidden' | 'deleted';
+
 type RequestApi = 'admin' | 'content';
 type ResponseType = 'json' | 'text' | 'buffer';
 
@@ -502,6 +504,54 @@ export class GhostClient {
       this.request<Record<string, unknown>>('POST', '/members/upload/', {
         body: formData,
         params,
+      }),
+  };
+
+  comments = {
+    browseAll: (params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/comments/', { params }),
+
+    read: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<Record<string, unknown>>('GET', `/comments/${id}/`, { params }),
+
+    readForModeration: (id: string) =>
+      this.request<Record<string, unknown>>('GET', `/comments/${id}/`, {
+        params: {
+          include:
+            'member,post,count.replies,count.direct_replies,count.likes,count.reports,parent,in_reply_to',
+        },
+      }),
+
+    replies: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', `/comments/${id}/replies/`, { params }),
+
+    browseThread: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', '/comments/', {
+        params: {
+          filter: `(parent_id:${id}+in_reply_to_id:null),in_reply_to_id:${id}`,
+          order: 'created_at asc',
+          include: 'member,post,count.direct_replies,count.likes,count.reports,parent,in_reply_to',
+          limit: 100,
+          ...params,
+        },
+      }),
+
+    likes: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', `/comments/${id}/likes/`, { params }),
+
+    reports: (id: string, params?: Record<string, string | number | boolean | undefined>) =>
+      this.request<GhostPaginatedResponse>('GET', `/comments/${id}/reports/`, { params }),
+
+    setStatus: (id: string, status: GhostCommentStatus) =>
+      this.request<Record<string, unknown>>('PUT', `/comments/${id}/`, {
+        body: {
+          comments: [
+            {
+              id,
+              status,
+            },
+          ],
+        },
       }),
   };
 

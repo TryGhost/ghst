@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import type { ZodTypeAny } from 'zod';
+import {
+  CommentDeleteInputSchema,
+  CommentGetInputSchema,
+  CommentListInputSchema,
+  CommentRelationListInputSchema,
+  CommentRepliesInputSchema,
+} from '../src/schemas/comment.js';
 import { UserConfigSchema } from '../src/schemas/config.js';
 import { ImageUploadInputSchema } from '../src/schemas/image.js';
 import {
@@ -346,6 +353,25 @@ describe('phase 3 schemas', () => {
       'site config must include staffAccessToken or credentialRef',
     );
     expectInvalid(MigrateSubstackInputSchema, { file: './substack.zip', url: 'not-a-url' });
+  });
+});
+
+describe('comment schemas', () => {
+  test('allow list pagination and require ids for targeted moderation flows', () => {
+    expectValid<{ limit?: number | string }>(CommentListInputSchema, { limit: 'all' });
+    expectValid<{ id: string }>(CommentGetInputSchema, { id: 'comment-1' });
+    expectValid<{ filter?: string }>(CommentRepliesInputSchema, {
+      id: 'comment-1',
+      filter: 'status:published',
+    });
+    expectValid<{ yes?: boolean }>(CommentDeleteInputSchema, { id: 'comment-1', yes: true });
+    expectValid<{ page?: number }>(CommentRelationListInputSchema, { id: 'comment-1', page: 2 });
+
+    expectInvalid(CommentListInputSchema, { limit: 101 });
+    expectInvalid(CommentGetInputSchema, { id: '' });
+    expectInvalid(CommentRepliesInputSchema, { id: '', page: 1 });
+    expectInvalid(CommentDeleteInputSchema, { id: '' });
+    expectInvalid(CommentRelationListInputSchema, { id: 'comment-1', page: 0 });
   });
 });
 

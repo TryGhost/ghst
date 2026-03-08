@@ -1,0 +1,41 @@
+{
+  "users": [
+    {
+      "accessibility": "{\"navigation\":{\"expanded\":{\"posts\":true},\"menu\":{\"visible\":true}},\"nightShift\":false,\"onboarding\":{\"checklistState\":\"started\",\"completedSteps\":[]},\"whatsNew\":{\"lastSeenDate\":\"<datetime>\"}}",
+      "bio": null,
+      "bluesky": null,
+      "comment_notifications": false,
+      "cover_image": null,
+      "created_at": "<datetime>",
+      "donation_notifications": false,
+      "email": "<userEmail>",
+      "facebook": null,
+      "free_member_signup_notification": false,
+      "id": "<userId>",
+      "instagram": null,
+      "last_seen": "<datetime>",
+      "linkedin": null,
+      "location": null,
+      "mastodon": null,
+      "mention_notifications": true,
+      "meta_description": null,
+      "meta_title": null,
+      "milestone_notifications": false,
+      "name": "<fixture-user-name>",
+      "paid_subscription_canceled_notification": false,
+      "paid_subscription_started_notification": false,
+      "profile_image": "https://www.gravatar.com/avatar/75e958a6674a7d68fe0d575fb235116c?s=250&r=x&d=mp",
+      "recommendation_notifications": false,
+      "slug": "<userSlug>",
+      "status": "active",
+      "threads": null,
+      "tiktok": null,
+      "tour": null,
+      "twitter": null,
+      "updated_at": "<datetime>",
+      "url": "https://ghst.ghost.io/author/<userSlug>/",
+      "website": null,
+      "youtube": null
+    }
+  ]
+}

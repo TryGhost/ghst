@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "pagination": {
+      "limit": 2,
+      "next": null,
+      "page": 1,
+      "pages": 1,
+      "prev": null,
+      "total": 1
+    }
+  },
+  "tags": [
+    {
+      "accent_color": "#00aa00",
+      "canonical_url": null,
+      "codeinjection_foot": null,
+      "codeinjection_head": null,
+      "count": {
+        "posts": 0
+      },
+      "created_at": "<datetime>",
+      "description": "Fixture description",
+      "feature_image": null,
+      "id": "<tagId>",
+      "meta_description": null,
+      "meta_title": null,
+      "name": "<fixture-tag-name>",
+      "og_description": null,
+      "og_image": null,
+      "og_title": null,
+      "slug": "<tagSlug>",
+      "twitter_description": null,
+      "twitter_image": null,
+      "twitter_title": null,
+      "updated_at": "<datetime>",
+      "url": "https://ghst.ghost.io/404/",
+      "visibility": "public"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "labels": [
+    {
+      "created_at": "<datetime>",
+      "id": "<labelId>",
+      "name": "<fixture-label-name>",
+      "slug": "<labelSlug>",
+      "updated_at": "<datetime>"
+    }
+  ]
+}

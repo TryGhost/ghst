@@ -2,6 +2,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { normalizeGhostApiPath } from '../../lib/api-path.js';
 import { GhostClient } from '../../lib/client.js';
+import {
+  getComment,
+  getCommentThread,
+  listCommentLikes,
+  listCommentReplies,
+  listCommentReports,
+  listComments,
+  setCommentStatus,
+} from '../../lib/comments.js';
 import { resolveConnectionConfig } from '../../lib/config.js';
 import { uploadImage } from '../../lib/images.js';
 import {
@@ -54,6 +63,7 @@ export type McpToolGroup =
   | 'pages'
   | 'tags'
   | 'members'
+  | 'comments'
   | 'site'
   | 'settings'
   | 'users'
@@ -66,6 +76,7 @@ export const MCP_TOOL_GROUPS: readonly McpToolGroup[] = [
   'pages',
   'tags',
   'members',
+  'comments',
   'site',
   'settings',
   'users',
@@ -93,6 +104,12 @@ const statsWebArgs = {
   utm_content: z.string().optional(),
   utm_term: z.string().optional(),
   limit: z.number().int().positive().max(100).optional(),
+};
+
+const commentBrowseArgs = {
+  limit: z.number().int().positive().max(100).optional(),
+  page: z.number().int().positive().optional(),
+  filter: z.string().optional(),
 };
 
 const statsTableViewSchema = z.enum([
@@ -757,6 +774,162 @@ export function registerCoreTools(
         }),
       },
       async (args) => toolResult(await listOffers(global, { ...args }, false)),
+    );
+  }
+
+  if (enabledGroups.has('comments')) {
+    server.registerTool(
+      'ghost_comment_list',
+      {
+        description: 'List Ghost comments from the Admin moderation view.',
+        inputSchema: z.object({
+          ...commentBrowseArgs,
+          order: z.string().optional(),
+          top_level_only: z.boolean().optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await listComments(
+            global,
+            {
+              limit: args.limit,
+              page: args.page,
+              filter: args.filter,
+              order: args.order,
+              includeNested: !args.top_level_only,
+            },
+            false,
+          ),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_comment_get',
+      {
+        description: 'Get a Ghost comment with Admin moderation fields.',
+        inputSchema: z.object({
+          id: z.string(),
+        }),
+      },
+      async (args) => toolResult(await getComment(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_comment_thread',
+      {
+        description: 'Get a Ghost comment thread using the Admin moderation thread view.',
+        inputSchema: z.object({
+          id: z.string(),
+        }),
+      },
+      async (args) => toolResult(await getCommentThread(global, args.id)),
+    );
+
+    server.registerTool(
+      'ghost_comment_replies',
+      {
+        description: 'List replies for a Ghost comment using the raw replies endpoint.',
+        inputSchema: z.object({
+          id: z.string(),
+          ...commentBrowseArgs,
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await listCommentReplies(
+            global,
+            args.id,
+            {
+              limit: args.limit,
+              page: args.page,
+              filter: args.filter,
+            },
+            false,
+          ),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_comment_likes',
+      {
+        description: 'List likes for a Ghost comment.',
+        inputSchema: z.object({
+          id: z.string(),
+          limit: z.number().int().positive().max(100).optional(),
+          page: z.number().int().positive().optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await listCommentLikes(
+            global,
+            args.id,
+            {
+              limit: args.limit,
+              page: args.page,
+            },
+            false,
+          ),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_comment_reports',
+      {
+        description: 'List reports for a Ghost comment.',
+        inputSchema: z.object({
+          id: z.string(),
+          limit: z.number().int().positive().max(100).optional(),
+          page: z.number().int().positive().optional(),
+        }),
+      },
+      async (args) =>
+        toolResult(
+          await listCommentReports(
+            global,
+            args.id,
+            {
+              limit: args.limit,
+              page: args.page,
+            },
+            false,
+          ),
+        ),
+    );
+
+    server.registerTool(
+      'ghost_comment_hide',
+      {
+        description: 'Hide a Ghost comment.',
+        inputSchema: z.object({
+          id: z.string(),
+        }),
+      },
+      async (args) => toolResult(await setCommentStatus(global, args.id, 'hidden')),
+    );
+
+    server.registerTool(
+      'ghost_comment_show',
+      {
+        description: 'Show a previously hidden Ghost comment.',
+        inputSchema: z.object({
+          id: z.string(),
+        }),
+      },
+      async (args) => toolResult(await setCommentStatus(global, args.id, 'published')),
+    );
+
+    server.registerTool(
+      'ghost_comment_delete',
+      {
+        description: 'Soft-delete a Ghost comment.',
+        inputSchema: z.object({
+          id: z.string(),
+          confirm: z.literal(true),
+        }),
+      },
+      async (args) => toolResult(await setCommentStatus(global, args.id, 'deleted')),
     );
   }
 

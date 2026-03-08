@@ -1,0 +1,20 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Resource not found error, cannot read newsletter.",
+  "payload": {
+    "errors": [
+      {
+        "code": null,
+        "context": "Newsletter not found.",
+        "details": null,
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Resource not found error, cannot read newsletter.",
+        "property": null,
+        "type": "NotFoundError"
+      }
+    ]
+  },
+  "status": 404
+}

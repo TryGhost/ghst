@@ -1,0 +1,24 @@
+{
+  "code": "GHOST_API_ERROR",
+  "message": "Saving failed! Someone else is editing this post.",
+  "payload": {
+    "errors": [
+      {
+        "code": "UPDATE_COLLISION",
+        "context": "Saving failed! Someone else is editing this post.",
+        "details": {
+          "changedFields": ["title"],
+          "clientUpdatedAt": "<datetime>",
+          "serverUpdatedAt": "<datetime>"
+        },
+        "ghostErrorCode": null,
+        "help": null,
+        "id": "<error-id>",
+        "message": "Saving failed! Someone else is editing this post.",
+        "property": null,
+        "type": "UpdateCollisionError"
+      }
+    ]
+  },
+  "status": 409
+}

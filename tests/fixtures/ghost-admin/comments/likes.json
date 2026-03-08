@@ -1,0 +1,34 @@
+{
+  "comment_likes": [
+    {
+      "comment_id": "<commentId>",
+      "created_at": "<datetime>",
+      "id": "<commentLikeId>",
+      "member": {
+        "avatar_image": "https://www.gravatar.com/avatar/<hash>?s=250&r=g&d=blank",
+        "can_comment": true,
+        "commenting": {
+          "disabled": false,
+          "disabled_reason": null,
+          "disabled_until": null
+        },
+        "email": "<memberEmail>",
+        "id": "<memberId>",
+        "name": "<fixture-member-updated-name>",
+        "uuid": "<memberUuid>"
+      },
+      "member_id": "<memberId>",
+      "updated_at": "<datetime>"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "limit": 100,
+      "next": null,
+      "page": 1,
+      "pages": 1,
+      "prev": null,
+      "total": 1
+    }
+  }
+}

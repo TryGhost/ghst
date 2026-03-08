@@ -114,7 +114,21 @@ describe('mcp core tool registration', () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
 
-    expect(tools.size).toBe(49);
+    expect([...tools.keys()]).toEqual(
+      expect.arrayContaining([
+        'ghost_post_list',
+        'ghost_page_list',
+        'ghost_tag_list',
+        'ghost_member_list',
+        'ghost_comment_list',
+        'ghost_site_info',
+        'ghost_setting_list',
+        'ghost_user_list',
+        'ghost_api_request',
+        'ghost_search',
+        'ghost_stats_overview',
+      ]),
+    );
 
     const run = async (
       name: string,
@@ -167,6 +181,35 @@ describe('mcp core tool registration', () => {
     await run('ghost_member_delete', { id: fixtureIds.memberId, confirm: true });
     await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
     await run('ghost_member_import', { file_path: path.join(workDir, 'members.csv') });
+
+    const commentListResponse = await run('ghost_comment_list', {
+      limit: 5,
+      filter: 'status:published',
+    });
+    expect(commentListResponse.structuredContent).toHaveProperty('comments');
+
+    const commentGetResponse = await run('ghost_comment_get', { id: fixtureIds.commentId });
+    expect(commentGetResponse.structuredContent).toMatchObject({
+      comments: [{ id: fixtureIds.commentId }],
+    });
+
+    const commentThreadResponse = await run('ghost_comment_thread', { id: fixtureIds.commentId });
+    expect(commentThreadResponse.structuredContent).toMatchObject({
+      comment: { id: fixtureIds.commentId },
+      comments: [{ id: fixtureIds.commentReplyId }],
+    });
+
+    await run('ghost_comment_replies', {
+      id: fixtureIds.commentId,
+      limit: 5,
+      filter: 'status:published',
+    });
+    await run('ghost_comment_likes', { id: fixtureIds.commentId, limit: 5 });
+    await run('ghost_comment_reports', { id: fixtureIds.commentId, limit: 5 });
+    await run('ghost_comment_hide', { id: fixtureIds.commentId });
+    await run('ghost_comment_show', { id: fixtureIds.commentId });
+    await run('ghost_comment_delete', { id: fixtureIds.commentId, confirm: true });
+
     await run('ghost_newsletter_list', { limit: 5 });
     await run('ghost_tier_list', { limit: 5 });
     await run('ghost_offer_list', { limit: 5 });
@@ -352,7 +395,7 @@ describe('mcp core tool registration', () => {
   test('parses tool groups from csv', () => {
     expect(parseToolGroups(undefined)).toEqual(new Set(MCP_TOOL_GROUPS));
     expect(parseToolGroups('all')).toEqual(new Set(MCP_TOOL_GROUPS));
-    expect(parseToolGroups('posts,tags')).toEqual(new Set(['posts', 'tags']));
+    expect(parseToolGroups('posts,comments,tags')).toEqual(new Set(['posts', 'comments', 'tags']));
     expect(parseToolGroups('posts,unknown')).toEqual(new Set(['posts']));
     expect(parseToolGroups('unknown')).toEqual(new Set());
     expect(parseToolGroups('')).toEqual(new Set());

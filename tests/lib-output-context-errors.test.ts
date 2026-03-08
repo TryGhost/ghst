@@ -11,6 +11,11 @@ import {
 import {
   formatCsv,
   isJsonMode,
+  printCommentHuman,
+  printCommentLikesHuman,
+  printCommentListHuman,
+  printCommentReportsHuman,
+  printCommentThreadHuman,
   printJson,
   printLabelHuman,
   printLabelListHuman,
@@ -173,6 +178,38 @@ describe('output helpers', () => {
     printLabelListHuman({
       labels: [{ id: '8', name: 'Label', slug: 'label', updated_at: '2026-01-01' }],
     });
+    printCommentListHuman({
+      comments: [
+        {
+          id: 'comment-1',
+          status: 'published',
+          created_at: '2026-01-01',
+          html: '<p>Hello</p>',
+          member: { id: 'member-1', name: 'Member' },
+          post: { id: 'post-1', title: 'Post title' },
+          count: { replies: 2, direct_replies: 1, likes: 3, reports: 0 },
+        },
+      ],
+      meta: { pagination: { page: 1, pages: 1, total: 1 } },
+    });
+    printCommentLikesHuman({
+      comment_likes: [
+        {
+          id: 'like-1',
+          member: { id: 'member-1', name: 'Member', email: 'member@example.com' },
+          created_at: '2026-01-01',
+        },
+      ],
+    });
+    printCommentReportsHuman({
+      comment_reports: [
+        {
+          id: 'report-1',
+          member: { id: 'member-1', name: 'Member', email: 'member@example.com' },
+          created_at: '2026-01-01',
+        },
+      ],
+    });
 
     printPostHuman({ posts: [{ id: 'id1', title: 'Title', slug: 'slug', status: 'draft' }] });
     printPageHuman({ pages: [{ id: 'id2', title: 'Page', slug: 'about', status: 'draft' }] });
@@ -186,7 +223,47 @@ describe('output helpers', () => {
     printTierHuman({ tiers: [{ id: 'id6', name: 'Tier', type: 'paid' }] });
     printOfferHuman({ offers: [{ id: 'id7', name: 'Offer', code: 'offer', status: 'active' }] });
     printLabelHuman({ labels: [{ id: 'id8', name: 'Label', slug: 'label' }] });
+    printCommentHuman({
+      comments: [
+        {
+          id: 'comment-1',
+          status: 'published',
+          created_at: '2026-01-01',
+          edited_at: '2026-01-02',
+          html: '<p>Hello</p>',
+          member: { id: 'member-1', name: 'Member' },
+          post: { id: 'post-1', title: 'Post title' },
+          count: { replies: 2, direct_replies: 1, likes: 3, reports: 0 },
+        },
+      ],
+    });
+    printCommentThreadHuman({
+      comment: {
+        id: 'comment-1',
+        status: 'published',
+        created_at: '2026-01-01',
+        edited_at: '2026-01-02',
+        html: '<p>Hello</p>',
+        member: { id: 'member-1', name: 'Member' },
+        post: { id: 'post-1', title: 'Post title' },
+        count: { replies: 2, direct_replies: 1, likes: 3, reports: 0 },
+      },
+      comments: [
+        {
+          id: 'comment-2',
+          status: 'published',
+          created_at: '2026-01-03',
+          html: '<p>Reply</p>',
+          member: { id: 'member-1', name: 'Member' },
+          post: { id: 'post-1', title: 'Post title' },
+          count: { replies: 0, direct_replies: 0, likes: 0, reports: 0 },
+          in_reply_to_snippet: 'Hello',
+        },
+      ],
+      meta: { pagination: { page: 1, pages: 1, total: 1 } },
+    });
     printPostHuman({ posts: [] });
+    printCommentThreadHuman({ comment: null, comments: [] });
     printOperationStatsHuman({ meta: { stats: { imported: 2, invalid: [] } } }, 'Imported members');
     printOperationStatsHuman(
       { bulk: { meta: { stats: { successful: 2, unsuccessful: 1 } } } },

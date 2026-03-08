@@ -2,6 +2,15 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import {
+  getComment,
+  getCommentThread,
+  listCommentLikes,
+  listCommentReplies,
+  listCommentReports,
+  listComments,
+  setCommentStatus,
+} from '../src/lib/comments.js';
 import { ExitCode } from '../src/lib/errors.js';
 import { uploadImage } from '../src/lib/images.js';
 import { createLabel, deleteLabel, getLabel, listLabels, updateLabel } from '../src/lib/labels.js';
@@ -245,6 +254,70 @@ describe('resource service helpers', () => {
           return jsonResponse(payload);
         }
 
+        if (
+          pathname.endsWith('/comments/') &&
+          url.searchParams.get('filter') ===
+            `(parent_id:${fixtureIds.commentId}+in_reply_to_id:null),in_reply_to_id:${fixtureIds.commentId}`
+        ) {
+          const payload = cloneFixture(ghostFixtures.comments.thread) as Record<string, unknown>;
+          const comments = payload.comments as Array<Record<string, unknown>>;
+          payload.comments = comments.slice(0, 1);
+          const first = (payload.comments as Array<Record<string, unknown>>)[0];
+          if (first) {
+            first.id = `comment-thread-${page}`;
+          }
+          payload.meta = { pagination: { page, pages: 2, total: 2 } };
+          return jsonResponse(payload);
+        }
+
+        if (pathname.endsWith('/comments/')) {
+          const payload = cloneFixture(ghostFixtures.comments.browse) as Record<string, unknown>;
+          const comments = payload.comments as Array<Record<string, unknown>>;
+          payload.comments = comments.slice(0, 1);
+          const first = (payload.comments as Array<Record<string, unknown>>)[0];
+          if (first) {
+            first.id = `comment-${page}`;
+          }
+          payload.meta = { pagination: { page, pages: 2, total: 2 } };
+          return jsonResponse(payload);
+        }
+
+        if (pathname.endsWith(`/comments/${fixtureIds.commentId}/replies/`)) {
+          const payload = cloneFixture(ghostFixtures.comments.replies) as Record<string, unknown>;
+          const comments = payload.comments as Array<Record<string, unknown>>;
+          payload.comments = comments.slice(0, 1);
+          const first = (payload.comments as Array<Record<string, unknown>>)[0];
+          if (first) {
+            first.id = `comment-reply-${page}`;
+          }
+          payload.meta = { pagination: { page, pages: 2, total: 2 } };
+          return jsonResponse(payload);
+        }
+
+        if (pathname.endsWith(`/comments/${fixtureIds.commentId}/likes/`)) {
+          const payload = cloneFixture(ghostFixtures.comments.likes) as Record<string, unknown>;
+          const likes = payload.comment_likes as Array<Record<string, unknown>>;
+          payload.comment_likes = likes.slice(0, 1);
+          const first = (payload.comment_likes as Array<Record<string, unknown>>)[0];
+          if (first) {
+            first.id = `comment-like-${page}`;
+          }
+          payload.meta = { pagination: { page, pages: 2, total: 2 } };
+          return jsonResponse(payload);
+        }
+
+        if (pathname.endsWith(`/comments/${fixtureIds.commentId}/reports/`)) {
+          const payload = cloneFixture(ghostFixtures.comments.reports) as Record<string, unknown>;
+          const reports = payload.comment_reports as Array<Record<string, unknown>>;
+          payload.comment_reports = reports.slice(0, 1);
+          const first = (payload.comment_reports as Array<Record<string, unknown>>)[0];
+          if (first) {
+            first.id = `comment-report-${page}`;
+          }
+          payload.meta = { pagination: { page, pages: 2, total: 2 } };
+          return jsonResponse(payload);
+        }
+
         if (pathname.endsWith('/users/')) {
           const payload = {
             users: [{ id: `user-${page}`, name: 'Owner', slug: `owner-${page}` }],
@@ -265,6 +338,10 @@ describe('resource service helpers', () => {
     const tiers = await listTiers({}, { limit: 10 }, true);
     const offers = await listOffers({}, { limit: 10 }, true);
     const labels = await listLabels({}, { limit: 10 }, true);
+    const comments = await listComments({}, { limit: 10 }, true);
+    const commentReplies = await listCommentReplies({}, fixtureIds.commentId, { limit: 10 }, true);
+    const commentLikes = await listCommentLikes({}, fixtureIds.commentId, { limit: 10 }, true);
+    const commentReports = await listCommentReports({}, fixtureIds.commentId, { limit: 10 }, true);
     const users = await listUsers({}, { limit: 10 }, true);
 
     const postItems = posts.posts as Array<{ id?: string }>;
@@ -275,6 +352,10 @@ describe('resource service helpers', () => {
     const tierItems = tiers.tiers as Array<{ id?: string }>;
     const offerItems = offers.offers as Array<{ id?: string }>;
     const labelItems = labels.labels as Array<{ id?: string }>;
+    const commentItems = comments.comments as Array<{ id?: string }>;
+    const replyItems = commentReplies.comments as Array<{ id?: string }>;
+    const likeItems = commentLikes.comment_likes as Array<{ id?: string }>;
+    const reportItems = commentReports.comment_reports as Array<{ id?: string }>;
     const userItems = users.users as Array<{ id?: string }>;
 
     expect(postItems.map((post) => post.id)).toEqual(['post-1', 'post-2']);
@@ -285,7 +366,157 @@ describe('resource service helpers', () => {
     expect(tierItems.map((item) => item.id)).toEqual(['tier-1', 'tier-2']);
     expect(offerItems.map((item) => item.id)).toEqual(['offer-1', 'offer-2']);
     expect(labelItems.map((item) => item.id)).toEqual(['label-1', 'label-2']);
+    expect(commentItems.map((item) => item.id)).toEqual(['comment-1', 'comment-2']);
+    expect(replyItems.map((item) => item.id)).toEqual(['comment-reply-1', 'comment-reply-2']);
+    expect(likeItems.map((item) => item.id)).toEqual(['comment-like-1', 'comment-like-2']);
+    expect(reportItems.map((item) => item.id)).toEqual(['comment-report-1', 'comment-report-2']);
     expect(userItems.map((item) => item.id)).toEqual(['user-1', 'user-2']);
+  });
+
+  test('supports comment moderation helpers', async () => {
+    const requests: Array<{
+      method: string;
+      pathname: string;
+      url: URL;
+      init: RequestInit | undefined;
+    }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: async ({ method, pathname, url, init }) => {
+        requests.push({ method, pathname, url: new URL(url.toString()), init });
+        return undefined;
+      },
+    });
+
+    const commentList = await listComments({}, { includeNested: false }, false);
+    expect(
+      (commentList.comments as Array<{ id?: string }>).some(
+        (comment) => comment.id === fixtureIds.commentId,
+      ),
+    ).toBe(true);
+    await expect(getComment({}, fixtureIds.commentId)).resolves.toMatchObject({
+      comments: [{ id: fixtureIds.commentId }],
+    });
+    await expect(getCommentThread({}, fixtureIds.commentId)).resolves.toMatchObject({
+      comment: { id: fixtureIds.commentId },
+      comments: [{ id: fixtureIds.commentReplyId }],
+    });
+    await expect(
+      listCommentReplies({}, fixtureIds.commentId, { filter: 'status:hidden' }, false),
+    ).resolves.toMatchObject({
+      comments: [{ id: fixtureIds.commentReplyId }],
+    });
+    await expect(listCommentLikes({}, fixtureIds.commentId, {}, false)).resolves.toMatchObject({
+      comment_likes: [{ id: fixtureIds.commentLikeId }],
+    });
+    await expect(listCommentReports({}, fixtureIds.commentId, {}, false)).resolves.toMatchObject({
+      comment_reports: [{ id: fixtureIds.commentReportId }],
+    });
+    await expect(setCommentStatus({}, fixtureIds.commentId, 'deleted')).resolves.toMatchObject({
+      comments: [{ id: fixtureIds.commentId, status: 'deleted' }],
+    });
+
+    const listRequest = requests.find(
+      (request) => request.method === 'GET' && request.pathname.endsWith('/comments/'),
+    );
+    expect(listRequest?.url.searchParams.get('limit')).toBe('100');
+    expect(listRequest?.url.searchParams.get('order')).toBe('created_at desc');
+    expect(listRequest?.url.searchParams.get('include')).toBe('member,post,parent');
+    expect(listRequest?.url.searchParams.get('include_nested')).toBe('false');
+
+    const getRequest = requests.find(
+      (request) =>
+        request.method === 'GET' && request.pathname.endsWith(`/comments/${fixtureIds.commentId}/`),
+    );
+    expect(getRequest?.url.searchParams.get('include')).toBe(
+      'member,post,count.replies,count.direct_replies,count.likes,count.reports,parent,in_reply_to',
+    );
+
+    const threadRequest = requests.find(
+      (request) =>
+        request.method === 'GET' &&
+        request.pathname.endsWith('/comments/') &&
+        request.url.searchParams.get('filter') ===
+          `(parent_id:${fixtureIds.commentId}+in_reply_to_id:null),in_reply_to_id:${fixtureIds.commentId}`,
+    );
+    expect(threadRequest?.url.searchParams.get('order')).toBe('created_at asc');
+    expect(threadRequest?.url.searchParams.get('include')).toBe(
+      'member,post,count.direct_replies,count.likes,count.reports,parent,in_reply_to',
+    );
+    expect(threadRequest?.url.searchParams.get('limit')).toBe('100');
+
+    const repliesRequest = requests.find(
+      (request) =>
+        request.method === 'GET' &&
+        request.pathname.endsWith(`/comments/${fixtureIds.commentId}/replies/`),
+    );
+    expect(repliesRequest?.url.searchParams.get('limit')).toBe('100');
+    expect(repliesRequest?.url.searchParams.get('filter')).toBe('status:hidden');
+    expect(repliesRequest?.url.searchParams.get('include')).toBe(
+      'member,post,count.replies,count.likes,count.reports,parent',
+    );
+
+    const likesRequest = requests.find(
+      (request) =>
+        request.method === 'GET' &&
+        request.pathname.endsWith(`/comments/${fixtureIds.commentId}/likes/`),
+    );
+    expect(likesRequest?.url.searchParams.get('limit')).toBe('100');
+    expect(likesRequest?.url.searchParams.get('include')).toBe('member');
+    expect(likesRequest?.url.searchParams.get('order')).toBe('created_at desc');
+
+    const reportsRequest = requests.find(
+      (request) =>
+        request.method === 'GET' &&
+        request.pathname.endsWith(`/comments/${fixtureIds.commentId}/reports/`),
+    );
+    expect(reportsRequest?.url.searchParams.get('limit')).toBe('100');
+
+    const deleteRequest = requests.find(
+      (request) =>
+        request.method === 'PUT' && request.pathname.endsWith(`/comments/${fixtureIds.commentId}/`),
+    );
+    expect(deleteRequest?.init?.body).toBe(
+      JSON.stringify({
+        comments: [{ id: fixtureIds.commentId, status: 'deleted' }],
+      }),
+    );
+  });
+
+  test('paginates the Admin moderation thread view across all pages', async () => {
+    const requests: Array<URL> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ method, pathname, url }) => {
+        if (
+          method !== 'GET' ||
+          !pathname.endsWith('/comments/') ||
+          url.searchParams.get('filter') !==
+            `(parent_id:${fixtureIds.commentId}+in_reply_to_id:null),in_reply_to_id:${fixtureIds.commentId}`
+        ) {
+          return undefined;
+        }
+
+        requests.push(new URL(url.toString()));
+        const page = Number(url.searchParams.get('page') ?? '1');
+        const payload = cloneFixture(ghostFixtures.comments.thread) as Record<string, unknown>;
+        const comments = payload.comments as Array<Record<string, unknown>>;
+        payload.comments = comments.slice(0, 1);
+        const first = (payload.comments as Array<Record<string, unknown>>)[0];
+        if (first) {
+          first.id = `comment-thread-${page}`;
+        }
+        payload.meta = { pagination: { page, pages: 2, total: 2 } };
+        return jsonResponse(payload);
+      },
+    });
+
+    await expect(getCommentThread({}, fixtureIds.commentId)).resolves.toMatchObject({
+      comment: { id: fixtureIds.commentId },
+      comments: [{ id: 'comment-thread-1' }, { id: 'comment-thread-2' }],
+    });
+
+    expect(requests.map((request) => request.searchParams.get('page'))).toEqual(['1', '2']);
   });
 
   test('supports post CRUD/update publish with conflict retry', async () => {
@@ -747,9 +978,12 @@ describe('resource service helpers', () => {
       images: [{ url: expect.any(String) }],
     });
 
-    await expect(listThemes({})).resolves.toMatchObject({
-      themes: [{ name: fixtureIds.themeName }],
-    });
+    const themes = await listThemes({});
+    expect(
+      (themes.themes as Array<{ name?: string }>).some(
+        (theme) => theme.name === fixtureIds.themeName,
+      ),
+    ).toBe(true);
     await expect(uploadTheme({}, path.join(workDir, 'theme.zip'))).resolves.toMatchObject({
       themes: [{ name: 'uploaded-theme' }],
     });

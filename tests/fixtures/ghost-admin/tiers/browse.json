@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "pagination": {
+      "limit": 4,
+      "next": null,
+      "page": 1,
+      "pages": 1,
+      "prev": null,
+      "total": 4
+    }
+  },
+  "tiers": [
+    {
+      "active": true,
+      "benefits": [],
+      "created_at": "<datetime>",
+      "description": null,
+      "id": "6999b72e4237850008fa572c",
+      "name": "Free",
+      "slug": "free",
+      "trial_days": 0,
+      "type": "free",
+      "updated_at": "<datetime>",
+      "visibility": "public",
+      "welcome_page_url": null
+    },
+    {
+      "active": true,
+      "benefits": [],
+      "created_at": "<datetime>",
+      "currency": "USD",
+      "description": null,
+      "id": "<tierId>",
+      "monthly_price": 500,
+      "name": "ghst",
+      "slug": "<tierSlug>",
+      "trial_days": 0,
+      "type": "paid",
+      "updated_at": "<datetime>",
+      "visibility": "public",
+      "welcome_page_url": null,
+      "yearly_price": 5000
+    },
+    {
+      "active": false,
+      "benefits": [],
+      "created_at": "<datetime>",
+      "currency": "USD",
+      "description": null,
+      "id": "699d8c7031256d00018d14b2",
+      "monthly_price": 2000,
+      "name": "Cat Special",
+      "slug": "cat-special",
+      "trial_days": 0,
+      "type": "paid",
+      "updated_at": null,
+      "visibility": "public",
+      "welcome_page_url": null,
+      "yearly_price": 5000
+    },
+    {
+      "active": true,
+      "benefits": [],
+      "created_at": "<datetime>",
+      "currency": "USD",
+      "description": null,
+      "id": "699dc4389240650001ebd07a",
+      "monthly_price": 2000,
+      "name": "Majestic Premium Cats",
+      "slug": "majestic-premium-cats",
+      "trial_days": 0,
+      "type": "paid",
+      "updated_at": "<datetime>",
+      "visibility": "public",
+      "welcome_page_url": null,
+      "yearly_price": 10000
+    }
+  ]
+}

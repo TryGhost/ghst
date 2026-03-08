@@ -1,0 +1,634 @@
+{
+  "themes": [
+    {
+      "active": true,
+      "name": "<themeName>",
+      "package": {
+        "author": {
+          "email": "<email>",
+          "name": "Ghost Foundation",
+          "url": "https://ghost.org"
+        },
+        "config": {
+          "card_assets": true,
+          "custom": {
+            "background_color": {
+              "default": "#faf6e9",
+              "type": "color"
+            },
+            "email_signup_text": {
+              "default": "Subscribe for daily recipes. No spam, just food.",
+              "type": "text"
+            },
+            "enter_tag_slugs_for_homepage_sections": {
+              "group": "homepage",
+              "type": "text"
+            },
+            "footer_text": {
+              "type": "text"
+            },
+            "header_action": {
+              "default": "Subscribe",
+              "group": "homepage",
+              "options": ["Subscribe", "Search", "No action"],
+              "type": "select"
+            },
+            "navigation_layout": {
+              "default": "Logo in the middle",
+              "options": ["Logo on the left", "Logo in the middle", "Stacked"],
+              "type": "select"
+            },
+            "primary_header": {
+              "default": "Delicious meals in under 15 minutes",
+              "group": "homepage",
+              "type": "text"
+            },
+            "secondary_header": {
+              "default": "A new recipe everyday, directly in your inbox.",
+              "group": "homepage",
+              "type": "text"
+            },
+            "style": {
+              "default": "Elegant",
+              "options": ["Elegant", "Playful"],
+              "type": "select"
+            }
+          },
+          "image_sizes": {
+            "l": {
+              "width": 960
+            },
+            "m": {
+              "width": 720
+            },
+            "s": {
+              "width": 300
+            },
+            "xl": {
+              "width": 1200
+            },
+            "xs": {
+              "width": 150
+            },
+            "xxl": {
+              "width": 2000
+            }
+          },
+          "posts_per_page": 12
+        },
+        "description": "A Ghost theme",
+        "devDependencies": {
+          "@tryghost/shared-theme-assets": "2.5.2",
+          "autoprefixer": "10.4.27",
+          "beeper": "2.1.0",
+          "cssnano": "7.1.2",
+          "gscan": "5.2.5",
+          "gulp": "5.0.1",
+          "gulp-concat": "2.6.1",
+          "gulp-livereload": "4.0.2",
+          "gulp-postcss": "10.0.0",
+          "gulp-uglify": "3.0.2",
+          "gulp-zip": "5.1.0",
+          "ordered-read-streams": "2.0.0",
+          "postcss": "8.5.6",
+          "postcss-easy-import": "4.0.0",
+          "pump": "3.0.3"
+        },
+        "docs": "https://taste.ghost.io/about/",
+        "engines": {
+          "ghost": ">=5.0.0"
+        },
+        "keywords": ["ghost", "theme", "ghost-theme"],
+        "license": "MIT",
+        "name": "taste",
+        "private": true,
+        "scripts": {
+          "dev": "gulp",
+          "test": "gscan .",
+          "zip": "gulp zip"
+        },
+        "version": "1.0.0"
+      },
+      "templates": []
+    },
+    {
+      "active": false,
+      "name": "casper",
+      "package": {
+        "author": {
+          "email": "<email>",
+          "name": "Ghost Foundation",
+          "url": "https://ghost.org/"
+        },
+        "browserslist": ["defaults"],
+        "bugs": "https://github.com/TryGhost/Casper/issues",
+        "config": {
+          "card_assets": true,
+          "custom": {
+            "body_font": {
+              "default": "Elegant serif",
+              "options": ["Modern sans-serif", "Elegant serif"],
+              "type": "select"
+            },
+            "color_scheme": {
+              "default": "Light",
+              "options": ["Light", "Dark", "Auto"],
+              "type": "select"
+            },
+            "email_signup_text": {
+              "default": "Sign up for more like this.",
+              "group": "post",
+              "type": "text"
+            },
+            "feed_layout": {
+              "default": "Classic",
+              "group": "homepage",
+              "options": ["Classic", "Grid", "List"],
+              "type": "select"
+            },
+            "header_style": {
+              "default": "Center aligned",
+              "group": "homepage",
+              "options": ["Center aligned", "Left aligned", "Hidden"],
+              "type": "select"
+            },
+            "navigation_layout": {
+              "default": "Logo on cover",
+              "options": ["Logo on cover", "Logo in the middle", "Stacked"],
+              "type": "select"
+            },
+            "post_image_style": {
+              "default": "Wide",
+              "group": "post",
+              "options": ["Wide", "Full", "Small", "Hidden"],
+              "type": "select"
+            },
+            "show_publication_cover": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_recent_posts_footer": {
+              "default": true,
+              "group": "post",
+              "type": "boolean"
+            },
+            "title_font": {
+              "default": "Modern sans-serif",
+              "options": ["Modern sans-serif", "Elegant serif"],
+              "type": "select"
+            }
+          },
+          "image_sizes": {
+            "l": {
+              "width": 1000
+            },
+            "m": {
+              "width": 600
+            },
+            "s": {
+              "width": 300
+            },
+            "xl": {
+              "width": 2000
+            },
+            "xs": {
+              "width": 100
+            },
+            "xxs": {
+              "width": 30
+            }
+          },
+          "posts_per_page": 25
+        },
+        "contributors": "https://github.com/TryGhost/Casper/graphs/contributors",
+        "demo": "https://demo.ghost.io",
+        "description": "A clean, minimal default theme for the Ghost publishing platform",
+        "devDependencies": {
+          "@tryghost/release-utils": "0.8.1",
+          "autoprefixer": "10.4.7",
+          "beeper": "2.1.0",
+          "cssnano": "5.1.12",
+          "gscan": "4.48.0",
+          "gulp": "4.0.2",
+          "gulp-concat": "2.6.1",
+          "gulp-livereload": "4.0.2",
+          "gulp-postcss": "9.0.1",
+          "gulp-uglify": "3.0.2",
+          "gulp-zip": "5.1.0",
+          "inquirer": "8.2.4",
+          "postcss": "8.2.13",
+          "postcss-color-mod-function": "3.0.3",
+          "postcss-easy-import": "4.0.0",
+          "pump": "3.0.0"
+        },
+        "engines": {
+          "ghost": ">=5.0.0"
+        },
+        "gpm": {
+          "categories": ["Minimal", "Magazine"],
+          "type": "theme"
+        },
+        "keywords": ["ghost", "theme", "ghost-theme"],
+        "license": "MIT",
+        "name": "casper",
+        "renovate": {
+          "extends": ["@tryghost:theme"]
+        },
+        "repository": {
+          "type": "git",
+          "url": "https://github.com/TryGhost/Casper.git"
+        },
+        "screenshots": {
+          "desktop": "assets/screenshot-desktop.jpg",
+          "mobile": "assets/screenshot-mobile.jpg"
+        },
+        "scripts": {
+          "dev": "gulp",
+          "postship": "git fetch && gulp release",
+          "preship": "yarn test",
+          "pretest": "gulp build",
+          "ship": "STATUS=$(git status --porcelain); echo $STATUS; if [ -z \"$STATUS\" ]; then yarn version && git push --follow-tags; else echo \"Uncomitted changes found.\" && exit 1; fi",
+          "test": "gscan .",
+          "test:ci": "gscan --fatal --verbose .",
+          "zip": "gulp zip"
+        },
+        "version": "5.9.0"
+      }
+    },
+    {
+      "active": false,
+      "name": "source",
+      "package": {
+        "author": {
+          "email": "<email>",
+          "name": "Ghost Foundation",
+          "url": "https://ghost.org/"
+        },
+        "browserslist": ["defaults"],
+        "bugs": "https://github.com/TryGhost/Source/issues",
+        "config": {
+          "card_assets": true,
+          "custom": {
+            "background_image": {
+              "default": true,
+              "description": "Use the publication cover set on the Brand tab as your background",
+              "group": "homepage",
+              "type": "boolean",
+              "visibility": "header_style:[Landing, Search]"
+            },
+            "body_font": {
+              "default": "Modern sans-serif",
+              "options": ["Modern sans-serif", "Elegant serif"],
+              "type": "select"
+            },
+            "enable_drop_caps_on_posts": {
+              "default": false,
+              "group": "post",
+              "type": "boolean"
+            },
+            "header_and_footer_color": {
+              "default": "Background color",
+              "options": ["Background color", "Accent color"],
+              "type": "select"
+            },
+            "header_style": {
+              "default": "Landing",
+              "description": "Landing is recommended for all sites, Highlight & Magazine for those with more content",
+              "group": "homepage",
+              "options": ["Landing", "Highlight", "Magazine", "Search", "Off"],
+              "type": "select"
+            },
+            "header_text": {
+              "description": "Defaults to site description when empty",
+              "group": "homepage",
+              "type": "text",
+              "visibility": "header_style:[Landing, Search]"
+            },
+            "navigation_layout": {
+              "default": "Logo in the middle",
+              "options": ["Logo in the middle", "Logo on the left", "Stacked"],
+              "type": "select"
+            },
+            "post_feed_style": {
+              "default": "List",
+              "group": "homepage",
+              "options": ["List", "Grid"],
+              "type": "select"
+            },
+            "show_author": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_featured_posts": {
+              "default": false,
+              "group": "homepage",
+              "type": "boolean",
+              "visibility": "header_style:[Highlight, Magazine]"
+            },
+            "show_images_in_feed": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean",
+              "visibility": "post_feed_style:List"
+            },
+            "show_post_metadata": {
+              "default": true,
+              "group": "post",
+              "type": "boolean"
+            },
+            "show_publication_info_sidebar": {
+              "default": false,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_publish_date": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_related_articles": {
+              "default": true,
+              "group": "post",
+              "type": "boolean"
+            },
+            "signup_heading": {
+              "description": "Used in your footer across your theme, defaults to site title when empty",
+              "type": "text"
+            },
+            "signup_subheading": {
+              "description": "Defaults to site description when empty",
+              "type": "text"
+            },
+            "site_background_color": {
+              "default": "#ffffff",
+              "type": "color"
+            },
+            "title_font": {
+              "default": "Modern sans-serif",
+              "options": ["Modern sans-serif", "Elegant serif", "Consistent mono"],
+              "type": "select"
+            }
+          },
+          "image_sizes": {
+            "l": {
+              "width": 960
+            },
+            "m": {
+              "width": 600
+            },
+            "s": {
+              "width": 320
+            },
+            "xl": {
+              "width": 1200
+            },
+            "xs": {
+              "width": 160
+            },
+            "xxl": {
+              "width": 2000
+            }
+          },
+          "posts_per_page": 12
+        },
+        "contributors": "https://github.com/TryGhost/Source/graphs/contributors",
+        "demo": "https://source.ghost.io",
+        "description": "A default theme for the Ghost publishing platform",
+        "devDependencies": {
+          "@tryghost/release-utils": "0.8.1",
+          "autoprefixer": "10.4.7",
+          "beeper": "2.1.0",
+          "cssnano": "5.1.12",
+          "gscan": "4.49.1",
+          "gulp": "4.0.2",
+          "gulp-concat": "2.6.1",
+          "gulp-livereload": "4.0.2",
+          "gulp-postcss": "9.0.1",
+          "gulp-uglify": "3.0.2",
+          "gulp-zip": "5.1.0",
+          "inquirer": "8.2.4",
+          "postcss": "8.2.13",
+          "postcss-easy-import": "4.0.0",
+          "pump": "3.0.0"
+        },
+        "engines": {
+          "ghost": ">=5.0.0"
+        },
+        "gpm": {
+          "categories": ["Minimal", "Magazine"],
+          "type": "theme"
+        },
+        "keywords": ["ghost", "theme", "ghost-theme"],
+        "license": "MIT",
+        "name": "source",
+        "renovate": {
+          "extends": ["@tryghost:theme"]
+        },
+        "repository": {
+          "type": "git",
+          "url": "https://github.com/TryGhost/Source.git"
+        },
+        "scripts": {
+          "dev": "gulp",
+          "postship": "git fetch && gulp release",
+          "preship": "yarn test",
+          "pretest": "gulp build",
+          "ship": "STATUS=$(git status --porcelain); echo $STATUS; if [ -z \"$STATUS\" ]; then yarn version && git push --follow-tags; else echo \"Uncomitted changes found.\" && exit 1; fi",
+          "test": "gscan .",
+          "test:ci": "gscan --fatal --verbose .",
+          "zip": "gulp zip"
+        },
+        "version": "1.5.0"
+      }
+    },
+    {
+      "active": false,
+      "name": "source-theme",
+      "package": {
+        "author": {
+          "email": "<email>",
+          "name": "Ghost Foundation",
+          "url": "https://ghost.org/"
+        },
+        "browserslist": ["defaults"],
+        "bugs": "https://github.com/TryGhost/Source/issues",
+        "config": {
+          "card_assets": true,
+          "custom": {
+            "background_image": {
+              "default": true,
+              "description": "Use the publication cover set on the Brand tab as your background",
+              "group": "homepage",
+              "type": "boolean",
+              "visibility": "header_style:[Landing, Search]"
+            },
+            "body_font": {
+              "default": "Modern sans-serif",
+              "options": ["Modern sans-serif", "Elegant serif"],
+              "type": "select"
+            },
+            "enable_drop_caps_on_posts": {
+              "default": false,
+              "group": "post",
+              "type": "boolean"
+            },
+            "header_and_footer_color": {
+              "default": "Background color",
+              "options": ["Background color", "Accent color"],
+              "type": "select"
+            },
+            "header_style": {
+              "default": "Landing",
+              "description": "Landing is recommended for all sites, Highlight & Magazine for those with more content",
+              "group": "homepage",
+              "options": ["Landing", "Highlight", "Magazine", "Search", "Off"],
+              "type": "select"
+            },
+            "header_text": {
+              "description": "Defaults to site description when empty",
+              "group": "homepage",
+              "type": "text",
+              "visibility": "header_style:[Landing, Search]"
+            },
+            "navigation_layout": {
+              "default": "Logo in the middle",
+              "options": ["Logo in the middle", "Logo on the left", "Stacked"],
+              "type": "select"
+            },
+            "post_feed_style": {
+              "default": "List",
+              "group": "homepage",
+              "options": ["List", "Grid"],
+              "type": "select"
+            },
+            "show_author": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_featured_posts": {
+              "default": false,
+              "group": "homepage",
+              "type": "boolean",
+              "visibility": "header_style:[Highlight, Magazine]"
+            },
+            "show_images_in_feed": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean",
+              "visibility": "post_feed_style:List"
+            },
+            "show_post_metadata": {
+              "default": true,
+              "group": "post",
+              "type": "boolean"
+            },
+            "show_publication_info_sidebar": {
+              "default": false,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_publish_date": {
+              "default": true,
+              "group": "homepage",
+              "type": "boolean"
+            },
+            "show_related_articles": {
+              "default": true,
+              "group": "post",
+              "type": "boolean"
+            },
+            "signup_heading": {
+              "description": "Used in your footer across your theme, defaults to site title when empty",
+              "type": "text"
+            },
+            "signup_subheading": {
+              "description": "Defaults to site description when empty",
+              "type": "text"
+            },
+            "site_background_color": {
+              "default": "#ffffff",
+              "type": "color"
+            },
+            "title_font": {
+              "default": "Modern sans-serif",
+              "options": ["Modern sans-serif", "Elegant serif", "Consistent mono"],
+              "type": "select"
+            }
+          },
+          "image_sizes": {
+            "l": {
+              "width": 960
+            },
+            "m": {
+              "width": 600
+            },
+            "s": {
+              "width": 320
+            },
+            "xl": {
+              "width": 1200
+            },
+            "xs": {
+              "width": 160
+            },
+            "xxl": {
+              "width": 2000
+            }
+          },
+          "posts_per_page": 12
+        },
+        "contributors": "https://github.com/TryGhost/Source/graphs/contributors",
+        "demo": "https://source.ghost.io",
+        "description": "A default theme for the Ghost publishing platform",
+        "devDependencies": {
+          "@tryghost/release-utils": "0.8.1",
+          "autoprefixer": "10.4.24",
+          "beeper": "2.1.0",
+          "cssnano": "7.1.2",
+          "gscan": "5.2.4",
+          "gulp": "5.0.1",
+          "gulp-concat": "2.6.1",
+          "gulp-livereload": "4.0.2",
+          "gulp-postcss": "10.0.0",
+          "gulp-uglify": "3.0.2",
+          "gulp-zip": "6.1.0",
+          "inquirer": "13.2.2",
+          "postcss": "8.5.6",
+          "postcss-easy-import": "4.0.0",
+          "pump": "3.0.3"
+        },
+        "engines": {
+          "ghost": ">=5.0.0"
+        },
+        "gpm": {
+          "categories": ["Minimal", "Magazine"],
+          "type": "theme"
+        },
+        "keywords": ["ghost", "theme", "ghost-theme"],
+        "license": "MIT",
+        "name": "source",
+        "renovate": {
+          "extends": ["@tryghost:theme"]
+        },
+        "repository": {
+          "type": "git",
+          "url": "https://github.com/TryGhost/Source.git"
+        },
+        "scripts": {
+          "dev": "gulp",
+          "postship": "git fetch && gulp release",
+          "preship": "yarn test",
+          "pretest": "gulp build",
+          "ship": "STATUS=$(git status --porcelain); echo $STATUS; if [ -z \"$STATUS\" ]; then yarn version && git push --follow-tags; else echo \"Uncomitted changes found.\" && exit 1; fi",
+          "test": "gscan .",
+          "test:ci": "gscan --fatal --verbose .",
+          "zip": "gulp zip"
+        },
+        "version": "1.5.0"
+      }
+    }
+  ]
+}

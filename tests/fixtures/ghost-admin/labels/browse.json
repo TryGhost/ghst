@@ -1,0 +1,21 @@
+{
+  "labels": [
+    {
+      "created_at": "<datetime>",
+      "id": "<labelId>",
+      "name": "<fixture-label-name>",
+      "slug": "<labelSlug>",
+      "updated_at": "<datetime>"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "limit": 2,
+      "next": null,
+      "page": 1,
+      "pages": 1,
+      "prev": null,
+      "total": 1
+    }
+  }
+}
