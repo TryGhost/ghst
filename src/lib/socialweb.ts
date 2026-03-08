@@ -1,3 +1,4 @@
+import { ExitCode, GhstError } from './errors.js';
 import { listSettings, setSetting } from './settings.js';
 import { SocialWebClient, type SocialWebIdentityInfo } from './socialweb-client.js';
 import type { GlobalOptions } from './types.js';
@@ -81,6 +82,7 @@ export interface SocialWebStatusReport {
 
 type PaginatedKey = 'posts' | 'accounts' | 'notifications' | 'blocked_accounts' | 'blocked_domains';
 type PaginatedParams = { limit?: number; next?: string };
+const MAX_PAGINATION_PAGES = 100;
 
 function parseSettingBool(value: unknown): boolean | null {
   if (typeof value === 'boolean') {
@@ -133,8 +135,16 @@ async function collectPaginated(
 
   let cursor = next;
   let merged: Record<string, unknown> | null = null;
+  let pageCount = 0;
 
   while (true) {
+    if (++pageCount > MAX_PAGINATION_PAGES) {
+      throw new GhstError('Pagination exceeded the maximum number of pages.', {
+        code: 'PAGINATION_ERROR',
+        exitCode: ExitCode.GENERAL_ERROR,
+      });
+    }
+
     const page = await fetchPage(cursor);
     merged = mergePaginatedPages(merged, page, key);
     const nextCursor = typeof page.next === 'string' && page.next.length > 0 ? page.next : null;

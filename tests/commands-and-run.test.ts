@@ -2444,6 +2444,20 @@ describe('run + commands', () => {
         'not-a-url',
       ]),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'upload',
+        path.join(workDir, 'missing.jpg'),
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
   });
 
   test('preserves raw mutation payloads in socialweb json mode', async () => {

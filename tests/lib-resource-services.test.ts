@@ -1333,4 +1333,25 @@ describe('resource service helpers', () => {
         'Social web is not reachable for this site. It may be disabled or the ActivityPub service may not be initialized yet.',
     });
   });
+
+  test('guards against runaway social web pagination loops', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/feed/notes') && method === 'GET') {
+          return jsonResponse({
+            posts: [],
+            next: 'repeat-cursor',
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(listNotes({}, {}, true)).rejects.toMatchObject({
+      code: 'PAGINATION_ERROR',
+      exitCode: ExitCode.GENERAL_ERROR,
+      message: 'Pagination exceeded the maximum number of pages.',
+    });
+  });
 });

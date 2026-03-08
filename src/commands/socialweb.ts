@@ -607,7 +607,15 @@ export function registerSocialWebCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
-      await fs.access(parsed.data.filePath);
+      try {
+        await fs.access(parsed.data.filePath);
+      } catch {
+        throw new GhstError(`File not found: ${parsed.data.filePath}`, {
+          code: 'VALIDATION_ERROR',
+          exitCode: ExitCode.VALIDATION_ERROR,
+        });
+      }
+
       const payload = await uploadSocialWebImage(global, parsed.data.filePath);
       if (global.json) {
         printJson(payload, global.jq);
