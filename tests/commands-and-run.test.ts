@@ -1157,6 +1157,26 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);
   });
 
+  test('uses env output mode for stats json responses', async () => {
+    process.env.GHST_OUTPUT = 'json';
+    const logSpy = vi.spyOn(console, 'log');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"summary"');
+  });
+
   test('covers phase2 validation and non-interactive branches', async () => {
     await expect(
       run([
@@ -1585,5 +1605,235 @@ describe('run + commands', () => {
       }),
     );
     await expect(run(['node', 'ghst', 'user', 'me'])).resolves.toBe(ExitCode.AUTH_ERROR);
+  });
+
+  test('covers stats commands across summary, json, jq, and csv outputs', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"summary"');
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"timeseries"');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'overview',
+        '--range',
+        '90d',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    const overviewOutput = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(overviewOutput).toContain('Members: 157 (+23)');
+    expect(overviewOutput).toContain('Paid members: 31 (+7)');
+    expect(overviewOutput).toContain('MRR: 1,540 (+360)');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'growth',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(logSpy.mock.calls[0]?.[0] ?? '')).toContain('Growth');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'email',
+        'clicks',
+        '--newsletter',
+        fixtureIds.newsletterId,
+        '--json',
+        '--jq',
+        '.clicks[].clicks',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(logSpy.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining(['24']),
+    );
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'posts',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(String(logSpy.mock.calls.at(-1)?.[0] ?? '')).toContain('"posts"');
+
+    logSpy.mockClear();
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'web',
+        '--limit',
+        '1',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    const limitedPostWeb = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0] ?? '{}')) as {
+      sources?: Array<{ label: string }>;
+      locations?: Array<{ label: string }>;
+    };
+    expect(limitedPostWeb.sources).toHaveLength(1);
+    expect(limitedPostWeb.sources?.[0]?.label).toBe('Twitter');
+    expect(limitedPostWeb.locations).toHaveLength(1);
+    expect(limitedPostWeb.locations?.[0]?.label).toBe('US');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'web',
+        'sources',
+        '--csv',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(stdoutSpy.mock.calls.map((call) => String(call[0])).join('')).toContain(
+      'label,visits,signups,paid_conversions,mrr',
+    );
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'referrers',
+        '--csv',
+        '--output',
+        './post-referrers.csv',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(fs.readFile(path.join(workDir, 'post-referrers.csv'), 'utf8')).resolves.toContain(
+      'source,visits,signups,paid_conversions,mrr',
+    );
+  });
+
+  test('covers remaining stats command views and validation branches', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+
+    for (const argv of [
+      ['stats', 'web'],
+      ['stats', 'web', 'content'],
+      ['stats', 'web', 'devices'],
+      ['stats', 'web', 'utm-sources', '--json'],
+      ['stats', 'email', '--csv'],
+      ['stats', 'posts', '--csv'],
+      ['stats', 'email', 'subscribers'],
+      ['stats', 'post', fixtureIds.postId],
+      ['stats', 'post', fixtureIds.postId, 'web'],
+      ['stats', 'post', fixtureIds.postId, 'growth', '--csv'],
+      ['stats', 'post', fixtureIds.postId, 'newsletter'],
+    ]) {
+      await expect(
+        run(['node', 'ghst', '--url', 'https://myblog.ghost.io', '--staff-token', KEY, ...argv]),
+      ).resolves.toBe(ExitCode.SUCCESS);
+    }
+
+    expect(logSpy.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining(['Post: Fixture Post', 'Post Newsletter: Fixture Post']),
+    );
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'web',
+        '--csv',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'newsletters',
+        'clicks',
+      ]),
+    ).resolves.toBe(ExitCode.VALIDATION_ERROR);
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'stats',
+        'post',
+        fixtureIds.postId,
+        'unknown',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
   });
 });

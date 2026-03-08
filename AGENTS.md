@@ -4,7 +4,7 @@
 
 - Name: `ghst`
 - Purpose: TypeScript CLI for managing Ghost CMS instances.
-- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
+- Status: `v0.4.0` Phase 4 command surface implemented (`auth`, `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`, `webhook`, `user`, `image`, `theme`, `site`, `stats`, `setting`, `migrate`, `config`, `api`, `mcp`, `completion`) with tests and fixture-backed Ghost Admin API mocks.
 - PRD parity status: strict phase 1-4 command/action/flag parity in place with guard tests; only `snippet` remains intentionally deferred pending confirmed Ghost Admin API contract.
 - PRD: GitHub issue `#1` (`ghst: prd`) — https://github.com/TryGhost/ghst/issues/1
 - Documentation split:
@@ -85,6 +85,7 @@ pnpm build
 - `ghst image upload`
 - `ghst theme list|upload|activate|validate|dev`
 - `ghst site info`
+- `ghst stats overview|web|growth|posts|email|post`
 - `ghst setting list|get|set`
 - `ghst migrate wordpress|medium|substack|csv|json|export`
 - `ghst config show|path|list|get|set`
@@ -103,6 +104,7 @@ pnpm build
 - `users`
 - `api`
 - `search`
+- `stats`
 
 ## Parity Notes
 
@@ -116,6 +118,11 @@ pnpm build
 - `tier list --include` is supported.
 - `bulk` subcommands exist for all mutable phase 1-4 resources: `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`.
 - `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
+- `stats web` and `stats post ... web` use Ghost Admin stats routes where available and internal Tinybird reads for web traffic datasets Ghost does not wrap.
+- `stats growth` clips broader Ghost member/MRR/subscription histories client-side to the selected window when upstream endpoints cannot express the full range.
+- `stats post ... growth` clips Ghost lifetime post-growth history client-side to the selected window.
+- Ghost analytics semantics: `source` and `utm_*` filters are session-scoped, while post/member-status filters are hit-scoped.
+- MCP now exposes first-class stats tools via the `stats` tool group rather than requiring raw `ghost_api_request` calls.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
 - MCP parity additions include `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, `ghost_webhook_create`.
