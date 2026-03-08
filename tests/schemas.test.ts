@@ -56,6 +56,7 @@ import {
   PostUpdateInputSchema,
 } from '../src/schemas/post.js';
 import { SettingGetInputSchema, SettingSetInputSchema } from '../src/schemas/setting.js';
+import { SiteInfoInputSchema } from '../src/schemas/site.js';
 import {
   SocialWebBlockDomainInputSchema,
   SocialWebContentInputSchema,
@@ -262,6 +263,12 @@ describe('member schemas', () => {
         yes: true,
       }).action,
     ).toBe('delete');
+  });
+});
+
+describe('site schemas', () => {
+  test('validates site info input', () => {
+    expect(SiteInfoInputSchema.parse({})).toEqual({});
   });
 });
 
