@@ -12,6 +12,7 @@ import {
   printSocialWebThreadHuman,
 } from '../lib/output.js';
 import { parseBooleanFlag, parseInteger } from '../lib/parse.js';
+import { confirm } from '../lib/prompts.js';
 import {
   blockAccount,
   blockDomain,
@@ -46,9 +47,11 @@ import {
   updateSocialWebProfile,
   uploadSocialWebImage,
 } from '../lib/socialweb.js';
+import { isNonInteractive } from '../lib/tty.js';
 import {
   SocialWebBlockDomainInputSchema,
   SocialWebContentInputSchema,
+  SocialWebDeleteInputSchema,
   SocialWebFollowsInputSchema,
   SocialWebHandleActionInputSchema,
   SocialWebIdInputSchema,
@@ -399,12 +402,11 @@ export function registerSocialWebCommands(program: Command): void {
     ['unlike', unlikePost, 'Unlike a post'],
     ['repost', repostPost, 'Repost a post'],
     ['derepost', derepostPost, 'Undo repost on a post'],
-    ['delete', deleteSocialWebPost, 'Delete a post'],
   ] as const) {
     socialweb
       .command(`${entry[0]} <id>`)
       .description(entry[2])
-      .action(async (id: string, _, command) => {
+      .action(async (id: string, _options, command) => {
         const global = getGlobalOptions(command);
         const parsed = SocialWebIdInputSchema.safeParse({ id });
         if (!parsed.success) {
@@ -416,9 +418,48 @@ export function registerSocialWebCommands(program: Command): void {
           printJson(payload, global.jq);
           return;
         }
-        console.log(entry[0] === 'delete' ? 'Deleted post' : 'OK');
+        console.log('OK');
       });
   }
+
+  socialweb
+    .command('delete <id>')
+    .description('Delete a post')
+    .option('--yes', 'Skip confirmation')
+    .action(async (id: string, options, command) => {
+      const global = getGlobalOptions(command);
+      const parsed = SocialWebDeleteInputSchema.safeParse({
+        id,
+        yes: parseBooleanFlag(options.yes),
+      });
+      if (!parsed.success) {
+        throwValidationError(parsed.error);
+      }
+
+      if (!parsed.data.yes) {
+        if (isNonInteractive()) {
+          throw new GhstError('Deleting in non-interactive mode requires --yes.', {
+            code: 'USAGE_ERROR',
+            exitCode: ExitCode.USAGE_ERROR,
+          });
+        }
+
+        const ok = await confirm(`Delete social web post '${parsed.data.id}'? [y/N]: `);
+        if (!ok) {
+          throw new GhstError('Operation cancelled.', {
+            code: 'OPERATION_CANCELLED',
+            exitCode: ExitCode.OPERATION_CANCELLED,
+          });
+        }
+      }
+
+      const payload = await deleteSocialWebPost(global, parsed.data.id);
+      if (global.json) {
+        printJson(payload, global.jq);
+        return;
+      }
+      console.log('Deleted post');
+    });
 
   socialweb
     .command('note')

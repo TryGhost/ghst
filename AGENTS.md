@@ -106,10 +106,13 @@ pnpm build
 - `comment list` defaults to site-wide admin moderation semantics and includes replies unless `--top-level-only` is passed.
 - `comment get` uses Ghost Admin's moderation read include set, and `comment thread` mirrors the Admin moderation sidebar by combining the selected comment read with the filtered thread query.
 - `comment hide|show|delete` map to Ghost Admin comment status transitions (`hidden`, `published`, `deleted`).
+- `auth logout` requires confirmation when removing all configured sites; non-interactive use requires `--yes`.
+- `auth link` requires confirmation before replacing an existing project link; non-interactive use requires `--yes`, and relinking updates the discovered project config within the enclosing repo.
 - `post publish|schedule` supports `--newsletter`, `--email-segment`, and `--email-only`.
 - `post delete` supports either `<id>` or `--filter` (non-interactive delete requires `--yes`).
 - `post bulk` supports `--action` plus compatibility aliases `--update`/`--delete` and update fields including `--add-tag` and `--authors`.
 - `member list --status` composes with `--filter`.
+- `member export --output`, `stats ... --csv --output`, and `migrate export --output` refuse to overwrite an existing file.
 - `member update --expiry` supports complimentary tier expiry when used with `--tier`.
 - `member bulk` keeps `--action` and supports compatibility aliases `--update`, `--delete`, `--labels`, `--yes`.
 - `tier list --include` is supported.
@@ -118,6 +121,7 @@ pnpm build
 - `stats web` and `stats post ... web` use Ghost Admin stats routes where available and internal Tinybird reads for web traffic datasets Ghost does not wrap.
 - `socialweb` uses the existing staff-token Admin API flow to mint a short-lived identity JWT from `/ghost/api/admin/identities/`, then uses that bearer token against `/.ghost/activitypub/v1/*`.
 - `socialweb` requires an Owner/Admin staff token and is intentionally limited to Ghost's private social web admin surface; neither the CLI nor MCP expose public federation endpoints.
+- `socialweb delete` requires confirmation; non-interactive use requires `--yes`.
 - `stats growth` clips broader Ghost member/MRR/subscription histories client-side to the selected window when upstream endpoints cannot express the full range.
 - `stats post ... growth` clips Ghost lifetime post-growth history client-side to the selected window.
 - Ghost analytics semantics: `source` and `utm_*` filters are session-scoped, while post/member-status filters are hit-scoped.

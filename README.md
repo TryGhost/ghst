@@ -109,10 +109,14 @@ Site/profile management:
 ghst auth list
 ghst auth switch <site-alias>
 ghst auth link --site <site-alias>
+ghst auth link --site <site-alias> --yes
+ghst auth logout --yes
 ghst auth token
 ```
 
 `ghst auth token` prints a short-lived staff JWT. Treat the output as sensitive.
+`ghst auth logout` requires confirmation when removing all configured sites; use `--yes` in non-interactive scripts.
+`ghst auth link` requires confirmation before replacing an existing project link; use `--yes` in non-interactive scripts.
 
 ## Command Reference
 
@@ -229,6 +233,7 @@ ghst socialweb status
 ghst socialweb profile
 ghst socialweb notes --json
 ghst socialweb follow @alice@example.com
+ghst socialweb delete https://example.com/.ghost/activitypub/note/1 --yes
 ghst socialweb note --content "Hello fediverse"
 ghst socialweb reply https://example.com/users/alice/statuses/1 --content "Replying from ghst"
 ```
@@ -236,6 +241,7 @@ ghst socialweb reply https://example.com/users/alice/statuses/1 --content "Reply
 Social web auth note:
 - `ghst socialweb` bootstraps a short-lived identity JWT from `/ghost/api/admin/identities/`.
 - That bridge requires an Owner or Administrator staff access token.
+- `ghst socialweb delete` requires confirmation; use `--yes` in non-interactive scripts.
 - Public Ghost post publishing still lives under `ghst post`; `ghst socialweb` is for notes, interactions, profile, feed, and moderation flows.
 
 Ghost analytics filter semantics:
@@ -245,6 +251,9 @@ Ghost analytics filter semantics:
 Ghost range semantics:
 - `stats growth` clips member, MRR, and subscription histories client-side when Ghost only exposes broader source data.
 - `stats post ... growth` clips Ghost's lifetime post-growth history to the selected window.
+
+File output safety:
+- `ghst member export --output`, `ghst stats ... --csv --output`, and `ghst migrate export --output` refuse to overwrite an existing file.
 
 `endpointPath` must stay within the selected Ghost API root. Use resource paths such as `/posts/`
 or canonical Ghost API paths such as `/ghost/api/admin/posts/`.
