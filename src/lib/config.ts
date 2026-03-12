@@ -169,6 +169,15 @@ async function findProjectConfigPath(cwd = process.cwd()): Promise<string | null
   }
 }
 
+export async function resolveProjectConfigCwd(cwd = process.cwd()): Promise<string> {
+  const configPath = await findProjectConfigPath(cwd);
+  if (!configPath) {
+    return cwd;
+  }
+
+  return path.dirname(path.dirname(configPath));
+}
+
 export async function readUserConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<GhstUserConfig> {

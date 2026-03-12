@@ -9,12 +9,15 @@ import {
   readProjectConfig,
   readUserConfig,
   resolveConnectionConfig,
+  resolveProjectConfigCwd,
   writeProjectConfig,
   writeUserConfig,
 } from '../lib/config.js';
 import { getGlobalOptions } from '../lib/context.js';
 import { credentialRefForAlias, getCredentialStore } from '../lib/credentials.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
+import { confirm } from '../lib/prompts.js';
+import { isNonInteractive } from '../lib/tty.js';
 
 type PromptFn = (question: string) => Promise<string>;
 type OpenUrlFn = (url: string) => Promise<void>;
@@ -629,6 +632,7 @@ export function registerAuthCommands(program: Command): void {
     .command('logout')
     .description('Remove credentials for one site or all sites')
     .option('--site <alias>', 'Specific site to remove')
+    .option('--yes', 'Skip confirmation when removing all configured sites')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const config = await readUserConfig();
@@ -656,6 +660,23 @@ export function registerAuthCommands(program: Command): void {
         return;
       }
 
+      if (!options.yes) {
+        if (isNonInteractive()) {
+          throw new GhstError('Removing all sites in non-interactive mode requires --yes.', {
+            exitCode: ExitCode.USAGE_ERROR,
+            code: 'USAGE_ERROR',
+          });
+        }
+
+        const ok = await confirm('Remove all configured sites and credentials? [y/N]: ');
+        if (!ok) {
+          throw new GhstError('Operation cancelled.', {
+            exitCode: ExitCode.OPERATION_CANCELLED,
+            code: 'OPERATION_CANCELLED',
+          });
+        }
+      }
+
       for (const site of Object.values(config.sites)) {
         if (site.credentialRef) {
           await store.delete(site.credentialRef).catch(() => undefined);
@@ -671,6 +692,7 @@ export function registerAuthCommands(program: Command): void {
     .command('link')
     .description('Link current project directory to a configured site alias')
     .option('--site <alias>', 'Site alias to link')
+    .option('--yes', 'Skip confirmation when replacing an existing project link')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const config = await readUserConfig();
@@ -683,9 +705,39 @@ export function registerAuthCommands(program: Command): void {
         });
       }
 
-      await writeProjectConfig({
-        site: siteAlias,
-      });
+      const projectConfig = await readProjectConfig();
+      const projectConfigCwd = await resolveProjectConfigCwd();
+      if (projectConfig && projectConfig.site !== siteAlias) {
+        if (!options.yes) {
+          if (isNonInteractive()) {
+            throw new GhstError(
+              'Overwriting an existing project link in non-interactive mode requires --yes.',
+              {
+                exitCode: ExitCode.USAGE_ERROR,
+                code: 'USAGE_ERROR',
+              },
+            );
+          }
+
+          const ok = await confirm(
+            `Relink current directory from '${projectConfig.site}' to '${siteAlias}'? [y/N]: `,
+          );
+          if (!ok) {
+            throw new GhstError('Operation cancelled.', {
+              exitCode: ExitCode.OPERATION_CANCELLED,
+              code: 'OPERATION_CANCELLED',
+            });
+          }
+        }
+      }
+
+      await writeProjectConfig(
+        {
+          ...(projectConfig?.defaults ? { defaults: projectConfig.defaults } : {}),
+          site: siteAlias,
+        },
+        projectConfigCwd,
+      );
 
       console.log(`Linked current directory to '${siteAlias}'.`);
     });

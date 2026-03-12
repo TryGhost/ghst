@@ -88,6 +88,11 @@ export const SocialWebIdInputSchema = z.object({
   id: UrlSchema,
 });
 
+export const SocialWebDeleteInputSchema = z.object({
+  id: UrlSchema,
+  yes: z.boolean().optional(),
+});
+
 export const SocialWebBlockDomainInputSchema = z.object({
   url: UrlSchema,
 });

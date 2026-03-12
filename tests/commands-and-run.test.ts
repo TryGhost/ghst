@@ -244,10 +244,11 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'auth', 'link'])).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'auth', 'token'])).resolves.toBe(ExitCode.SUCCESS);
 
+    await expect(run(['node', 'ghst', 'auth', 'logout'])).resolves.toBe(ExitCode.USAGE_ERROR);
     await expect(run(['node', 'ghst', 'auth', 'logout', '--site', 'myblog'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
-    await expect(run(['node', 'ghst', 'auth', 'logout'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(run(['node', 'ghst', 'auth', 'logout', '--yes'])).resolves.toBe(ExitCode.SUCCESS);
 
     const promptAnswers = ['https://prompted.ghost.io', '', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
@@ -346,6 +347,74 @@ describe('run + commands', () => {
       sites: ['project', 'active'],
     });
     expect(logSpy.mock.calls.length).toBe(start + 1);
+  });
+
+  test('refuses to overwrite project links and explicit output files', async () => {
+    await loginMyblog();
+    await seedSmokeFixtures();
+
+    await fs.mkdir(path.join(workDir, '.ghst'), { recursive: true });
+    await fs.writeFile(
+      path.join(workDir, '.ghst', 'config.json'),
+      '{"site":"existing","defaults":{"format":"json"}}',
+      'utf8',
+    );
+    await expect(run(['node', 'ghst', 'auth', 'link'])).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'auth', 'link', '--yes'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      fs.readFile(path.join(workDir, '.ghst', 'config.json'), 'utf8'),
+    ).resolves.toContain('"site": "myblog"');
+    await expect(
+      fs.readFile(path.join(workDir, '.ghst', 'config.json'), 'utf8'),
+    ).resolves.toContain('"format": "json"');
+    await fs.rm(path.join(workDir, '.ghst'), { recursive: true, force: true });
+
+    await fs.writeFile(path.join(workDir, 'members-export.csv'), 'existing\n', 'utf8');
+    await expect(
+      run(['node', 'ghst', 'member', 'export', '--output', './members-export.csv']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+
+    await fs.writeFile(path.join(workDir, 'posts.csv'), 'existing\n', 'utf8');
+    await expect(
+      run(['node', 'ghst', 'stats', 'posts', '--csv', '--output', './posts.csv']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+
+    await fs.writeFile(path.join(workDir, 'export.zip'), 'existing\n', 'utf8');
+    await expect(
+      run(['node', 'ghst', 'migrate', 'export', '--output', './export.zip', '--json']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+  });
+
+  test('updates the discovered project link instead of creating a nested one from a subdirectory', async () => {
+    await loginMyblog();
+    await fs.mkdir(path.join(workDir, '.git'), { recursive: true });
+    await fs.mkdir(path.join(workDir, '.ghst'), { recursive: true });
+    await fs.writeFile(
+      path.join(workDir, '.ghst', 'config.json'),
+      '{"site":"existing","defaults":{"format":"json"}}',
+      'utf8',
+    );
+
+    const nestedDir = path.join(workDir, 'packages', 'cli');
+    await fs.mkdir(nestedDir, { recursive: true });
+
+    const previousCwd = process.cwd();
+    process.chdir(nestedDir);
+    try {
+      await expect(run(['node', 'ghst', 'auth', 'link', '--yes'])).resolves.toBe(ExitCode.SUCCESS);
+    } finally {
+      process.chdir(previousCwd);
+    }
+
+    await expect(
+      fs.readFile(path.join(workDir, '.ghst', 'config.json'), 'utf8'),
+    ).resolves.toContain('"site": "myblog"');
+    await expect(
+      fs.readFile(path.join(workDir, '.ghst', 'config.json'), 'utf8'),
+    ).resolves.toContain('"format": "json"');
+    await expect(fs.stat(path.join(nestedDir, '.ghst', 'config.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
   });
 
   test('renders configured domains instead of internal aliases in auth status and list output', async () => {
@@ -2531,6 +2600,30 @@ describe('run + commands', () => {
   test('runs socialweb commands through the identity-token bridge', async () => {
     const logSpy = vi.spyOn(console, 'log');
     await fs.writeFile(path.join(workDir, 'photo.jpg'), 'image');
+    const stdinTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+    const stdoutTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+    Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
+    Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true });
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'socialweb',
+        'delete',
+        'https://myblog.ghost.io/.ghost/activitypub/note/1',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    if (stdinTtyDescriptor) {
+      Object.defineProperty(process.stdin, 'isTTY', stdinTtyDescriptor);
+    }
+    if (stdoutTtyDescriptor) {
+      Object.defineProperty(process.stdout, 'isTTY', stdoutTtyDescriptor);
+    }
 
     for (const argv of [
       ['socialweb', 'status', '--json'],
@@ -2552,7 +2645,13 @@ describe('run + commands', () => {
       ['socialweb', 'unlike', 'https://remote.example/posts/1', '--json'],
       ['socialweb', 'repost', 'https://remote.example/posts/1', '--json'],
       ['socialweb', 'derepost', 'https://remote.example/posts/1', '--json'],
-      ['socialweb', 'delete', 'https://myblog.ghost.io/.ghost/activitypub/note/1', '--json'],
+      [
+        'socialweb',
+        'delete',
+        'https://myblog.ghost.io/.ghost/activitypub/note/1',
+        '--yes',
+        '--json',
+      ],
       ['socialweb', 'blocked-accounts', '--limit', '1', '--json'],
       ['socialweb', 'blocked-domains', '--limit', '1', '--json'],
       ['socialweb', 'block', 'https://remote.example/users/alice', '--json'],
@@ -2785,7 +2884,13 @@ describe('run + commands', () => {
       ['socialweb', 'unfollow', '@alice@remote.example', '--json'],
       ['socialweb', 'unlike', 'https://remote.example/posts/1', '--json'],
       ['socialweb', 'derepost', 'https://remote.example/posts/1', '--json'],
-      ['socialweb', 'delete', 'https://myblog.ghost.io/.ghost/activitypub/note/1', '--json'],
+      [
+        'socialweb',
+        'delete',
+        'https://myblog.ghost.io/.ghost/activitypub/note/1',
+        '--yes',
+        '--json',
+      ],
       ['socialweb', 'block', 'https://remote.example/users/alice', '--json'],
       ['socialweb', 'unblock', 'https://remote.example/users/alice', '--json'],
       ['socialweb', 'block-domain', 'https://remote.example', '--json'],

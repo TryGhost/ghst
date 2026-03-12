@@ -7,6 +7,7 @@ import MarkdownIt from 'markdown-it';
 import { GhostClient } from './client.js';
 import { resolveConnectionConfig } from './config.js';
 import { ExitCode, GhstError } from './errors.js';
+import { assertFileDoesNotExist } from './file-guards.js';
 import type { GlobalOptions } from './types.js';
 
 interface CsvRow {
@@ -531,6 +532,7 @@ export async function migrateImportCsv(
 export async function migrateExport(global: GlobalOptions, outputPath: string): Promise<string> {
   const client = await getClient(global);
   const data = await client.db.export();
+  await assertFileDoesNotExist(outputPath);
   await fs.writeFile(outputPath, data);
   return outputPath;
 }

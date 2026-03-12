@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
+import { assertFileDoesNotExist } from '../lib/file-guards.js';
 import {
   bulkMembers,
   createMember,
@@ -388,6 +389,7 @@ export function registerMemberCommands(program: Command): void {
       });
 
       if (parsed.data.output) {
+        await assertFileDoesNotExist(parsed.data.output);
         await fs.writeFile(parsed.data.output, csv, 'utf8');
 
         if (global.json) {

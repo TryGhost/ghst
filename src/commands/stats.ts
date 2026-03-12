@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
+import { assertFileDoesNotExist } from '../lib/file-guards.js';
 import {
   formatCsv,
   isJsonMode,
@@ -314,6 +315,7 @@ function postReferrersCsv(payload: StatsPostReferrersReport): string {
 
 async function emitCsv(csv: string, output?: string): Promise<void> {
   if (output) {
+    await assertFileDoesNotExist(output);
     await fs.writeFile(output, `${csv}\n`, 'utf8');
     return;
   }
