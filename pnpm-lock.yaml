@@ -42,8 +42,8 @@ importers:
         specifier: 6.1.0
         version: 6.1.0
       gscan:
-        specifier: 5.3.3
-        version: 5.3.3
+        specifier: 5.3.4
+        version: 5.3.4
       ink:
         specifier: 6.8.0
         version: 6.8.0(@types/react@19.2.14)(react@19.2.4)
@@ -3024,8 +3024,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  gscan@5.3.3:
-    resolution: {integrity: sha512-pSHfpHx65jZwFXsIqB1yHrJuib5mPUgjqoFeWnAjcRConhu1sTeXTpYbs8Jj4LH24iafNhd8x7v7O4j49vRizA==}
+  gscan@5.3.4:
+    resolution: {integrity: sha512-W4QAempVy1GzfB1yblxSr54jjsZ2s7kDOfnH8qjgayG+pudesTEbu1zyZUN2JMdhIoFol37eNaYExI4DKazhVA==}
     engines: {node: ^20.19.0 || ^22.13.1 || ^24.0.0}
     hasBin: true
 
@@ -6741,7 +6741,7 @@ snapshots:
 
   '@tryghost/zip@3.0.1':
     dependencies:
-      '@tryghost/errors': 3.0.1
+      '@tryghost/errors': 3.0.2
       archiver: 7.0.1
       extract-zip: 2.0.1
     transitivePeerDependencies:
@@ -7967,7 +7967,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  gscan@5.3.3:
+  gscan@5.3.4:
     dependencies:
       '@sentry/node': 10.42.0
       '@tryghost/config': 2.0.2
