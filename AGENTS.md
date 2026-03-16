@@ -108,6 +108,7 @@ pnpm build
 - `comment hide|show|delete` map to Ghost Admin comment status transitions (`hidden`, `published`, `deleted`).
 - `auth logout` requires confirmation when removing all configured sites; non-interactive use requires `--yes`.
 - `auth link` requires confirmation before replacing an existing project link; non-interactive use requires `--yes`, and relinking updates the discovered project config within the enclosing repo.
+- Interactive destructive confirmations emit `GHST_AGENT_NOTICE:` lines on stderr instructing cooperative agents to ask the user for approval before continuing.
 - `post publish|schedule` supports `--newsletter`, `--email-segment`, and `--email-only`.
 - `post delete` supports either `<id>` or `--filter` (non-interactive delete requires `--yes`).
 - `post bulk` supports `--action` plus compatibility aliases `--update`/`--delete` and update fields including `--add-tag` and `--authors`.

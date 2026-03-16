@@ -3,7 +3,7 @@ import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printTagHuman, printTagListHuman } from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { bulkTags, createTag, deleteTag, getTag, listTags, updateTag } from '../lib/tags.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
@@ -242,7 +242,12 @@ export function registerTagCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm(`Delete tag '${parsed.data.id}'? [y/N]: `);
+        const ok = await confirmDestructiveAction(`Delete tag '${parsed.data.id}'? [y/N]: `, {
+          action: 'delete_tag',
+          target: parsed.data.id,
+          reversible: false,
+          site: global.site ?? null,
+        });
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',

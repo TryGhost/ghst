@@ -12,7 +12,7 @@ import {
   printSocialWebThreadHuman,
 } from '../lib/output.js';
 import { parseBooleanFlag, parseInteger } from '../lib/parse.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import {
   blockAccount,
   blockDomain,
@@ -444,7 +444,15 @@ export function registerSocialWebCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm(`Delete social web post '${parsed.data.id}'? [y/N]: `);
+        const ok = await confirmDestructiveAction(
+          `Delete social web post '${parsed.data.id}'? [y/N]: `,
+          {
+            action: 'delete_socialweb_post',
+            target: parsed.data.id,
+            reversible: false,
+            site: global.site ?? null,
+          },
+        );
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',

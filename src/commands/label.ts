@@ -16,7 +16,7 @@ import {
   printOperationStatsHuman,
 } from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
   LabelBulkInputSchema,
@@ -213,7 +213,12 @@ export function registerLabelCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm(`Delete label '${parsed.data.id}'? [y/N]: `);
+        const ok = await confirmDestructiveAction(`Delete label '${parsed.data.id}'? [y/N]: `, {
+          action: 'delete_label',
+          target: parsed.data.id,
+          reversible: false,
+          site: global.site ?? null,
+        });
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',

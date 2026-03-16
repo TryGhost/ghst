@@ -3,7 +3,7 @@ import { getGlobalOptions } from '../lib/context.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printWebhookHuman } from '../lib/output.js';
 import { parseCsv, parseInteger } from '../lib/parse.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import { runWebhookListener } from '../lib/webhook-listener.js';
 import { createWebhook, deleteWebhook, updateWebhook, WEBHOOK_EVENTS } from '../lib/webhooks.js';
@@ -165,7 +165,12 @@ export function registerWebhookCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm(`Delete webhook '${parsed.data.id}'? [y/N]: `);
+        const ok = await confirmDestructiveAction(`Delete webhook '${parsed.data.id}'? [y/N]: `, {
+          action: 'delete_webhook',
+          target: parsed.data.id,
+          reversible: false,
+          site: global.site ?? null,
+        });
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',

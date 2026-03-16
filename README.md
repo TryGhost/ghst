@@ -117,6 +117,7 @@ ghst auth token
 `ghst auth token` prints a short-lived staff JWT. Treat the output as sensitive.
 `ghst auth logout` requires confirmation when removing all configured sites; use `--yes` in non-interactive scripts.
 `ghst auth link` requires confirmation before replacing an existing project link; use `--yes` in non-interactive scripts.
+Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on stderr instructing cooperative agents to ask the user for approval before continuing.
 
 ## Command Reference
 

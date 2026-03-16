@@ -13,7 +13,7 @@ import {
   updatePage,
 } from '../lib/pages.js';
 import { parseBooleanFlag, parseInteger } from '../lib/parse.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
   PageBulkInputSchema,
@@ -284,7 +284,12 @@ export function registerPageCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm(`Delete page '${parsed.data.id}'? [y/N]: `);
+        const ok = await confirmDestructiveAction(`Delete page '${parsed.data.id}'? [y/N]: `, {
+          action: 'delete_page',
+          target: parsed.data.id,
+          reversible: false,
+          site: global.site ?? null,
+        });
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',

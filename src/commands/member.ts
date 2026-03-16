@@ -20,7 +20,7 @@ import {
   printOperationStatsHuman,
 } from '../lib/output.js';
 import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
   MemberBulkInputSchema,
@@ -310,7 +310,13 @@ export function registerMemberCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm(`Delete member '${parsed.data.id}'? [y/N]: `);
+        const ok = await confirmDestructiveAction(`Delete member '${parsed.data.id}'? [y/N]: `, {
+          action: 'delete_member',
+          target: parsed.data.id,
+          reversible: false,
+          site: global.site ?? null,
+          sideEffects: parsed.data.cancel ? ['cancel_subscriptions'] : undefined,
+        });
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',
