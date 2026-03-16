@@ -16,7 +16,7 @@ import {
 import { getGlobalOptions } from '../lib/context.js';
 import { credentialRefForAlias, getCredentialStore } from '../lib/credentials.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 
 type PromptFn = (question: string) => Promise<string>;
@@ -668,7 +668,15 @@ export function registerAuthCommands(program: Command): void {
           });
         }
 
-        const ok = await confirm('Remove all configured sites and credentials? [y/N]: ');
+        const ok = await confirmDestructiveAction(
+          'Remove all configured sites and credentials? [y/N]: ',
+          {
+            action: 'logout_all_sites',
+            target: 'all_configured_sites',
+            reversible: false,
+            sideEffects: ['remove_credentials', 'remove_site_links'],
+          },
+        );
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             exitCode: ExitCode.OPERATION_CANCELLED,
@@ -719,8 +727,15 @@ export function registerAuthCommands(program: Command): void {
             );
           }
 
-          const ok = await confirm(
+          const ok = await confirmDestructiveAction(
             `Relink current directory from '${projectConfig.site}' to '${siteAlias}'? [y/N]: `,
+            {
+              action: 'relink_project',
+              target: `${projectConfig.site}->${siteAlias}`,
+              reversible: true,
+              site: siteAlias,
+              sideEffects: ['update_project_link'],
+            },
           );
           if (!ok) {
             throw new GhstError('Operation cancelled.', {

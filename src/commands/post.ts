@@ -17,7 +17,7 @@ import {
   unschedulePost,
   updatePost,
 } from '../lib/posts.js';
-import { confirm } from '../lib/prompts.js';
+import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
   PostBulkInputSchema,
@@ -493,7 +493,13 @@ export function registerPostCommands(program: Command): void {
         const label = parsed.data.filter
           ? `Delete posts matching '${parsed.data.filter}'`
           : `Delete post '${parsed.data.id}'`;
-        const ok = await confirm(`${label}? [y/N]: `);
+        const ok = await confirmDestructiveAction(`${label}? [y/N]: `, {
+          action: 'delete_post',
+          target: parsed.data.filter ?? parsed.data.id ?? '(unknown)',
+          count: parsed.data.filter ? undefined : 1,
+          reversible: false,
+          site: global.site ?? null,
+        });
         if (!ok) {
           throw new GhstError('Operation cancelled.', {
             code: 'OPERATION_CANCELLED',
