@@ -1,4 +1,4 @@
-# ghst cli
+# ghst cli (beta)
 
 `ghst` is a CLI tool for managing Ghost instances from the terminal. Anything you can do with the Ghost Admin API, you can do with `ghst`. (And a bit more)
 
