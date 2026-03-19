@@ -171,12 +171,6 @@ When changing Ghost API fixtures or fixture-backed mocks, also run:
 pnpm fixtures:ghost:check
 ```
 
-## Legal Alignment
-
-- Repository license file: MIT text copied from `TryGhost/Ghost` into `LICENSE`.
-- `README.md` ends with a `License & trademark` section aligned to Ghost wording/policy link.
-- `CONTRIBUTING.md` ends with the Ghost Contributor License Agreement text.
-
 ## Notes
 
 - Ghost Admin API version defaults to `v6.0`.
