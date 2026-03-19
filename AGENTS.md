@@ -83,7 +83,7 @@ pnpm build
 - `ghst config show|path|list|get|set`
 - `ghst api [endpointPath]` (supports `--paginate`, `--include-headers`, `--field|-f`)
 - `ghst mcp stdio|http`
-- `ghst completion <bash|zsh|fish|powershell>`
+- `ghst completion <bash|zsh|fish|powershell>` (`bash`, `zsh`, `fish`, or `powershell`)
 
 ## MCP Tool Groups
 

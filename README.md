@@ -145,7 +145,7 @@ Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on st
 | `config` | `show`, `path`, `list`, `get`, `set` |
 | `api` | raw Ghost request command (`ghst api [endpointPath]`) |
 | `mcp` | `stdio`, `http` |
-| `completion` | `<bash|zsh|fish|powershell>` |
+| `completion` | `bash`, `zsh`, `fish`, or `powershell` |
 
 ## Global Options
 
