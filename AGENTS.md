@@ -12,7 +12,7 @@
 ## Runtime And Tooling
 
 - Node: `20.x`, `22.x`, `24.x` (`.nvmrc` defaults to `24`; `package.json` engines allow all three)
-- Package manager: `pnpm@10.30.3`
+- Package manager: `pnpm 10.x`
 - Language: TypeScript (ESM)
 - Build: `tsup`
 - Test: `vitest`
@@ -119,9 +119,9 @@ pnpm build
 - `tier list --include` is supported.
 - `bulk` subcommands exist for the mutable resources that support batch updates: `post`, `page`, `tag`, `member`, `newsletter`, `tier`, `offer`, `label`.
 - `webhook listen` explicitly requires `--public-url` plus `--forward-to`; no implicit tunnel mode.
-- `stats web` and `stats post ... web` use Ghost Admin stats routes where available and internal Tinybird reads for web traffic datasets Ghost does not wrap.
+- `stats web` and `stats post ... web` use Ghost Admin stats routes where available, plus analytics reads for datasets Ghost does not wrap directly.
 - `socialweb` uses the existing staff-token Admin API flow to mint a short-lived identity JWT from `/ghost/api/admin/identities/`, then uses that bearer token against `/.ghost/activitypub/v1/*`.
-- `socialweb` requires an Owner/Admin staff token and is intentionally limited to Ghost's private social web admin surface; neither the CLI nor MCP expose public federation endpoints.
+- `socialweb` requires an Owner/Admin staff token and is limited to Ghost's staff-authenticated social web tooling; neither the CLI nor MCP expose public federation endpoints.
 - `socialweb delete` requires confirmation; non-interactive use requires `--yes`.
 - `stats growth` clips broader Ghost member/MRR/subscription histories client-side to the selected window when upstream endpoints cannot express the full range.
 - `stats post ... growth` clips Ghost lifetime post-growth history client-side to the selected window.

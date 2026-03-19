@@ -354,9 +354,9 @@ The `stats` MCP tools mirror the CLI analytics surface, including `ghst stats ov
 and `ghst stats post <post-id> referrers`. The same Ghost analytics filter and range semantics
 shown above apply to both the CLI and MCP stats tooling.
 
-The `socialweb` MCP tools mirror the private `ghst socialweb` admin surface for status,
-profile, feeds, interactions, moderation, and uploads. They use the same Owner/Admin
-identity-token bridge as the CLI and remain limited to Ghost's private social web admin APIs.
+The `socialweb` MCP tools mirror the `ghst socialweb` CLI surface for status, profile,
+feeds, interactions, moderation, and uploads. They use the same Owner/Admin auth flow as
+the CLI.
 
 ## Safe Operation
 
