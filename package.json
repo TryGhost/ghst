@@ -1,6 +1,6 @@
 {
   "name": "@tryghost/ghst",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A modern Ghost CMS CLI",
   "type": "module",
   "license": "MIT",
