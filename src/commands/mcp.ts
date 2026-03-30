@@ -12,7 +12,7 @@ let runMcpStdioForTests:
   | null = null;
 let runMcpHttpForTests:
   | ((
-      server: ReturnType<typeof createGhostMcpServer>,
+      createServer: () => ReturnType<typeof createGhostMcpServer>,
       options: {
         host: string;
         port: number;
@@ -31,7 +31,7 @@ export function setMcpRunnersForTests(
     stdio?: ((server: ReturnType<typeof createGhostMcpServer>) => Promise<void>) | null;
     http?:
       | ((
-          server: ReturnType<typeof createGhostMcpServer>,
+          createServer: () => ReturnType<typeof createGhostMcpServer>,
           options: {
             host: string;
             port: number;
@@ -228,10 +228,10 @@ export function registerMcpCommands(program: Command): void {
 
       const global = getGlobalOptions(command);
       const enabledGroups = parseToolGroups(options.tools);
-      const server = createGhostMcpServer(global, { enabledGroups });
+      const createServer = () => createGhostMcpServer(global, { enabledGroups });
       const run = runMcpHttpForTests ?? runMcpHttp;
 
-      await run(server, {
+      await run(createServer, {
         host: options.host,
         port,
         corsOrigin,
