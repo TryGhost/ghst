@@ -99,10 +99,8 @@ export async function runMcpHttp(
       }
     }
 
-    const requestServer = createServer();
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
+    let requestServer: McpServer | undefined;
+    let transport: StreamableHTTPServerTransport | undefined;
     let cleanedUp = false;
     const cleanup = async () => {
       if (cleanedUp) {
@@ -110,7 +108,14 @@ export async function runMcpHttp(
       }
 
       cleanedUp = true;
-      await Promise.allSettled([transport.close(), requestServer.close()]);
+      const pending: Promise<unknown>[] = [];
+      if (transport) {
+        pending.push(transport.close());
+      }
+      if (requestServer) {
+        pending.push(requestServer.close());
+      }
+      await Promise.allSettled(pending);
     };
 
     res.once('close', () => {
@@ -118,6 +123,10 @@ export async function runMcpHttp(
     });
 
     try {
+      requestServer = createServer();
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
       await requestServer.connect(transport);
       await transport.handleRequest(req, res);
     } catch {

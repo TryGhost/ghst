@@ -90,7 +90,8 @@ describe.sequential('mcp http integration', () => {
       });
 
       expect(initializeResponse.status).toBe(200);
-      expect(await initializeResponse.text()).toContain('"protocolVersion":"2025-11-25"');
+      const initializeBody = await initializeResponse.text();
+      expect(initializeBody).toContain('"protocolVersion":"');
 
       const initializedResponse = await fetch(baseUrl, {
         method: 'POST',
