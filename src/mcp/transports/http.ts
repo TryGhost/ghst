@@ -47,22 +47,24 @@ function parseContentLength(contentLengthHeader: string | undefined): number | n
   return parsed;
 }
 
-export async function runMcpHttp(server: McpServer, options: RunMcpHttpOptions): Promise<void> {
+export async function runMcpHttp(
+  createServer: () => McpServer,
+  options: RunMcpHttpOptions,
+): Promise<void> {
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const headersTimeoutMs = options.headersTimeoutMs ?? DEFAULT_HEADERS_TIMEOUT_MS;
   const requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
   const keepAliveTimeoutMs = options.keepAliveTimeoutMs ?? DEFAULT_KEEP_ALIVE_TIMEOUT_MS;
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
-  await server.connect(transport);
 
-  const appServer = http.createServer((req, res) => {
+  const appServer = http.createServer(async (req, res) => {
     if (options.corsOrigin) {
       res.setHeader('Access-Control-Allow-Origin', options.corsOrigin);
       res.setHeader('Vary', 'Origin');
-      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Mcp-Session-Id, Authorization');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Mcp-Protocol-Version, Mcp-Session-Id, Last-Event-ID, Authorization',
+      );
     }
 
     if (req.method === 'OPTIONS') {
@@ -97,7 +99,45 @@ export async function runMcpHttp(server: McpServer, options: RunMcpHttpOptions):
       }
     }
 
-    void transport.handleRequest(req, res);
+    let requestServer: McpServer | undefined;
+    let transport: StreamableHTTPServerTransport | undefined;
+    let cleanedUp = false;
+    const cleanup = async () => {
+      if (cleanedUp) {
+        return;
+      }
+
+      cleanedUp = true;
+      const pending: Promise<unknown>[] = [];
+      if (transport) {
+        pending.push(transport.close());
+      }
+      if (requestServer) {
+        pending.push(requestServer.close());
+      }
+      await Promise.allSettled(pending);
+    };
+
+    res.once('close', () => {
+      void cleanup();
+    });
+
+    try {
+      requestServer = createServer();
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      await requestServer.connect(transport);
+      await transport.handleRequest(req, res);
+    } catch {
+      await cleanup();
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end('Internal Server Error');
+      } else if (!res.writableEnded) {
+        res.end();
+      }
+    }
   });
   appServer.headersTimeout = headersTimeoutMs;
   appServer.requestTimeout = requestTimeoutMs;

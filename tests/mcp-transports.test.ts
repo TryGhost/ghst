@@ -25,6 +25,7 @@ vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
 vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: class {
     handleRequest = mcpTransportMocks.handleRequest;
+    close = vi.fn(async () => undefined);
 
     constructor(_options: Record<string, unknown>) {
       mcpTransportMocks.httpInstances.push(this as never);
@@ -135,12 +136,19 @@ describe.sequential('mcp transports', () => {
     const connect = vi.fn(async () => undefined);
     const port = await getFreePort();
 
-    const runPromise = runMcpHttp({ connect } as never, {
-      host: '127.0.0.1',
-      port,
-      corsOrigin: 'https://app.example.com',
-      authToken: 'test-token',
-    });
+    const runPromise = runMcpHttp(
+      () =>
+        ({
+          connect,
+          close: async () => undefined,
+        }) as never,
+      {
+        host: '127.0.0.1',
+        port,
+        corsOrigin: 'https://app.example.com',
+        authToken: 'test-token',
+      },
+    );
 
     const baseUrl = `http://127.0.0.1:${port}`;
     await waitForServer(baseUrl);
@@ -161,14 +169,29 @@ describe.sequential('mcp transports', () => {
     });
     expect(invalidToken.status).toBe(401);
 
-    const getResponse = await fetch(baseUrl, {
-      method: 'GET',
+    const initResponse = await fetch(baseUrl, {
+      method: 'POST',
       headers: {
         authorization: 'Bearer test-token',
+        accept: 'application/json, text/event-stream',
+        'content-type': 'application/json',
       },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-11-25',
+          capabilities: {},
+          clientInfo: {
+            name: 'test',
+            version: '0.1',
+          },
+        },
+      }),
     });
-    expect(getResponse.status).toBe(200);
-    expect(await getResponse.text()).toBe('ok');
+    expect(initResponse.status).toBe(200);
+    expect(await initResponse.text()).toBe('ok');
     expect(mcpTransportMocks.handleRequest).toHaveBeenCalled();
 
     process.emit('SIGINT');
@@ -184,12 +207,19 @@ describe.sequential('mcp transports', () => {
     const connect = vi.fn(async () => undefined);
     const port = await getFreePort();
 
-    const runPromise = runMcpHttp({ connect } as never, {
-      host: '127.0.0.1',
-      port,
-      authToken: 'test-token',
-      maxBodyBytes: 8,
-    });
+    const runPromise = runMcpHttp(
+      () =>
+        ({
+          connect,
+          close: async () => undefined,
+        }) as never,
+      {
+        host: '127.0.0.1',
+        port,
+        authToken: 'test-token',
+        maxBodyBytes: 8,
+      },
+    );
 
     const baseUrl = `http://127.0.0.1:${port}`;
     await waitForServer(baseUrl);

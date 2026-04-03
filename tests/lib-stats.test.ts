@@ -32,10 +32,13 @@ describe('stats library', () => {
   let configDir = '';
   let previousCwd = '';
   let previousConfigDir: string | undefined;
+  const fixedNow = new Date('2026-03-30T12:00:00.000Z');
 
   beforeEach(async () => {
     previousCwd = process.cwd();
     previousConfigDir = process.env.GHST_CONFIG_DIR;
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedNow);
 
     tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ghst-lib-stats-'));
     workDir = path.join(tempRoot, 'work');
@@ -69,6 +72,7 @@ describe('stats library', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     process.chdir(previousCwd);
     if (previousConfigDir === undefined) {
       delete process.env.GHST_CONFIG_DIR;
