@@ -12,17 +12,17 @@ importers:
         specifier: 1.29.0
         version: 1.29.0(zod@4.3.6)
       '@tryghost/mg-json':
-        specifier: 0.15.0
-        version: 0.15.0
+        specifier: 0.16.0
+        version: 0.16.0
       '@tryghost/mg-medium-export':
-        specifier: 0.20.0
-        version: 0.20.0
+        specifier: 0.21.0
+        version: 0.21.0
       '@tryghost/mg-substack':
         specifier: 0.12.0
         version: 0.12.0
       '@tryghost/mg-wp-xml':
-        specifier: 0.10.0
-        version: 0.10.0
+        specifier: 0.11.0
+        version: 0.11.0
       '@tryghost/string':
         specifier: 0.3.2
         version: 0.3.2
@@ -1918,14 +1918,17 @@ packages:
   '@tryghost/mg-fs-utils@0.19.0':
     resolution: {integrity: sha512-3LheWOMrlmyNl6FbVz3uN9zaLN+3pSacs7W9zj64k4AdeeN27UaJTJfKIW03TSZp+RrkHEU4Oz45YhZedImpAQ==}
 
-  '@tryghost/mg-json@0.15.0':
-    resolution: {integrity: sha512-g84M+WS5ANCA3yJKpir7YIQNsAw2wEOKkADmralv5EVIOgEFH8TP3VbQQGdrNfluQWns9zX/KdPG3UYBHI2wgA==}
+  '@tryghost/mg-fs-utils@0.20.0':
+    resolution: {integrity: sha512-Q2jK+POePDZ4Gvo7lq6R01Koln2LOBjNgyYxDVmW8HCh4/MD8zNyLytvcdaeiBLeDe9LOsUAFi0K1tD9RVMQrg==}
 
-  '@tryghost/mg-medium-export@0.20.0':
-    resolution: {integrity: sha512-ONAre9cC9c51xkbq0zuUkkKYMRyj/wAfcv57Wd0McnjTiet2K7V07DhEuBX7eDNI5yowU9x6LHoaWjy+U0XRWQ==}
+  '@tryghost/mg-json@0.16.0':
+    resolution: {integrity: sha512-2oY6gQafE9kQo0qzldBLVXUEuC698EIUfA7/ERzDBNCGJYqd99IVrk0RWZghV15kYTj+QZjJNB7oy7V7gkvGzA==}
 
-  '@tryghost/mg-shortcodes@0.5.0':
-    resolution: {integrity: sha512-33HlygBWdKrZmTQNgNnU9mdusCESuXuA7L85lRvmAEfeaZHOYK2S0sS9s3ZkJP/qs7f6M25BsoSGTJNY5Foyog==}
+  '@tryghost/mg-medium-export@0.21.0':
+    resolution: {integrity: sha512-Zgvm2Xz7apbPAtiFUcVf1XJXOXrQ/wpFq2cTaTN/BApQ48x7ctGHl9Te7Fpp/i4kc4LE93VSK5lxeORiVQ/IqQ==}
+
+  '@tryghost/mg-shortcodes@0.6.0':
+    resolution: {integrity: sha512-tFtN1DJvLxNUpFGciuBfj0w1iItx6BnxMUTWXHHpDReWvpw5/m/QQjCmEMYjETsTiyZU9YF/TzP9rutCt6e/vQ==}
 
   '@tryghost/mg-substack@0.12.0':
     resolution: {integrity: sha512-BcAjA7SH9hysQG87WTSPiCTbXl5iL/y3jUp2HbE8VMP87zKv9vYXi9G4AOJOydPLwvlYbThr6BjTmNEeSK1rAA==}
@@ -1933,14 +1936,17 @@ packages:
   '@tryghost/mg-utils@0.4.0':
     resolution: {integrity: sha512-Elu+pOnq2fuNU9Xf9BHHxqNXRDxfqApG1RLgq2aF3Sjc2n2Tey8QiATTsFGHsOPzM41lVZ85/NQLDkNl68K9gQ==}
 
-  '@tryghost/mg-webscraper@0.12.0':
-    resolution: {integrity: sha512-fC98w+98htnC9VkVocOF1sTOmdrci+gw3dYKsh5A+pld4juE9XBue2ygu/ImwKUgMqN0HunXp/gHIxlcV884sA==}
+  '@tryghost/mg-utils@0.5.0':
+    resolution: {integrity: sha512-mHGTHj/QZ0iM3iWO56ajQWFVD6DzuGEjwqG8oB2qNkE+VhVKWaigJqThjpR/DmbpGHJvZUVNPaj3gj2uLuBAZA==}
 
-  '@tryghost/mg-wp-api@0.16.0':
-    resolution: {integrity: sha512-mhHpGKGMb53cyVao211dctpfP6JPpKcm8xA6zEfaH3VHxigPdpcwuln+9XW6mTbudH1nDkOWAPKkqYUxWytk2A==}
+  '@tryghost/mg-webscraper@0.13.0':
+    resolution: {integrity: sha512-vz34Fqpt7Y0jR+5YZTdyUjqITLLOW+QBharpgAAWJzTCgvzaYomlxsW8f0zGsT7AaeS8pjlI3M2gnaVFDqM7yA==}
 
-  '@tryghost/mg-wp-xml@0.10.0':
-    resolution: {integrity: sha512-2OiLPznjwfnD3IUwSldWy5Ce3O9/1MepC3EM9SjR3tC8MyZmq2yzBxvkDHTPA7eJvUmD7a3xvKtw2txNCivacA==}
+  '@tryghost/mg-wp-api@0.17.0':
+    resolution: {integrity: sha512-wtuutZpxt8+7x8U8YgJZlDp2cXpFMfmQX8SpT2lk51jAfJ0JbL6uHtv7Qa1N3+uzghIg2ItQhvXrWFzAf3yH6Q==}
+
+  '@tryghost/mg-wp-xml@0.11.0':
+    resolution: {integrity: sha512-Yeh2RhEr450TTK3ExC5NGa80v9BKwWSBiXCx2ourK/e9s550h0WedZ/YaYr2jdoBmCgQrsU+/JE5ncJIrBjhmg==}
 
   '@tryghost/mongo-knex@0.9.4':
     resolution: {integrity: sha512-R5mqpuQ1nN4qWAii9Tvg5POZ0nLO7Voy7QaQF+95sseUpfe4XEUsr3+mm4HYPC8MNKginlUm/unLf5QFzFQl5w==}
@@ -6626,7 +6632,26 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-json@0.15.0':
+  '@tryghost/mg-fs-utils@0.20.0':
+    dependencies:
+      '@tryghost/errors': 3.0.3
+      '@tryghost/image-transform': 1.4.12
+      '@tryghost/string': 0.3.1
+      '@tryghost/zip': 3.0.3
+      adm-zip: 0.5.17
+      csv-parse: 6.2.1
+      dotenv: 17.4.0
+      fs-extra: 11.3.4
+      lodash: 4.18.1
+      sharp: 0.34.5
+      transliteration: 2.6.1
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
+
+  '@tryghost/mg-json@0.16.0':
     dependencies:
       '@tryghost/string': 0.3.1
       bson-objectid: 2.0.4
@@ -6634,12 +6659,12 @@ snapshots:
       lodash: 4.18.1
       node-email-verifier: 4.0.0
 
-  '@tryghost/mg-medium-export@0.20.0':
+  '@tryghost/mg-medium-export@0.21.0':
     dependencies:
       '@tryghost/debug': 2.0.3
       '@tryghost/kg-default-cards': 10.2.10
-      '@tryghost/mg-fs-utils': 0.19.0
-      '@tryghost/mg-utils': 0.4.0
+      '@tryghost/mg-fs-utils': 0.20.0
+      '@tryghost/mg-utils': 0.5.0
       '@tryghost/string': 0.3.1
       simple-dom: 1.4.0
     transitivePeerDependencies:
@@ -6650,7 +6675,7 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-shortcodes@0.5.0': {}
+  '@tryghost/mg-shortcodes@0.6.0': {}
 
   '@tryghost/mg-substack@0.12.0':
     dependencies:
@@ -6680,7 +6705,14 @@ snapshots:
     transitivePeerDependencies:
       - canvas
 
-  '@tryghost/mg-webscraper@0.12.0':
+  '@tryghost/mg-utils@0.5.0':
+    dependencies:
+      fast-xml-parser: 5.5.9
+      linkedom: 0.18.12
+    transitivePeerDependencies:
+      - canvas
+
+  '@tryghost/mg-webscraper@0.13.0':
     dependencies:
       '@tryghost/errors': 3.0.3
       '@tryghost/string': 0.3.1
@@ -6690,15 +6722,15 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@tryghost/mg-wp-api@0.16.0':
+  '@tryghost/mg-wp-api@0.17.0':
     dependencies:
       '@tryghost/debug': 2.0.3
       '@tryghost/errors': 3.0.3
       '@tryghost/kg-default-cards': 10.2.10
-      '@tryghost/mg-fs-utils': 0.19.0
-      '@tryghost/mg-shortcodes': 0.5.0
-      '@tryghost/mg-utils': 0.4.0
-      '@tryghost/mg-webscraper': 0.12.0
+      '@tryghost/mg-fs-utils': 0.20.0
+      '@tryghost/mg-shortcodes': 0.6.0
+      '@tryghost/mg-utils': 0.5.0
+      '@tryghost/mg-webscraper': 0.13.0
       '@tryghost/string': 0.3.1
       html-to-text: 9.0.5
       lodash: 4.18.1
@@ -6714,11 +6746,11 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-wp-xml@0.10.0':
+  '@tryghost/mg-wp-xml@0.11.0':
     dependencies:
       '@tryghost/errors': 3.0.3
-      '@tryghost/mg-utils': 0.4.0
-      '@tryghost/mg-wp-api': 0.16.0
+      '@tryghost/mg-utils': 0.5.0
+      '@tryghost/mg-wp-api': 0.17.0
       '@tryghost/string': 0.3.1
       fast-glob: 3.3.3
       fast-xml-parser: 5.5.9
@@ -6736,13 +6768,13 @@ snapshots:
   '@tryghost/mongo-knex@0.9.4':
     dependencies:
       debug: 4.4.3
-      lodash: 4.17.23
+      lodash: 4.18.1
     transitivePeerDependencies:
       - supports-color
 
   '@tryghost/mongo-utils@0.6.3':
     dependencies:
-      lodash: 4.17.23
+      lodash: 4.18.1
 
   '@tryghost/nql-lang@0.6.4':
     dependencies:
@@ -7038,7 +7070,7 @@ snapshots:
       graceful-fs: 4.2.11
       is-stream: 2.0.1
       lazystream: 1.0.1
-      lodash: 4.17.23
+      lodash: 4.18.1
       normalize-path: 3.0.0
       readable-stream: 4.7.0
 
