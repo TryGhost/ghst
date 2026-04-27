@@ -24,8 +24,8 @@ importers:
         specifier: 0.14.1
         version: 0.14.1
       '@tryghost/string':
-        specifier: 0.3.2
-        version: 0.3.2
+        specifier: 0.3.3
+        version: 0.3.3
       chalk:
         specifier: 5.6.2
         version: 5.6.2
@@ -1985,8 +1985,8 @@ packages:
   '@tryghost/string@0.3.1':
     resolution: {integrity: sha512-p1wyN6p5Ds6IQkoYwIJkabhQ10WIY+t8yf3/Uf/BNADTg66R0jYF8wmXgFYpBwm55rXwM/92cROwvopIbFKtYg==}
 
-  '@tryghost/string@0.3.2':
-    resolution: {integrity: sha512-tPgTU4o/4m1TBMoSChHm4n7XvXq+x6GJ//B0MdVPK57Rb0GEThsV347C2Fr5+1q71EdICrLbFPYh0vAqEM/eoA==}
+  '@tryghost/string@0.3.3':
+    resolution: {integrity: sha512-VCJKoj+bHd5TKpNu02ce1lMLTDfg+Uv077i8TdijequrmcEayZTYSLVnNJ1320tu9+2rB+yzdadS/3BCTtACEA==}
 
   '@tryghost/tpl@2.1.0':
     resolution: {integrity: sha512-NIzGwyHcFUnJRmaDkd5wx6X+lXfqXqUbsICKO4KcPFtwmqLVButlbidNZsXLdoblyI2J5jS6JIGY22TB+mtiBw==}
@@ -6814,7 +6814,7 @@ snapshots:
     dependencies:
       unidecode: 1.1.0
 
-  '@tryghost/string@0.3.2':
+  '@tryghost/string@0.3.3':
     dependencies:
       unidecode: 1.1.0
 
