@@ -607,7 +607,8 @@ function normalizeMembersSeries(rows: Record<string, unknown>[]): StatsSeriesPoi
         row.count ??
         getNumber(row.free_members ?? row.free) +
           getNumber(row.paid_members ?? row.paid) +
-          getNumber(row.comped),
+          getNumber(row.comped) +
+          getNumber(row.gift),
     ),
     mrr: null,
     subscriptions: null,
