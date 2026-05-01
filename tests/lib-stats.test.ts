@@ -245,6 +245,31 @@ describe('stats library', () => {
     ]);
   });
 
+  test('includes gift members in the total_members fallback when the row carries a gift bucket', async () => {
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/ghost/api/admin/stats/member_count/') && method === 'GET') {
+          return new Response(
+            JSON.stringify({
+              stats: [{ date: '2026-02-06', free: 100, paid: 5, comped: 2, gift: 3 }],
+              meta: { totals: { free: 100, paid: 5, comped: 2, gift: 3 } },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        return undefined;
+      },
+    });
+
+    const payload = await getStatsGrowth({}, { from: '2026-02-06', to: '2026-02-06' });
+
+    expect(payload.members[0]?.total_members).toBe(110);
+  });
+
   test('clips growth histories client-side to the selected range', async () => {
     installGhostFixtureFetchMock();
 

@@ -19,6 +19,7 @@ import {
   MemberBulkInputSchema,
   MemberCreateInputSchema,
   MemberGetInputSchema,
+  MemberListInputSchema,
   MemberUpdateInputSchema,
 } from '../src/schemas/member.js';
 import {
@@ -220,6 +221,13 @@ describe('member schemas', () => {
       '--tier',
     );
     expectInvalid(MemberUpdateInputSchema, { id: 'member-1' }, 'Provide at least one update field');
+  });
+
+  test('accepts gift alongside the existing member statuses on list input', () => {
+    for (const status of ['free', 'paid', 'comped', 'gift'] as const) {
+      expectValid<{ status?: string }>(MemberListInputSchema, { status });
+    }
+    expectInvalid(MemberListInputSchema, { status: 'unknown' });
   });
 
   test('enforce member selectors and bulk destructive safeguards', () => {

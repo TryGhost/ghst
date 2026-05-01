@@ -66,7 +66,7 @@ export function registerMemberCommands(program: Command): void {
     .option('--limit <numberOrAll>', 'Number of members per page or "all"')
     .option('--page <number>', 'Page number')
     .option('--filter <nql>', 'NQL filter')
-    .option('--status <status>', 'Member status (free|paid|comped)')
+    .option('--status <status>', 'Member status (free|paid|comped|gift)')
     .option('--search <term>', 'Search term')
     .option('--include <relations>', 'Include relationships')
     .option('--fields <fields>', 'Select output fields')

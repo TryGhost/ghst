@@ -7,7 +7,7 @@ export const MemberListInputSchema = z.object({
   limit: z.union([z.number().int().positive().max(100), z.literal('all')]).optional(),
   page: z.number().int().positive().optional(),
   filter: z.string().optional(),
-  status: z.enum(['free', 'paid', 'comped']).optional(),
+  status: z.enum(['free', 'paid', 'comped', 'gift']).optional(),
   search: z.string().optional(),
   include: z.string().optional(),
   fields: z.string().optional(),
