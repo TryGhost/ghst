@@ -2400,6 +2400,8 @@ describe('run + commands', () => {
         'overview',
         '--range',
         '90d',
+        '--to',
+        '2026-05-01',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     const overviewOutput = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
