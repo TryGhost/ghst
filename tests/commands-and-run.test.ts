@@ -1186,6 +1186,9 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'member', 'list', '--status', 'paid'])).resolves.toBe(
       ExitCode.SUCCESS,
     );
+    await expect(run(['node', 'ghst', 'member', 'list', '--status', 'gift'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
     await expect(run(['node', 'ghst', 'member', 'get', fixtureIds.memberId])).resolves.toBe(
       ExitCode.SUCCESS,
     );
