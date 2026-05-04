@@ -77,6 +77,7 @@ describe('run + commands', () => {
     setCredentialStoreForTests(null);
     resetSocialWebIdentityCacheForTests();
     vi.restoreAllMocks();
+    vi.useRealTimers();
     process.chdir(previousCwd);
 
     if (previousConfigDir === undefined) {
@@ -253,7 +254,7 @@ describe('run + commands', () => {
     const promptAnswers = ['https://prompted.ghost.io', '', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual(['https://prompted.ghost.io/ghost/#/settings/staff']);
+    expect(openedUrls).toEqual(['https://prompted.ghost.io/ghost/#/my-profile']);
 
     delete process.env.MY_GHOST_KEY;
   });
@@ -652,7 +653,7 @@ describe('run + commands', () => {
     setPromptForTests(async () => promptAnswers.shift() ?? '');
 
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual(['https://ghst.ghost.io/ghost/#/settings/staff']);
+    expect(openedUrls).toEqual(['https://ghst.ghost.io/ghost/#/my-profile']);
 
     const configPath = path.join(configDir, 'config.json');
     const configRaw = await fs.readFile(configPath, 'utf8');
@@ -687,7 +688,7 @@ describe('run + commands', () => {
     setPromptForTests(async () => promptAnswers.shift() ?? '');
 
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual(['https://john.ghost.io/ghost/#/settings/staff']);
+    expect(openedUrls).toEqual(['https://john.ghost.io/ghost/#/my-profile']);
 
     const configPath = path.join(configDir, 'config.json');
     const configRaw = await fs.readFile(configPath, 'utf8');
@@ -754,7 +755,7 @@ describe('run + commands', () => {
     setPromptForTests(async () => promptAnswers.shift() ?? '');
 
     await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
-    expect(openedUrls).toEqual(['https://myblog.ghost.io/ghost/#/settings/staff']);
+    expect(openedUrls).toEqual(['https://myblog.ghost.io/ghost/#/my-profile']);
   });
 
   test('prints updated staff access token guidance copy', async () => {
@@ -2368,6 +2369,9 @@ describe('run + commands', () => {
   });
 
   test('renders stats summaries across json, jq, human, and csv outputs', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-30T12:00:00.000Z'));
+
     const logSpy = vi.spyOn(console, 'log');
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 

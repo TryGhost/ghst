@@ -121,16 +121,16 @@ function printOpenWarning(adminUrl: string, useColor: boolean, reason: string): 
 }
 
 async function openGhostAdminForLogin(adminOrigin: string, useColor: boolean): Promise<void> {
-  const staffSettingsUrl = getGhostStaffSettingsUrl(adminOrigin);
-  const preflight = `Opening Ghost Admin in your browser: ${staffSettingsUrl}`;
+  const staffProfileUrl = getGhostStaffProfileUrl(adminOrigin);
+  const preflight = `Opening Ghost Admin in your browser: ${staffProfileUrl}`;
   console.log('');
   console.log(useColor ? chalk.cyan(preflight) : preflight);
   console.log('');
   try {
-    await openUrlFn(staffSettingsUrl);
+    await openUrlFn(staffProfileUrl);
   } catch (error) {
     const detail = formatOpenError(error);
-    printOpenWarning(staffSettingsUrl, useColor, detail);
+    printOpenWarning(staffProfileUrl, useColor, detail);
   }
 }
 /* c8 ignore stop */
@@ -197,9 +197,9 @@ function getGhostAdminEntryUrl(url: string): string {
   return `${normalizedUrl}/ghost`;
 }
 
-function getGhostStaffSettingsUrl(url: string): string {
+function getGhostStaffProfileUrl(url: string): string {
   const normalizedUrl = normalizeGhostUrl(url);
-  return `${normalizedUrl}/ghost/#/settings/staff`;
+  return `${normalizedUrl}/ghost/#/my-profile`;
 }
 
 function formatConfiguredSiteDisplay(
