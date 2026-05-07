@@ -79,6 +79,7 @@ describe('api command contracts', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'api',
         '/posts/',
         '--method',

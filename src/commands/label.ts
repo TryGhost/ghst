@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import {
   bulkLabels,
@@ -205,6 +206,8 @@ export function registerLabelCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      assertDestructiveActionsEnabled(global, 'delete label');
+
       if (!parsed.data.yes) {
         if (isNonInteractive()) {
           throw new GhstError('Deleting in non-interactive mode requires --yes.', {
@@ -255,6 +258,10 @@ export function registerLabelCommands(program: Command): void {
 
       if (!parsed.success) {
         throwValidationError(parsed.error);
+      }
+
+      if (parsed.data.action === 'delete') {
+        assertDestructiveActionsEnabled(global, 'bulk delete labels');
       }
 
       const payload = await bulkLabels(global, {

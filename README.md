@@ -109,14 +109,15 @@ Site/profile management:
 ghst auth list
 ghst auth switch <site-alias>
 ghst auth link --site <site-alias>
-ghst auth link --site <site-alias> --yes
-ghst auth logout --yes
+ghst --enable-destructive-actions auth link --site <site-alias> --yes
+ghst --enable-destructive-actions auth logout --yes
 ghst auth token
 ```
 
 `ghst auth token` prints a short-lived staff JWT. Treat the output as sensitive.
-`ghst auth logout` requires confirmation when removing all configured sites; use `--yes` in non-interactive scripts.
-`ghst auth link` requires confirmation before replacing an existing project link; use `--yes` in non-interactive scripts.
+Destructive commands require `--enable-destructive-actions`; use `--yes` in non-interactive scripts when a destructive command also asks for confirmation.
+`ghst auth logout` requires confirmation when removing all configured sites.
+`ghst auth link` requires confirmation before replacing an existing project link.
 Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on stderr instructing cooperative agents to ask the user for approval before continuing.
 
 ## Command Reference
@@ -155,6 +156,7 @@ Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on st
 | `--jq <filter>` | Apply jq-style extraction to JSON output |
 | `--site <alias>` | Use configured site alias |
 | `--url <url>` + `--staff-token <token>` | Use direct credentials for this invocation |
+| `--enable-destructive-actions` | Allow destructive operations such as deletes |
 | `--debug [level]` | Enable debug output |
 | `--no-color` | Disable color output |
 
@@ -172,7 +174,7 @@ Bulk updates:
 ```bash
 ghst post bulk --filter "status:draft" --update --add-tag release-notes --authors editor@example.com
 ghst member bulk --update --filter "status:free" --labels "trial,needs-follow-up"
-ghst label bulk --filter "name:'legacy'" --action delete --yes
+ghst --enable-destructive-actions label bulk --filter "name:'legacy'" --action delete --yes
 ```
 
 Comment moderation:
@@ -183,7 +185,7 @@ ghst comment thread <comment-id>
 ghst comment replies <comment-id>
 ghst comment hide <comment-id>
 ghst comment show <comment-id>
-ghst comment delete <comment-id> --yes
+ghst --enable-destructive-actions comment delete <comment-id> --yes
 ```
 
 Scheduling:
@@ -212,7 +214,7 @@ Direct API calls:
 
 ```bash
 ghst api /posts/ --paginate --include-headers
-ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
+ghst --enable-destructive-actions api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
 ```
 
 Analytics reporting:
@@ -234,7 +236,7 @@ ghst socialweb status
 ghst socialweb profile
 ghst socialweb notes --json
 ghst socialweb follow @alice@example.com
-ghst socialweb delete https://example.com/.ghost/activitypub/note/1 --yes
+ghst --enable-destructive-actions socialweb delete https://example.com/.ghost/activitypub/note/1 --yes
 ghst socialweb note --content "Hello fediverse"
 ghst socialweb reply https://example.com/users/alice/statuses/1 --content "Replying from ghst"
 ```
@@ -242,7 +244,7 @@ ghst socialweb reply https://example.com/users/alice/statuses/1 --content "Reply
 Social web auth note:
 - `ghst socialweb` bootstraps a short-lived identity JWT from `/ghost/api/admin/identities/`.
 - That bridge requires an Owner or Administrator staff access token.
-- `ghst socialweb delete` requires confirmation; use `--yes` in non-interactive scripts.
+- `ghst socialweb delete` requires `--enable-destructive-actions` and confirmation; use `--yes` in non-interactive scripts.
 - Public Ghost post publishing still lives under `ghst post`; `ghst socialweb` is for notes, interactions, profile, feed, and moderation flows.
 
 Ghost analytics filter semantics:
@@ -299,6 +301,8 @@ JSON + jq-style extraction:
 ghst post list --json
 ghst post list --json --jq '.posts[].title'
 ```
+
+Raw `ghst api` requests using non-read HTTP methods also require `--enable-destructive-actions`.
 
 Common machine-safe practices:
 

@@ -39,6 +39,7 @@ export function buildProgram(): Command {
     .option('--site <site>', 'Configured site alias')
     .option('--url <url>', 'Ghost site URL override')
     .option('--staff-token <token>', 'Ghost staff access token override')
+    .option('--enable-destructive-actions', 'Allow destructive operations such as deletes')
     .option('--debug [level]', 'Enable debug output')
     .option('--no-color', 'Disable color output');
 

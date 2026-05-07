@@ -9,6 +9,7 @@ import {
   setCommentStatus,
 } from '../lib/comments.js';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import {
   printCommentHuman,
@@ -310,6 +311,8 @@ export function registerCommentCommands(program: Command): void {
       if (!parsed.success) {
         throwValidationError(parsed.error);
       }
+
+      assertDestructiveActionsEnabled(global, 'delete comment');
 
       if (!parsed.data.yes) {
         if (isNonInteractive()) {

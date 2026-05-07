@@ -11,6 +11,7 @@ export function getGlobalOptions(command: Command): GlobalOptions {
     site: options.site,
     url: options.url,
     staffToken: options.staffToken,
+    enableDestructiveActions: options.enableDestructiveActions,
     debug: options.debug,
     color: options.color !== false && !noColorFromEnv,
   };

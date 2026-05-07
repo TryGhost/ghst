@@ -4,6 +4,7 @@ export interface GlobalOptions {
   site?: string;
   url?: string;
   staffToken?: string;
+  enableDestructiveActions?: boolean;
   debug?: string | boolean;
   color?: boolean;
 }

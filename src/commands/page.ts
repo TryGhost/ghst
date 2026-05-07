@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printPageHuman, printPageListHuman } from '../lib/output.js';
 import {
@@ -276,6 +277,8 @@ export function registerPageCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      assertDestructiveActionsEnabled(global, 'delete page');
+
       if (!parsed.data.yes) {
         if (isNonInteractive()) {
           throw new GhstError('Deleting in non-interactive mode requires --yes.', {
@@ -345,6 +348,10 @@ export function registerPageCommands(program: Command): void {
 
       if (!parsed.success) {
         throwValidationError(parsed.error);
+      }
+
+      if (parsed.data.action === 'delete') {
+        assertDestructiveActionsEnabled(global, 'bulk delete pages');
       }
 
       const payload = await bulkPages(global, {
