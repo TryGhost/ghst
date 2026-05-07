@@ -12,17 +12,17 @@ importers:
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.3)
       '@tryghost/mg-json':
-        specifier: 0.19.3
-        version: 0.19.3
+        specifier: 0.20.0
+        version: 0.20.0
       '@tryghost/mg-medium-export':
-        specifier: 0.24.3
-        version: 0.24.3
+        specifier: 0.25.0
+        version: 0.25.0
       '@tryghost/mg-substack':
-        specifier: 1.3.3
-        version: 1.3.3
+        specifier: 1.4.0
+        version: 1.4.0
       '@tryghost/mg-wp-xml':
-        specifier: 0.14.3
-        version: 0.14.3
+        specifier: 0.15.0
+        version: 0.15.0
       '@tryghost/string':
         specifier: 0.3.3
         version: 0.3.3
@@ -1030,8 +1030,10 @@ packages:
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
 
-  '@selderee/plugin-htmlparser2@0.11.0':
-    resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
+  '@selderee/plugin-htmlparser2@0.12.0':
+    resolution: {integrity: sha512-oELmoyA6ML9jDRMV3kgcMQFKxUfBU0yFVn6yTctVaLT5ygXnxH52I3TZEgV9EhXJC68/uFvE5Daj1/25c0Xa/A==}
+    peerDependencies:
+      selderee: ~0.12.0
 
   '@sentry/core@10.48.0':
     resolution: {integrity: sha512-h8F+fXVwYC9ro5ZaO8V+v3vqc0awlXHGblEAuVxSGgh4IV/oFX+QVzXeDTTrFOFS6v/Vn5vAyu240eJrJAS6/g==}
@@ -1925,32 +1927,32 @@ packages:
   '@tryghost/logging@4.0.3':
     resolution: {integrity: sha512-LfuThGHqLQ6Y5aijh2s4YH68wPZhwgWUIxQMItPatY5NYaHn+aiTnpCi4oMZSBSMgYIPpEgjL1maoDf35sEhoQ==}
 
-  '@tryghost/mg-fs-utils@0.23.3':
-    resolution: {integrity: sha512-JrTEX/yFBjHuNJ9ED1eBmwv/Nr2lbBO1k5MoZS0jiLp5IPzKIOva99KpD9sG9ossxrqfWQPMEy4SHHqALft6yg==}
+  '@tryghost/mg-fs-utils@0.24.0':
+    resolution: {integrity: sha512-F2Xum6Fq6ayoCxahijZDQBGaBAxKyzNaakP4U5yBGptrBCbXJtyu+0104WTNMkbb49nC0SumoDIc3unXWgzbPw==}
 
-  '@tryghost/mg-json@0.19.3':
-    resolution: {integrity: sha512-ZrwUiU5erP/7zd9ZWWqCJLPSBHQn8DU32+3OxQZoP/OFpSBPGXIwuOpJfDNmloOR0UTQOohbgrgObTIDDzJKWw==}
+  '@tryghost/mg-json@0.20.0':
+    resolution: {integrity: sha512-xn2BMmCLq5dd3IlBYHZlmfNXbthvfxbgj8FkgYqt9mwmzRAnddnPGUxaMykAWz6uYkzKOeTMIRA47O+Dxiz4BQ==}
 
-  '@tryghost/mg-medium-export@0.24.3':
-    resolution: {integrity: sha512-awoO/eZ5zDPrqDjBQaOqzcgtepbVRxujYHY4JEnfwn7R3svT3w/KiWWuFleEsWGhX3jVsg2AdGPEx80kXmjDOQ==}
+  '@tryghost/mg-medium-export@0.25.0':
+    resolution: {integrity: sha512-uYOUd/7CYuLoR+M/B/K6npyiuUjP3LEnc5hl+/3LviHHBNfK5EigTHHfJyL+z8AizBFn5OkoUMAxJC1jIc6Cgw==}
 
-  '@tryghost/mg-shortcodes@0.9.3':
-    resolution: {integrity: sha512-3lW/ewZyHNNpU7rg0XbrNSf397+ABd0miD2MI0Tx6UWF7H4UTPNqzXB4ugP9C9LR2a6XgoA24qJ7jkBlK8t3Ig==}
+  '@tryghost/mg-shortcodes@0.10.0':
+    resolution: {integrity: sha512-LYhDnjfbBonaQzphPIA/FcTB1azpwFlD68b5DZU4MXEAyjFOm/mbBxV94UiNNtbW+Q6TTY6bpUXR9icDx+qOBA==}
 
-  '@tryghost/mg-substack@1.3.3':
-    resolution: {integrity: sha512-Gyk3vHgSKE7k2zUtXrBCp880NhvrypwJfjvgdeoBHI7tDQiOSdFqwdGVe7JpE61Nn8z2tQIGUPub7vO4rfWX5g==}
+  '@tryghost/mg-substack@1.4.0':
+    resolution: {integrity: sha512-dwEfbTwhp12Wfu2J+ncXzw0VwK5cOqdrz187We69u/QjLjtnBBZqJFCUIC0Zm+bq1LQvrWMVAY3aHv2Esj5N+Q==}
 
-  '@tryghost/mg-utils@0.8.3':
-    resolution: {integrity: sha512-+uhREBCgeHwZr2utaevDrdp/uOwBtjwCpIBwcxT9eJvCzInBvgDZBw+kdrOk1Vxo8gOezfgOdbt/05idraHgGQ==}
+  '@tryghost/mg-utils@0.9.0':
+    resolution: {integrity: sha512-3A28/9bOKAO4f7wC/dBjv1omgkzn0GUWvFgM0jr2xmmIeAEdBSEVfU15Ta9ClGn8kJ+c8XSv+Exlb6d9A7kDLQ==}
 
-  '@tryghost/mg-webscraper@0.16.3':
-    resolution: {integrity: sha512-KNKLJ7LPjcXzWK57TSnBnjatyQCgX+R47vQtQmsAa9kJ2k5fmz/S4XljuJ2sH8bwqLAyazUzGm0K/h6oXutUkg==}
+  '@tryghost/mg-webscraper@0.17.0':
+    resolution: {integrity: sha512-ZoPCT0po5bLs/DDspnt86fuVOjuXkMRsZqssulBy/s1J/cMlfyaJtrWBb4thveN0bX9tf4Na5A52VWCq8Akfew==}
 
-  '@tryghost/mg-wp-api@0.20.3':
-    resolution: {integrity: sha512-qvdT2DWygVwIVqv+pIr+5Tgq1EcjgxJRSxLAv1LBx+w49lw6msEGdmP2YZwzBWN3Y1AE/Nx7PIeQm752RhnX5w==}
+  '@tryghost/mg-wp-api@0.21.0':
+    resolution: {integrity: sha512-yd7vZlrF3u3eO29G130zv4+HvA4dSPMRJqkxmbsnvSN2IC+qM74X2Wt2hstdah022LOq33H+GGCwOyUX5r7pPw==}
 
-  '@tryghost/mg-wp-xml@0.14.3':
-    resolution: {integrity: sha512-/qO7zKBqffDpBlASMRPKZYUysbaNlCmFWrHz1+EUdwiOH4/y4DylmUdl4kRxMwQKnwonXjQilVl53JJOMNQnfQ==}
+  '@tryghost/mg-wp-xml@0.15.0':
+    resolution: {integrity: sha512-9y5s270y8kZCppmBAEBQk4Xq3Jn3U+xjZu6D8u40hGti1VLFZI3iZczIEd/sUdAnNfiVRoMO+0qmbh+s2Uk7fw==}
 
   '@tryghost/mongo-knex@0.9.4':
     resolution: {integrity: sha512-R5mqpuQ1nN4qWAii9Tvg5POZ0nLO7Voy7QaQF+95sseUpfe4XEUsr3+mm4HYPC8MNKginlUm/unLf5QFzFQl5w==}
@@ -2645,9 +2647,9 @@ packages:
     resolution: {integrity: sha512-oj7KWToJuuxlPr7VV0vabvxEIiqNMo+q0NueIiL3XhtwC6FVOX7Hr1c0C4eD0bmf7Zr+S/dSf2xvkH3Ad6sU3Q==}
     engines: {node: '>=20'}
 
-  deepmerge@4.3.1:
-    resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
-    engines: {node: '>=0.10.0'}
+  deepmerge-ts@7.1.5:
+    resolution: {integrity: sha512-HOJkrhaYsweh+W+e74Yn7YStZOilkoPb6fycpwNLKzSPtruFs48nYis0zy5yJz1+ktUhHxoRDJ27RQAWLIJVJw==}
+    engines: {node: '>=16.0.0'}
 
   deffy@2.2.5:
     resolution: {integrity: sha512-6TX2cfIo97eKqWmqgMDAUulCwnveAe3K+4VGsTGPJsL3NtSEnSBFZ3sUXdS4EBhZ8GbdaZBzXQ04ton18dJrug==}
@@ -3130,9 +3132,9 @@ packages:
   html-escaper@3.0.3:
     resolution: {integrity: sha512-RuMffC89BOWQoY0WKGpIhn5gX3iI54O6nRA0yC124NYVtzjmFWBIiFd8M0x+ZdX0P9R4lADg1mgP8C7PxGOWuQ==}
 
-  html-to-text@9.0.5:
-    resolution: {integrity: sha512-qY60FjREgVZL03vJU6IfMV4GDjGBIoOyvuFdpBDIX9yTlDw0TjxVBQp+P8NvpdIXNJvfWBTNul7fsAQJq2FNpg==}
-    engines: {node: '>=14'}
+  html-to-text@10.0.0:
+    resolution: {integrity: sha512-2OH59Gtprdczel+7Rxgpz9hGVJREaf8Lt1H4kZwWHpEn70VQKRuMNGsb2eDbwaTzrYzb0hheiOG1P7Dim0B4dQ==}
+    engines: {node: '>=20.19.0'}
 
   htmlparser2@10.1.0:
     resolution: {integrity: sha512-VTZkM9GWRAtEpveh7MSF6SjjrpNVNNVJfFup7xTY3UpFtm67foy9HDVXneLtFVt4pMz5kZtgNcvCniNFb1hlEQ==}
@@ -3390,8 +3392,8 @@ packages:
     resolution: {integrity: sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==}
     engines: {node: '>= 0.6.3'}
 
-  leac@0.6.0:
-    resolution: {integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==}
+  leac@0.7.0:
+    resolution: {integrity: sha512-qMrZeyEekgdRQ9o6a4NAB2EQZrv827GJdn1vnapwSJ90hWRB4TzUSunvacPkxQ2TnNqHNI1/zSt0hlo0crG8Jw==}
 
   li@1.3.0:
     resolution: {integrity: sha512-z34TU6GlMram52Tss5mt1m//ifRIpKH5Dqm7yUVOdHI+BQCs9qGPHFaCUTIzsWX7edN30aa2WrPwR7IO10FHaw==}
@@ -3849,8 +3851,8 @@ packages:
   parse5@7.3.0:
     resolution: {integrity: sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==}
 
-  parseley@0.12.1:
-    resolution: {integrity: sha512-e6qHKe3a9HWr0oMRVDTRhKce+bRO8VGQR3NyVwcjwrbhMmFCX9KszEV35+rn4AdilFAq9VPxP/Fe1wC9Qjd2lw==}
+  parseley@0.13.1:
+    resolution: {integrity: sha512-uNBJZzmb60l6p6VWLTmevizNAGnE0xoSf1n0B4q3ntegDNzcS68NRCcBDZTcyXHxt2XhBChsCuqj4M+nChvE/A==}
 
   parseurl@1.3.3:
     resolution: {integrity: sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==}
@@ -3889,8 +3891,8 @@ packages:
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
 
-  peberminta@0.9.0:
-    resolution: {integrity: sha512-XIxfHpEuSJbITd1H3EeQwpcZbTLHc+VVr8ANI9t5sit565tsI4/xK3KWTUFE2e6QiangUkh3B0jihzmGnNrRsQ==}
+  peberminta@0.10.0:
+    resolution: {integrity: sha512-80B2AsU+I4Qdb0ZAPSfe9UwvGzwkM37IKIFEvdS3D/3Ndgv2bsuJ0bfG1+iEYO+l7Gfd4EUJmuRyq7efLgRMzQ==}
 
   pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
@@ -4176,8 +4178,8 @@ packages:
   secure-keys@1.0.0:
     resolution: {integrity: sha512-nZi59hW3Sl5P3+wOO89eHBAAGwmCPd2aE1+dLZV5MO+ItQctIvAqihzaAXIQhvtH4KJPxM080HsnqltR2y8cWg==}
 
-  selderee@0.11.0:
-    resolution: {integrity: sha512-5TF+l7p4+OsnP8BCCvSyZiSPc4x4//p5uPwK8TCnVPJYRmU2aYKMpOXvw8zM5a5JvuuCGN1jmsMwuU2W02ukfA==}
+  selderee@0.12.0:
+    resolution: {integrity: sha512-b1YMh3+DHZp59DLna3qVwQ5iOla/nrI6mLBNW02XxU77M3046Df6VLkoaJyFz20VsGIG5kkp+FK0kg4K4HnUFw==}
 
   semver@7.7.4:
     resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
@@ -4408,8 +4410,8 @@ packages:
   tldts-core@7.0.30:
     resolution: {integrity: sha512-uiHN8PIB1VmWyS98eZYja4xzlYqeFZVjb4OuYlJQnZAuJhMw4PbKQOKgHKhBdJR3FE/t5mUQ1Kd80++B+qhD1Q==}
 
-  tldts@7.0.28:
-    resolution: {integrity: sha512-+Zg3vWhRUv8B1maGSTFdev9mjoo8Etn2Ayfs4cnjlD3CsGkxXX4QyW3j2WJ0wdjYcYmy7Lx2RDsZMhgCWafKIw==}
+  tldts@7.0.30:
+    resolution: {integrity: sha512-ELrFxuqsDdHUwoh0XxDbxuLD3Wnz49Z57IFvTtvWy1hJdcMZjXLIuonjilCiWHlT2GbE4Wlv1wKVTzDFnXH1aw==}
     hasBin: true
 
   to-regex-range@5.0.1:
@@ -5583,10 +5585,11 @@ snapshots:
 
   '@sec-ant/readable-stream@0.4.1': {}
 
-  '@selderee/plugin-htmlparser2@0.11.0':
+  '@selderee/plugin-htmlparser2@0.12.0(selderee@0.12.0)':
     dependencies:
+      domelementtype: 2.3.0
       domhandler: 5.0.3
-      selderee: 0.11.0
+      selderee: 0.12.0
 
   '@sentry/core@10.48.0': {}
 
@@ -6629,7 +6632,7 @@ snapshots:
       - '@75lb/nature'
       - supports-color
 
-  '@tryghost/mg-fs-utils@0.23.3':
+  '@tryghost/mg-fs-utils@0.24.0':
     dependencies:
       '@tryghost/errors': 3.0.3
       '@tryghost/image-transform': 1.4.12
@@ -6647,9 +6650,9 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-json@0.19.3':
+  '@tryghost/mg-json@0.20.0':
     dependencies:
-      '@tryghost/mg-utils': 0.8.3
+      '@tryghost/mg-utils': 0.9.0
       '@tryghost/string': 0.3.1
       bson-objectid: 2.0.4
       html-entities: 2.6.0
@@ -6657,12 +6660,12 @@ snapshots:
     transitivePeerDependencies:
       - canvas
 
-  '@tryghost/mg-medium-export@0.24.3':
+  '@tryghost/mg-medium-export@0.25.0':
     dependencies:
       '@tryghost/debug': 2.0.3
       '@tryghost/kg-default-cards': 10.2.10
-      '@tryghost/mg-fs-utils': 0.23.3
-      '@tryghost/mg-utils': 0.8.3
+      '@tryghost/mg-fs-utils': 0.24.0
+      '@tryghost/mg-utils': 0.9.0
       '@tryghost/string': 0.3.1
       simple-dom: 1.4.0
     transitivePeerDependencies:
@@ -6673,15 +6676,15 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-shortcodes@0.9.3': {}
+  '@tryghost/mg-shortcodes@0.10.0': {}
 
-  '@tryghost/mg-substack@1.3.3':
+  '@tryghost/mg-substack@1.4.0':
     dependencies:
       '@tryghost/debug': 2.0.3
       '@tryghost/errors': 3.0.3
       '@tryghost/kg-default-cards': 10.2.10
-      '@tryghost/mg-fs-utils': 0.23.3
-      '@tryghost/mg-utils': 0.8.3
+      '@tryghost/mg-fs-utils': 0.24.0
+      '@tryghost/mg-utils': 0.9.0
       '@tryghost/string': 0.3.1
       he: 1.2.0
       html-entities: 2.6.0
@@ -6695,14 +6698,14 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-utils@0.8.3':
+  '@tryghost/mg-utils@0.9.0':
     dependencies:
       fast-xml-parser: 5.7.2
       linkedom: 0.18.12
     transitivePeerDependencies:
       - canvas
 
-  '@tryghost/mg-webscraper@0.16.3':
+  '@tryghost/mg-webscraper@0.17.0':
     dependencies:
       '@tryghost/errors': 3.0.3
       '@tryghost/string': 0.3.1
@@ -6711,18 +6714,18 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@tryghost/mg-wp-api@0.20.3':
+  '@tryghost/mg-wp-api@0.21.0':
     dependencies:
       '@tryghost/debug': 2.0.3
       '@tryghost/kg-default-cards': 10.2.10
-      '@tryghost/mg-fs-utils': 0.23.3
-      '@tryghost/mg-shortcodes': 0.9.3
-      '@tryghost/mg-utils': 0.8.3
-      '@tryghost/mg-webscraper': 0.16.3
+      '@tryghost/mg-fs-utils': 0.24.0
+      '@tryghost/mg-shortcodes': 0.10.0
+      '@tryghost/mg-utils': 0.9.0
+      '@tryghost/mg-webscraper': 0.17.0
       '@tryghost/string': 0.3.1
-      html-to-text: 9.0.5
+      html-to-text: 10.0.0
       simple-dom: 1.4.0
-      tldts: 7.0.28
+      tldts: 7.0.30
       wpapi: 1.2.2
     transitivePeerDependencies:
       - bare-abort-controller
@@ -6733,11 +6736,11 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-wp-xml@0.14.3':
+  '@tryghost/mg-wp-xml@0.15.0':
     dependencies:
       '@tryghost/errors': 3.0.3
-      '@tryghost/mg-utils': 0.8.3
-      '@tryghost/mg-wp-api': 0.20.3
+      '@tryghost/mg-utils': 0.9.0
+      '@tryghost/mg-wp-api': 0.21.0
       '@tryghost/string': 0.3.1
       fast-glob: 3.3.3
       fast-xml-parser: 5.7.2
@@ -6803,7 +6806,7 @@ snapshots:
 
   '@tryghost/server@2.0.3':
     dependencies:
-      '@tryghost/debug': 2.0.3
+      '@tryghost/debug': 2.2.0
       '@tryghost/logging': 4.0.3
     transitivePeerDependencies:
       - '@75lb/nature'
@@ -6848,7 +6851,7 @@ snapshots:
 
   '@tryghost/zip@3.0.3':
     dependencies:
-      '@tryghost/errors': 3.0.3
+      '@tryghost/errors': 3.2.0
       archiver: 7.0.1
       extract-zip: 2.0.1
     transitivePeerDependencies:
@@ -7551,7 +7554,7 @@ snapshots:
     dependencies:
       mimic-response: 4.0.0
 
-  deepmerge@4.3.1: {}
+  deepmerge-ts@7.1.5: {}
 
   deffy@2.2.5:
     dependencies:
@@ -8119,13 +8122,13 @@ snapshots:
 
   html-escaper@3.0.3: {}
 
-  html-to-text@9.0.5:
+  html-to-text@10.0.0:
     dependencies:
-      '@selderee/plugin-htmlparser2': 0.11.0
-      deepmerge: 4.3.1
+      '@selderee/plugin-htmlparser2': 0.12.0(selderee@0.12.0)
+      deepmerge-ts: 7.1.5
       dom-serializer: 2.0.0
-      htmlparser2: 8.0.2
-      selderee: 0.11.0
+      htmlparser2: 10.1.0
+      selderee: 0.12.0
 
   htmlparser2@10.1.0:
     dependencies:
@@ -8395,7 +8398,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  leac@0.6.0: {}
+  leac@0.7.0: {}
 
   li@1.3.0: {}
 
@@ -8787,10 +8790,10 @@ snapshots:
     dependencies:
       entities: 6.0.1
 
-  parseley@0.12.1:
+  parseley@0.13.1:
     dependencies:
-      leac: 0.6.0
-      peberminta: 0.9.0
+      leac: 0.7.0
+      peberminta: 0.10.0
 
   parseurl@1.3.3: {}
 
@@ -8819,7 +8822,7 @@ snapshots:
 
   pathe@2.0.3: {}
 
-  peberminta@0.9.0: {}
+  peberminta@0.10.0: {}
 
   pend@1.2.0: {}
 
@@ -9181,9 +9184,9 @@ snapshots:
 
   secure-keys@1.0.0: {}
 
-  selderee@0.11.0:
+  selderee@0.12.0:
     dependencies:
-      parseley: 0.12.1
+      parseley: 0.13.1
 
   semver@7.7.4: {}
 
@@ -9486,7 +9489,7 @@ snapshots:
 
   tldts-core@7.0.30: {}
 
-  tldts@7.0.28:
+  tldts@7.0.30:
     dependencies:
       tldts-core: 7.0.30
 
