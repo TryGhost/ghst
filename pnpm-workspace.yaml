@@ -1,0 +1,4 @@
+allowBuilds:
+  dtrace-provider: false
+  esbuild: true
+  sharp: true
