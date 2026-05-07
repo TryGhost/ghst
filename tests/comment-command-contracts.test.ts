@@ -185,7 +185,16 @@ describe('comment command contracts', () => {
       ExitCode.SUCCESS,
     );
     await expect(
-      run(['node', 'ghst', 'comment', 'delete', 'comment-1', '--yes', '--json']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'comment',
+        'delete',
+        'comment-1',
+        '--yes',
+        '--json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     expect(commentMocks.setCommentStatus).toHaveBeenNthCalledWith(
@@ -210,16 +219,16 @@ describe('comment command contracts', () => {
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     const stdoutTty = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
-    await expect(run(['node', 'ghst', 'comment', 'delete', 'comment-1'])).resolves.toBe(
-      ExitCode.USAGE_ERROR,
-    );
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'comment', 'delete', 'comment-1']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
     Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
 
     setPromptHandlerForTests(async () => 'no');
-    await expect(run(['node', 'ghst', 'comment', 'delete', 'comment-1'])).resolves.toBe(
-      ExitCode.OPERATION_CANCELLED,
-    );
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'comment', 'delete', 'comment-1']),
+    ).resolves.toBe(ExitCode.OPERATION_CANCELLED);
 
     if (stdinTty) {
       Object.defineProperty(process.stdin, 'isTTY', stdinTty);
@@ -241,9 +250,9 @@ describe('comment command contracts', () => {
     );
 
     setPromptHandlerForTests(async () => 'yes');
-    await expect(run(['node', 'ghst', 'comment', 'delete', 'comment-1'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'comment', 'delete', 'comment-1']),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'comment', 'show', ''])).resolves.toBe(
       ExitCode.VALIDATION_ERROR,

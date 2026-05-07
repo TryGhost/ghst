@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printTagHuman, printTagListHuman } from '../lib/output.js';
 import { parseInteger } from '../lib/parse.js';
@@ -234,6 +235,8 @@ export function registerTagCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      assertDestructiveActionsEnabled(global, 'delete tag');
+
       if (!parsed.data.yes) {
         if (isNonInteractive()) {
           throw new GhstError('Deleting in non-interactive mode requires --yes.', {
@@ -284,6 +287,10 @@ export function registerTagCommands(program: Command): void {
 
       if (!parsed.success) {
         throwValidationError(parsed.error);
+      }
+
+      if (parsed.data.action === 'delete') {
+        assertDestructiveActionsEnabled(global, 'bulk delete tags');
       }
 
       const payload = await bulkTags(global, {

@@ -112,7 +112,11 @@ describe('mcp core tool registration', () => {
 
   test('registers all tool groups and executes handlers', async () => {
     const { server, tools } = createRegistry();
-    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+    registerCoreTools(
+      server as never,
+      { enableDestructiveActions: true },
+      new Set(MCP_TOOL_GROUPS),
+    );
 
     expect([...tools.keys()]).toEqual(
       expect.arrayContaining([
@@ -339,6 +343,7 @@ describe('mcp core tool registration', () => {
     });
     await run('ghost_socialweb_delete', {
       id: 'https://myblog.ghost.io/.ghost/activitypub/note/1',
+      confirm: true,
     });
 
     const socialNoteResponse = await run('ghost_socialweb_note', {
@@ -468,6 +473,28 @@ describe('mcp core tool registration', () => {
     await expect(tool?.handler({ path: '/%2E%2E%2Fmembers/' }) as Promise<unknown>).rejects.toThrow(
       'encoded path separators',
     );
+  });
+
+  test('rejects destructive mcp tools unless destructive actions are enabled', async () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+
+    const deleteTool = tools.get('ghost_post_delete');
+    const apiTool = tools.get('ghost_api_request');
+    expect(deleteTool).toBeDefined();
+    expect(apiTool).toBeDefined();
+
+    await expect(
+      deleteTool?.handler({ id: fixtureIds.postId, confirm: true }) as Promise<unknown>,
+    ).rejects.toThrow('Destructive actions are disabled');
+
+    await expect(
+      apiTool?.handler({
+        path: '/posts/',
+        method: 'POST',
+        body: { posts: [{ title: 'Blocked' }] },
+      }) as Promise<unknown> | undefined,
+    ).rejects.toThrow('Destructive actions are disabled');
   });
 
   test('rejects socialweb all_pages combined with next to preserve cli parity', async () => {

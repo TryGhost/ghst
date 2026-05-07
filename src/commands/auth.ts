@@ -15,6 +15,7 @@ import {
 } from '../lib/config.js';
 import { getGlobalOptions } from '../lib/context.js';
 import { credentialRefForAlias, getCredentialStore } from '../lib/credentials.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
@@ -648,6 +649,8 @@ export function registerAuthCommands(program: Command): void {
           });
         }
 
+        assertDestructiveActionsEnabled(global, 'logout site');
+
         if (site.credentialRef) {
           await store.delete(site.credentialRef).catch(() => undefined);
         }
@@ -659,6 +662,8 @@ export function registerAuthCommands(program: Command): void {
         console.log(`Removed site '${targetSite}'.`);
         return;
       }
+
+      assertDestructiveActionsEnabled(global, 'logout all sites');
 
       if (!options.yes) {
         if (isNonInteractive()) {
@@ -716,6 +721,8 @@ export function registerAuthCommands(program: Command): void {
       const projectConfig = await readProjectConfig();
       const projectConfigCwd = await resolveProjectConfigCwd();
       if (projectConfig && projectConfig.site !== siteAlias) {
+        assertDestructiveActionsEnabled(global, 'replace project link');
+
         if (!options.yes) {
           if (isNonInteractive()) {
             throw new GhstError(

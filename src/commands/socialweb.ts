@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import {
   printJson,
@@ -435,6 +436,8 @@ export function registerSocialWebCommands(program: Command): void {
       if (!parsed.success) {
         throwValidationError(parsed.error);
       }
+
+      assertDestructiveActionsEnabled(global, 'delete social web post');
 
       if (!parsed.data.yes) {
         if (isNonInteractive()) {

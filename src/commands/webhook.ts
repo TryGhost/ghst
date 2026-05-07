@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printWebhookHuman } from '../lib/output.js';
 import { parseCsv, parseInteger } from '../lib/parse.js';
@@ -156,6 +157,8 @@ export function registerWebhookCommands(program: Command): void {
       if (!parsed.success) {
         throwValidationError(parsed.error);
       }
+
+      assertDestructiveActionsEnabled(global, 'delete webhook');
 
       if (!parsed.data.yes) {
         if (isNonInteractive()) {

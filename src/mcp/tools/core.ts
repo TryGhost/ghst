@@ -12,6 +12,10 @@ import {
   setCommentStatus,
 } from '../../lib/comments.js';
 import { resolveConnectionConfig } from '../../lib/config.js';
+import {
+  assertDestructiveActionsEnabled,
+  isReadOnlyHttpMethod,
+} from '../../lib/destructive-actions.js';
 import { uploadImage } from '../../lib/images.js';
 import {
   createMember,
@@ -366,6 +370,10 @@ async function callApi(
     contentApi?: boolean;
   },
 ): Promise<Record<string, unknown>> {
+  if (!isReadOnlyHttpMethod(options.method)) {
+    assertDestructiveActionsEnabled(global, 'raw API write request');
+  }
+
   const connection = await resolveConnectionConfig(global);
   const client = new GhostClient({
     url: connection.url,
@@ -505,6 +513,7 @@ export function registerCoreTools(
         }),
       },
       async (args) => {
+        assertDestructiveActionsEnabled(global, 'delete post');
         const payload = await deletePost(global, args.id);
         return toolResult(payload);
       },
@@ -676,6 +685,7 @@ export function registerCoreTools(
         }),
       },
       async (args) => {
+        assertDestructiveActionsEnabled(global, 'delete page');
         const payload = await deletePage(global, args.id);
         return toolResult(payload);
       },
@@ -759,7 +769,10 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => toolResult(await deleteTag(global, args.id)),
+      async (args) => {
+        assertDestructiveActionsEnabled(global, 'delete tag');
+        return toolResult(await deleteTag(global, args.id));
+      },
     );
   }
 
@@ -851,7 +864,10 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => toolResult(await deleteMember(global, args.id)),
+      async (args) => {
+        assertDestructiveActionsEnabled(global, 'delete member');
+        return toolResult(await deleteMember(global, args.id));
+      },
     );
 
     server.registerTool(
@@ -1064,7 +1080,10 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => toolResult(await setCommentStatus(global, args.id, 'deleted')),
+      async (args) => {
+        assertDestructiveActionsEnabled(global, 'delete comment');
+        return toolResult(await setCommentStatus(global, args.id, 'deleted'));
+      },
     );
   }
 
@@ -1479,9 +1498,13 @@ export function registerCoreTools(
         description: 'Delete a social web post authored by the current account.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
+          confirm: z.literal(true),
         }),
       },
-      async (args) => toolResult(await deleteSocialWebPost(global, args.id)),
+      async (args) => {
+        assertDestructiveActionsEnabled(global, 'delete social web post');
+        return toolResult(await deleteSocialWebPost(global, args.id));
+      },
     );
 
     server.registerTool(

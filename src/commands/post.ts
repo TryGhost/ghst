@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import MarkdownIt from 'markdown-it';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printPostHuman, printPostListHuman } from '../lib/output.js';
 import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
@@ -482,6 +483,8 @@ export function registerPostCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      assertDestructiveActionsEnabled(global, 'delete post');
+
       if (!parsed.data.yes) {
         if (isNonInteractive()) {
           throw new GhstError('Deleting in non-interactive mode requires --yes.', {
@@ -672,6 +675,10 @@ export function registerPostCommands(program: Command): void {
       }
 
       const action = parsed.data.action ?? (parsed.data.delete ? 'delete' : 'update');
+      if (action === 'delete') {
+        assertDestructiveActionsEnabled(global, 'bulk delete posts');
+      }
+
       const payload = await bulkPosts(global, {
         filter: parsed.data.filter,
         delete: action === 'delete',

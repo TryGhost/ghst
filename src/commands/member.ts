@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { getGlobalOptions } from '../lib/context.js';
+import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { assertFileDoesNotExist } from '../lib/file-guards.js';
 import {
@@ -302,6 +303,8 @@ export function registerMemberCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      assertDestructiveActionsEnabled(global, 'delete member');
+
       if (!parsed.data.yes) {
         if (isNonInteractive()) {
           throw new GhstError('Deleting in non-interactive mode requires --yes.', {
@@ -453,6 +456,10 @@ export function registerMemberCommands(program: Command): void {
         : parsed.data.delete
           ? 'delete'
           : parsed.data.action;
+      if (resolvedAction === 'delete') {
+        assertDestructiveActionsEnabled(global, 'bulk delete members');
+      }
+
       const payload = await bulkMembers(global, {
         action: (resolvedAction ?? 'unsubscribe') as
           | 'unsubscribe'

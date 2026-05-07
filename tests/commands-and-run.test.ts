@@ -246,10 +246,12 @@ describe('run + commands', () => {
     await expect(run(['node', 'ghst', 'auth', 'token'])).resolves.toBe(ExitCode.SUCCESS);
 
     await expect(run(['node', 'ghst', 'auth', 'logout'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'auth', 'logout', '--site', 'myblog'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
-    await expect(run(['node', 'ghst', 'auth', 'logout', '--yes'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'auth', 'logout', '--site', 'myblog']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'auth', 'logout', '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
 
     const promptAnswers = ['https://prompted.ghost.io', '', KEY];
     setPromptForTests(async () => promptAnswers.shift() ?? '');
@@ -361,7 +363,9 @@ describe('run + commands', () => {
       'utf8',
     );
     await expect(run(['node', 'ghst', 'auth', 'link'])).resolves.toBe(ExitCode.USAGE_ERROR);
-    await expect(run(['node', 'ghst', 'auth', 'link', '--yes'])).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'auth', 'link', '--yes']),
+    ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       fs.readFile(path.join(workDir, '.ghst', 'config.json'), 'utf8'),
     ).resolves.toContain('"site": "myblog"');
@@ -402,7 +406,9 @@ describe('run + commands', () => {
     const previousCwd = process.cwd();
     process.chdir(nestedDir);
     try {
-      await expect(run(['node', 'ghst', 'auth', 'link', '--yes'])).resolves.toBe(ExitCode.SUCCESS);
+      await expect(
+        run(['node', 'ghst', '--enable-destructive-actions', 'auth', 'link', '--yes']),
+      ).resolves.toBe(ExitCode.SUCCESS);
     } finally {
       process.chdir(previousCwd);
     }
@@ -1027,6 +1033,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'post',
         'bulk',
         '--filter',
@@ -1045,6 +1052,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'post',
         'bulk',
         '--filter',
@@ -1055,7 +1063,17 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'post', 'delete', '--filter', 'status:draft', '--yes', '--json']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'post',
+        'delete',
+        '--filter',
+        'status:draft',
+        '--yes',
+        '--json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
@@ -1063,13 +1081,13 @@ describe('run + commands', () => {
     Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
     setPromptHandlerForTests(async () => 'no');
-    await expect(run(['node', 'ghst', 'post', 'delete', fixtureIds.postId])).resolves.toBe(
-      ExitCode.OPERATION_CANCELLED,
-    );
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'post', 'delete', fixtureIds.postId]),
+    ).resolves.toBe(ExitCode.OPERATION_CANCELLED);
     setPromptHandlerForTests(async () => 'yes');
-    await expect(run(['node', 'ghst', 'post', 'delete', fixtureIds.postId])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
+    await expect(
+      run(['node', 'ghst', '--enable-destructive-actions', 'post', 'delete', fixtureIds.postId]),
+    ).resolves.toBe(ExitCode.SUCCESS);
     if (stdinTty) {
       Object.defineProperty(process.stdin, 'isTTY', stdinTty);
     }
@@ -1098,9 +1116,17 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'page', 'update', fixtureIds.pageId, '--title', 'Updated Page']),
     ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'page', 'delete', fixtureIds.pageId, '--yes'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'page',
+        'delete',
+        fixtureIds.pageId,
+        '--yes',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
     await expect(run(['node', 'ghst', 'page', 'copy', fixtureIds.pageId])).resolves.toBe(
       ExitCode.SUCCESS,
     );
@@ -1108,6 +1134,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'page',
         'bulk',
         '--filter',
@@ -1122,6 +1149,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'page',
         'bulk',
         '--filter',
@@ -1153,13 +1181,22 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'tag', 'update', fixtureIds.tagId, '--name', 'Updated Tag']),
     ).resolves.toBe(ExitCode.SUCCESS);
-    await expect(run(['node', 'ghst', 'tag', 'delete', fixtureIds.tagId, '--yes'])).resolves.toBe(
-      ExitCode.SUCCESS,
-    );
     await expect(
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
+        'tag',
+        'delete',
+        fixtureIds.tagId,
+        '--yes',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
         'tag',
         'bulk',
         '--filter',
@@ -1174,6 +1211,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'tag',
         'bulk',
         '--filter',
@@ -1229,13 +1267,32 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'member', 'bulk', '--action', 'unsubscribe', '--all']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'member', 'bulk', '--action', 'delete', '--all', '--yes']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'member',
+        'bulk',
+        '--action',
+        'delete',
+        '--all',
+        '--yes',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'member', 'bulk', '--update', '--all', '--labels', 'VIP,Premium']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'member', 'bulk', '--delete', '--all', '--yes']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'member',
+        'bulk',
+        '--delete',
+        '--all',
+        '--yes',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'member', 'import', './members.csv', '--labels', 'Imported']),
@@ -1244,7 +1301,15 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'member', 'export', '--output', './members-export.csv']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'member', 'delete', fixtureIds.memberId, '--yes']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'member',
+        'delete',
+        fixtureIds.memberId,
+        '--yes',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(fs.readFile(path.join(workDir, 'members-export.csv'), 'utf8')).resolves.toContain(
       'email',
@@ -1359,12 +1424,21 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'label', 'update', fixtureIds.labelId, '--name', 'VIP Updated']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'label', 'delete', fixtureIds.labelId, '--yes']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'label',
+        'delete',
+        fixtureIds.labelId,
+        '--yes',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'label',
         'bulk',
         '--filter',
@@ -1379,6 +1453,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'label',
         'bulk',
         '--filter',
@@ -1537,7 +1612,16 @@ describe('run + commands', () => {
     );
 
     await expect(
-      run(['node', 'ghst', 'comment', 'delete', fixtureIds.commentId, '--yes', '--json']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'comment',
+        'delete',
+        fixtureIds.commentId,
+        '--yes',
+        '--json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     expect(lastLogJson<{ comments: Array<{ status: string }> }>().comments[0]?.status).toBe(
       'deleted',
@@ -1630,7 +1714,15 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId, '--yes']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'webhook',
+        'delete',
+        fixtureIds.webhookId,
+        '--yes',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run([
@@ -1775,7 +1867,17 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'api', '/settings/', '--query', 'limit=1', 'status=published']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--input', './payload.json']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'api',
+        '/posts/',
+        '--method',
+        'POST',
+        '--input',
+        './payload.json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'api', '/posts/', '--content-api', '--method', 'GET']),
@@ -1784,6 +1886,7 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
+        '--enable-destructive-actions',
         'api',
         '/posts/',
         '--method',
@@ -1801,7 +1904,17 @@ describe('run + commands', () => {
       ExitCode.SUCCESS,
     );
     await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--field', 'status=draft']),
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'api',
+        '/posts/',
+        '--method',
+        'POST',
+        '--field',
+        'status=draft',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'api', '/posts/', '--body', '{}', '--input', './payload.json']),
@@ -1992,6 +2105,25 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'post', 'bulk', '--filter', 'status:draft', '--action', 'delete']),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(
+      run([
+        'node',
+        'ghst',
+        'post',
+        'bulk',
+        '--filter',
+        'status:draft',
+        '--action',
+        'delete',
+        '--yes',
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(run(['node', 'ghst', 'post', 'delete', fixtureIds.postId, '--yes'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+    await expect(
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--body', '{}']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    await expect(
       run(['node', 'ghst', 'page', 'bulk', '--filter', 'status:draft', '--action', 'update']),
     ).resolves.toBe(ExitCode.VALIDATION_ERROR);
     await expect(
@@ -2026,9 +2158,16 @@ describe('run + commands', () => {
 
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
-    await expect(run(['node', 'ghst', 'member', 'delete', fixtureIds.memberId])).resolves.toBe(
-      ExitCode.USAGE_ERROR,
-    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'member',
+        'delete',
+        fixtureIds.memberId,
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
     if (stdinTty) {
       Object.defineProperty(process.stdin, 'isTTY', stdinTty);
     }
@@ -2122,15 +2261,29 @@ describe('run + commands', () => {
     const stdinTty = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
     const stdoutTty = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
     Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
-    await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
-      ExitCode.USAGE_ERROR,
-    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'webhook',
+        'delete',
+        fixtureIds.webhookId,
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
     Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
     setPromptHandlerForTests(async () => 'no');
-    await expect(run(['node', 'ghst', 'webhook', 'delete', fixtureIds.webhookId])).resolves.toBe(
-      ExitCode.OPERATION_CANCELLED,
-    );
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'webhook',
+        'delete',
+        fixtureIds.webhookId,
+      ]),
+    ).resolves.toBe(ExitCode.OPERATION_CANCELLED);
     if (stdinTty) {
       Object.defineProperty(process.stdin, 'isTTY', stdinTty);
     }
@@ -2621,6 +2774,7 @@ describe('run + commands', () => {
         'https://myblog.ghost.io',
         '--staff-token',
         KEY,
+        '--enable-destructive-actions',
         'socialweb',
         'delete',
         'https://myblog.ghost.io/.ghost/activitypub/note/1',
@@ -2655,6 +2809,7 @@ describe('run + commands', () => {
       ['socialweb', 'repost', 'https://remote.example/posts/1', '--json'],
       ['socialweb', 'derepost', 'https://remote.example/posts/1', '--json'],
       [
+        '--enable-destructive-actions',
         'socialweb',
         'delete',
         'https://myblog.ghost.io/.ghost/activitypub/note/1',
@@ -2894,6 +3049,7 @@ describe('run + commands', () => {
       ['socialweb', 'unlike', 'https://remote.example/posts/1', '--json'],
       ['socialweb', 'derepost', 'https://remote.example/posts/1', '--json'],
       [
+        '--enable-destructive-actions',
         'socialweb',
         'delete',
         'https://myblog.ghost.io/.ghost/activitypub/note/1',
