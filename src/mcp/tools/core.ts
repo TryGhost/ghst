@@ -13,7 +13,7 @@ import {
   listComments,
   setCommentStatus,
 } from '../../lib/comments.js';
-import { resolveConnectionConfig } from '../../lib/config.js';
+import { readUserConfig, resolveConnectionConfig } from '../../lib/config.js';
 import {
   assertDestructiveActionsEnabled,
   isReadOnlyHttpMethod,
@@ -97,6 +97,7 @@ import { listTiers } from '../../lib/tiers.js';
 import type { GlobalOptions } from '../../lib/types.js';
 import { listUsers } from '../../lib/users.js';
 import { createWebhook } from '../../lib/webhooks.js';
+import { SiteAliasSchema } from '../../schemas/common.js';
 
 export type McpToolGroup =
   | 'posts'
@@ -151,16 +152,71 @@ type GroupedToolConfig<InputSchema extends AnySchema | undefined = undefined> = 
   _meta?: Record<string, unknown>;
 };
 
+type McpToolArgs = Record<string, unknown> & {
+  site?: string;
+};
+
+type McpToolHandlerArgs<InputSchema extends AnySchema | undefined> = InputSchema extends AnySchema
+  ? z.infer<InputSchema>
+  : Record<string, never>;
+
+type McpToolResult = ReturnType<typeof toolResult>;
+
+const mcpSiteArgSchema = SiteAliasSchema.optional();
+const mcpSiteSchema = z.object({
+  site: mcpSiteArgSchema,
+});
+const mcpOptionalSiteOnlySchema = z
+  .union([mcpSiteSchema, z.undefined()])
+  .transform((value) => value ?? {});
+
+type ExtendableZodObject = AnySchema & {
+  safeExtend?: (shape: { site: typeof mcpSiteArgSchema }) => AnySchema;
+  extend?: (shape: { site: typeof mcpSiteArgSchema }) => AnySchema;
+};
+
+function withMcpSiteSchema<InputSchema extends AnySchema | undefined>(
+  inputSchema?: InputSchema,
+): AnySchema {
+  if (!inputSchema) {
+    return mcpOptionalSiteOnlySchema;
+  }
+
+  const objectSchema = inputSchema as ExtendableZodObject;
+  const siteShape = { site: mcpSiteArgSchema };
+  if (typeof objectSchema.safeExtend === 'function') {
+    return objectSchema.safeExtend(siteShape);
+  }
+  if (typeof objectSchema.extend === 'function') {
+    return objectSchema.extend(siteShape);
+  }
+
+  return z.intersection(inputSchema as z.ZodType, mcpSiteSchema) as AnySchema;
+}
+
+function scopedGlobalForTool(global: GlobalOptions, args: McpToolArgs): GlobalOptions {
+  return args.site ? { ...global, site: args.site } : global;
+}
+
+function argsWithoutSite<InputSchema extends AnySchema | undefined>(
+  args: McpToolArgs,
+): McpToolHandlerArgs<InputSchema> {
+  const { site: _site, ...rest } = args;
+  return rest as McpToolHandlerArgs<InputSchema>;
+}
+
 function registerGroupedTool<InputSchema extends AnySchema | undefined = undefined>(
   server: McpServer,
+  global: GlobalOptions,
   group: McpToolGroup,
   name: string,
   config: GroupedToolConfig<InputSchema>,
-  handler: ToolCallback<InputSchema>,
+  handler: (global: GlobalOptions, args: McpToolHandlerArgs<InputSchema>) => Promise<McpToolResult>,
 ): void {
   const metadata = MCP_TOOL_GROUP_METADATA[group];
   const groupedConfig = {
     ...config,
+    inputSchema: withMcpSiteSchema(config.inputSchema),
     _meta: {
       ...config._meta,
       'ghst/toolGroup': group,
@@ -168,8 +224,16 @@ function registerGroupedTool<InputSchema extends AnySchema | undefined = undefin
     },
   };
 
+  const groupedHandler: ToolCallback<AnySchema> = async (args: unknown) => {
+    const mcpArgs = args as McpToolArgs;
+    return await handler(
+      scopedGlobalForTool(global, mcpArgs),
+      argsWithoutSite<InputSchema>(mcpArgs),
+    );
+  };
+
   // The SDK's registerTool generics do not preserve this enriched config shape cleanly.
-  server.registerTool(name, groupedConfig as GroupedToolConfig<InputSchema>, handler);
+  server.registerTool(name, groupedConfig as GroupedToolConfig<AnySchema>, groupedHandler);
 }
 
 const statsRangeArgs = {
@@ -442,6 +506,18 @@ async function callApi(
   return payload;
 }
 
+async function listConfiguredSites(): Promise<Record<string, unknown>> {
+  const config = await readUserConfig();
+  const sites = Object.entries(config.sites).map(([alias, site]) => ({
+    alias,
+    url: site.url,
+    apiVersion: site.apiVersion,
+    active: config.active === alias,
+  }));
+
+  return { sites };
+}
+
 export function registerCoreTools(
   server: McpServer,
   global: GlobalOptions,
@@ -450,6 +526,7 @@ export function registerCoreTools(
   if (enabledGroups.has('posts')) {
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_list',
       {
@@ -462,7 +539,7 @@ export function registerCoreTools(
           include: z.string().optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await listPosts(global, { ...args }, false);
         return toolResult(payload);
       },
@@ -470,6 +547,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_get',
       {
@@ -480,7 +558,7 @@ export function registerCoreTools(
           include: z.string().optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await getPost(global, args.slug ?? args.id ?? '', {
           bySlug: Boolean(args.slug),
           params: {
@@ -493,6 +571,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_create',
       {
@@ -506,7 +585,7 @@ export function registerCoreTools(
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await createPost(
           global,
           {
@@ -525,6 +604,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_update',
       {
@@ -540,7 +620,7 @@ export function registerCoreTools(
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await updatePost(global, {
           id: args.id,
           slug: args.slug,
@@ -560,6 +640,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_delete',
       {
@@ -569,7 +650,7 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         assertDestructiveActionsEnabled(global, 'delete post');
         const payload = await deletePost(global, args.id);
         return toolResult(payload);
@@ -578,6 +659,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_publish',
       {
@@ -586,7 +668,7 @@ export function registerCoreTools(
           id: z.string(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await publishPost(global, args.id);
         return toolResult(payload);
       },
@@ -594,6 +676,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_post_schedule',
       {
@@ -606,7 +689,7 @@ export function registerCoreTools(
           email_segment: z.string().optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await schedulePost(global, args.id, args.at, {
           newsletter: args.newsletter,
           email_only: args.email_only,
@@ -618,6 +701,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'posts',
       'ghost_image_upload',
       {
@@ -628,7 +712,7 @@ export function registerCoreTools(
           ref: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await uploadImage(global, {
             filePath: args.file_path,
@@ -642,6 +726,7 @@ export function registerCoreTools(
   if (enabledGroups.has('pages')) {
     registerGroupedTool(
       server,
+      global,
       'pages',
       'ghost_page_list',
       {
@@ -654,7 +739,7 @@ export function registerCoreTools(
           include: z.string().optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await listPages(global, { ...args }, false);
         return toolResult(payload);
       },
@@ -662,6 +747,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'pages',
       'ghost_page_get',
       {
@@ -672,7 +758,7 @@ export function registerCoreTools(
           include: z.string().optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await getPage(global, args.slug ?? args.id ?? '', {
           bySlug: Boolean(args.slug),
           params: {
@@ -685,6 +771,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'pages',
       'ghost_page_create',
       {
@@ -697,7 +784,7 @@ export function registerCoreTools(
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await createPage(
           global,
           {
@@ -715,6 +802,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'pages',
       'ghost_page_update',
       {
@@ -729,7 +817,7 @@ export function registerCoreTools(
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await updatePage(global, {
           id: args.id,
           slug: args.slug,
@@ -748,6 +836,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'pages',
       'ghost_page_delete',
       {
@@ -757,7 +846,7 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         assertDestructiveActionsEnabled(global, 'delete page');
         const payload = await deletePage(global, args.id);
         return toolResult(payload);
@@ -768,6 +857,7 @@ export function registerCoreTools(
   if (enabledGroups.has('tags')) {
     registerGroupedTool(
       server,
+      global,
       'tags',
       'ghost_tag_list',
       {
@@ -778,11 +868,12 @@ export function registerCoreTools(
           filter: z.string().optional(),
         }),
       },
-      async (args) => toolResult(await listTags(global, { ...args }, false)),
+      async (global, args) => toolResult(await listTags(global, { ...args }, false)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'tags',
       'ghost_tag_get',
       {
@@ -792,7 +883,7 @@ export function registerCoreTools(
           slug: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getTag(global, args.slug ?? args.id ?? '', {
             bySlug: Boolean(args.slug),
@@ -802,6 +893,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'tags',
       'ghost_tag_create',
       {
@@ -812,11 +904,12 @@ export function registerCoreTools(
           description: z.string().optional(),
         }),
       },
-      async (args) => toolResult(await createTag(global, args)),
+      async (global, args) => toolResult(await createTag(global, args)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'tags',
       'ghost_tag_update',
       {
@@ -828,7 +921,7 @@ export function registerCoreTools(
           description: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await updateTag(global, {
             id: args.id,
@@ -843,6 +936,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'tags',
       'ghost_tag_delete',
       {
@@ -852,7 +946,7 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         assertDestructiveActionsEnabled(global, 'delete tag');
         return toolResult(await deleteTag(global, args.id));
       },
@@ -862,6 +956,7 @@ export function registerCoreTools(
   if (enabledGroups.has('members')) {
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_member_list',
       {
@@ -873,11 +968,12 @@ export function registerCoreTools(
           search: z.string().optional(),
         }),
       },
-      async (args) => toolResult(await listMembers(global, { ...args }, false)),
+      async (global, args) => toolResult(await listMembers(global, { ...args }, false)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_member_get',
       {
@@ -887,7 +983,7 @@ export function registerCoreTools(
           email: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getMember(global, {
             id: args.id,
@@ -898,6 +994,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_member_create',
       {
@@ -909,7 +1006,7 @@ export function registerCoreTools(
           newsletters: z.array(z.string()).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await createMember(global, {
             email: args.email,
@@ -922,6 +1019,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_member_update',
       {
@@ -933,7 +1031,7 @@ export function registerCoreTools(
           note: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await updateMember(global, {
             id: args.id,
@@ -948,6 +1046,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_member_delete',
       {
@@ -957,7 +1056,7 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         assertDestructiveActionsEnabled(global, 'delete member');
         return toolResult(await deleteMember(global, args.id));
       },
@@ -965,6 +1064,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_member_import',
       {
@@ -974,7 +1074,7 @@ export function registerCoreTools(
           labels: z.array(z.string()).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await importMembersCsv(global, {
             filePath: args.file_path,
@@ -985,6 +1085,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_newsletter_list',
       {
@@ -995,11 +1096,12 @@ export function registerCoreTools(
           filter: z.string().optional(),
         }),
       },
-      async (args) => toolResult(await listNewsletters(global, { ...args }, false)),
+      async (global, args) => toolResult(await listNewsletters(global, { ...args }, false)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_tier_list',
       {
@@ -1010,11 +1112,12 @@ export function registerCoreTools(
           filter: z.string().optional(),
         }),
       },
-      async (args) => toolResult(await listTiers(global, { ...args }, false)),
+      async (global, args) => toolResult(await listTiers(global, { ...args }, false)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'members',
       'ghost_offer_list',
       {
@@ -1025,13 +1128,14 @@ export function registerCoreTools(
           filter: z.string().optional(),
         }),
       },
-      async (args) => toolResult(await listOffers(global, { ...args }, false)),
+      async (global, args) => toolResult(await listOffers(global, { ...args }, false)),
     );
   }
 
   if (enabledGroups.has('comments')) {
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_list',
       {
@@ -1042,7 +1146,7 @@ export function registerCoreTools(
           top_level_only: z.boolean().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await listComments(
             global,
@@ -1060,6 +1164,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_get',
       {
@@ -1068,11 +1173,12 @@ export function registerCoreTools(
           id: z.string(),
         }),
       },
-      async (args) => toolResult(await getComment(global, args.id)),
+      async (global, args) => toolResult(await getComment(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_thread',
       {
@@ -1081,11 +1187,12 @@ export function registerCoreTools(
           id: z.string(),
         }),
       },
-      async (args) => toolResult(await getCommentThread(global, args.id)),
+      async (global, args) => toolResult(await getCommentThread(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_replies',
       {
@@ -1095,7 +1202,7 @@ export function registerCoreTools(
           ...commentBrowseArgs,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await listCommentReplies(
             global,
@@ -1112,6 +1219,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_likes',
       {
@@ -1122,7 +1230,7 @@ export function registerCoreTools(
           page: z.number().int().positive().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await listCommentLikes(
             global,
@@ -1138,6 +1246,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_reports',
       {
@@ -1148,7 +1257,7 @@ export function registerCoreTools(
           page: z.number().int().positive().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await listCommentReports(
             global,
@@ -1164,6 +1273,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_hide',
       {
@@ -1172,11 +1282,12 @@ export function registerCoreTools(
           id: z.string(),
         }),
       },
-      async (args) => toolResult(await setCommentStatus(global, args.id, 'hidden')),
+      async (global, args) => toolResult(await setCommentStatus(global, args.id, 'hidden')),
     );
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_show',
       {
@@ -1185,11 +1296,12 @@ export function registerCoreTools(
           id: z.string(),
         }),
       },
-      async (args) => toolResult(await setCommentStatus(global, args.id, 'published')),
+      async (global, args) => toolResult(await setCommentStatus(global, args.id, 'published')),
     );
 
     registerGroupedTool(
       server,
+      global,
       'comments',
       'ghost_comment_delete',
       {
@@ -1199,7 +1311,7 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         assertDestructiveActionsEnabled(global, 'delete comment');
         return toolResult(await setCommentStatus(global, args.id, 'deleted'));
       },
@@ -1209,16 +1321,29 @@ export function registerCoreTools(
   if (enabledGroups.has('site')) {
     registerGroupedTool(
       server,
+      global,
       'site',
       'ghost_site_info',
       {
         description: 'Get Ghost site metadata.',
       },
-      async () => toolResult(await getSiteInfo(global)),
+      async (global) => toolResult(await getSiteInfo(global)),
     );
 
     registerGroupedTool(
       server,
+      global,
+      'site',
+      'ghost_site_list',
+      {
+        description: 'List configured Ghost site aliases without credentials.',
+      },
+      async () => toolResult(await listConfiguredSites()),
+    );
+
+    registerGroupedTool(
+      server,
+      global,
       'site',
       'ghost_theme_upload',
       {
@@ -1228,7 +1353,7 @@ export function registerCoreTools(
           activate: z.boolean().optional(),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         const payload = await uploadTheme(global, args.file_path);
         let resultPayload = payload;
 
@@ -1247,6 +1372,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'site',
       'ghost_webhook_create',
       {
@@ -1259,7 +1385,7 @@ export function registerCoreTools(
           api_version: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await createWebhook(global, {
             event: args.event,
@@ -1275,16 +1401,18 @@ export function registerCoreTools(
   if (enabledGroups.has('settings')) {
     registerGroupedTool(
       server,
+      global,
       'settings',
       'ghost_setting_list',
       {
         description: 'List Ghost settings.',
       },
-      async () => toolResult(await listSettings(global)),
+      async (global) => toolResult(await listSettings(global)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'settings',
       'ghost_setting_get',
       {
@@ -1293,11 +1421,12 @@ export function registerCoreTools(
           key: z.string(),
         }),
       },
-      async (args) => toolResult(await getSetting(global, args.key)),
+      async (global, args) => toolResult(await getSetting(global, args.key)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'settings',
       'ghost_setting_set',
       {
@@ -1307,13 +1436,14 @@ export function registerCoreTools(
           value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
         }),
       },
-      async (args) => toolResult(await setSetting(global, args.key, args.value)),
+      async (global, args) => toolResult(await setSetting(global, args.key, args.value)),
     );
   }
 
   if (enabledGroups.has('users')) {
     registerGroupedTool(
       server,
+      global,
       'users',
       'ghost_user_list',
       {
@@ -1323,13 +1453,14 @@ export function registerCoreTools(
           page: z.number().int().positive().optional(),
         }),
       },
-      async (args) => toolResult(await listUsers(global, { ...args }, false)),
+      async (global, args) => toolResult(await listUsers(global, { ...args }, false)),
     );
   }
 
   if (enabledGroups.has('api')) {
     registerGroupedTool(
       server,
+      global,
       'api',
       'ghost_api_request',
       {
@@ -1342,7 +1473,7 @@ export function registerCoreTools(
           content_api: z.boolean().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await callApi(global, {
             path: args.path,
@@ -1360,6 +1491,7 @@ export function registerCoreTools(
   if (enabledGroups.has('search')) {
     registerGroupedTool(
       server,
+      global,
       'search',
       'ghost_search',
       {
@@ -1369,43 +1501,47 @@ export function registerCoreTools(
           limit: z.number().int().positive().max(50).optional(),
         }),
       },
-      async (args) => toolResult(await runSearch(global, args.query, args.limit ?? 10)),
+      async (global, args) => toolResult(await runSearch(global, args.query, args.limit ?? 10)),
     );
   }
 
   if (enabledGroups.has('socialweb')) {
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_status',
       {
         description: 'Show Ghost social web settings and connectivity status.',
       },
-      async () => toolResult(await getSocialWebStatus(global)),
+      async (global) => toolResult(await getSocialWebStatus(global)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_enable',
       {
         description: 'Enable Ghost social web and return the resulting status.',
       },
-      async () => toolResult(await enableSocialWeb(global)),
+      async (global) => toolResult(await enableSocialWeb(global)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_disable',
       {
         description: 'Disable Ghost social web and return the resulting status.',
       },
-      async () => toolResult(await disableSocialWeb(global)),
+      async (global) => toolResult(await disableSocialWeb(global)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_profile',
       {
@@ -1414,18 +1550,19 @@ export function registerCoreTools(
           handle: socialWebHandleSchema.optional(),
         }),
       },
-      async (args) => toolResult(await getSocialWebProfile(global, args.handle ?? 'me')),
+      async (global, args) => toolResult(await getSocialWebProfile(global, args.handle ?? 'me')),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_profile_update',
       {
         description: 'Update the current social web profile.',
         inputSchema: socialWebProfileUpdateSchema,
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await updateSocialWebProfile(global, {
             name: args.name,
@@ -1439,6 +1576,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_search',
       {
@@ -1447,18 +1585,19 @@ export function registerCoreTools(
           query: z.string().min(1),
         }),
       },
-      async (args) => toolResult(await searchSocialWeb(global, args.query)),
+      async (global, args) => toolResult(await searchSocialWeb(global, args.query)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_notes',
       {
         description: 'List the social web note feed.',
         inputSchema: socialWebPaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(await listNotes(global, pagination.params, pagination.allPages));
       },
@@ -1466,13 +1605,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_reader',
       {
         description: 'List the social web reader feed.',
         inputSchema: socialWebPaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(await listReader(global, pagination.params, pagination.allPages));
       },
@@ -1480,13 +1620,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_notifications',
       {
         description: 'List social web notifications.',
         inputSchema: socialWebPaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(await listNotifications(global, pagination.params, pagination.allPages));
       },
@@ -1494,23 +1635,25 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_notifications_count',
       {
         description: 'Get the unread social web notification count.',
       },
-      async () => toolResult(await getNotificationsCount(global)),
+      async (global) => toolResult(await getNotificationsCount(global)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_posts',
       {
         description: 'List posts for a social web account.',
         inputSchema: socialWebHandlePaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(
           await listSocialWebPosts(
@@ -1525,13 +1668,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_likes',
       {
         description: 'List posts liked by the current social web account.',
         inputSchema: socialWebPaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(await listSocialWebLikes(global, pagination.params, pagination.allPages));
       },
@@ -1539,13 +1683,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_followers',
       {
         description: 'List followers for a social web account.',
         inputSchema: socialWebHandlePaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(
           await listFollowers(global, args.handle ?? 'me', pagination.params, pagination.allPages),
@@ -1555,13 +1700,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_following',
       {
         description: 'List followed accounts for a social web account.',
         inputSchema: socialWebHandlePaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(
           await listFollowing(global, args.handle ?? 'me', pagination.params, pagination.allPages),
@@ -1571,6 +1717,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_post',
       {
@@ -1579,11 +1726,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await getSocialWebPost(global, args.id)),
+      async (global, args) => toolResult(await getSocialWebPost(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_thread',
       {
@@ -1592,11 +1740,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await getSocialWebThread(global, args.id)),
+      async (global, args) => toolResult(await getSocialWebThread(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_follow',
       {
@@ -1605,11 +1754,12 @@ export function registerCoreTools(
           handle: socialWebRemoteHandleSchema,
         }),
       },
-      async (args) => toolResult(await followAccount(global, args.handle)),
+      async (global, args) => toolResult(await followAccount(global, args.handle)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_unfollow',
       {
@@ -1618,11 +1768,12 @@ export function registerCoreTools(
           handle: socialWebRemoteHandleSchema,
         }),
       },
-      async (args) => toolResult(await unfollowAccount(global, args.handle)),
+      async (global, args) => toolResult(await unfollowAccount(global, args.handle)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_like',
       {
@@ -1631,11 +1782,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await likePost(global, args.id)),
+      async (global, args) => toolResult(await likePost(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_unlike',
       {
@@ -1644,11 +1796,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await unlikePost(global, args.id)),
+      async (global, args) => toolResult(await unlikePost(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_repost',
       {
@@ -1657,11 +1810,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await repostPost(global, args.id)),
+      async (global, args) => toolResult(await repostPost(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_derepost',
       {
@@ -1670,11 +1824,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await derepostPost(global, args.id)),
+      async (global, args) => toolResult(await derepostPost(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_delete',
       {
@@ -1684,7 +1839,7 @@ export function registerCoreTools(
           confirm: z.literal(true),
         }),
       },
-      async (args) => {
+      async (global, args) => {
         assertDestructiveActionsEnabled(global, 'delete social web post');
         return toolResult(await deleteSocialWebPost(global, args.id));
       },
@@ -1692,13 +1847,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_note',
       {
         description: 'Create a new social web note.',
         inputSchema: socialWebContentSchema,
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await createNote(global, {
             content: args.content,
@@ -1711,6 +1867,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_reply',
       {
@@ -1719,7 +1876,7 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await replyToPost(global, args.id, {
             content: args.content,
@@ -1732,13 +1889,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_blocked_accounts',
       {
         description: 'List blocked social web accounts.',
         inputSchema: socialWebPaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(
           await listBlockedAccounts(global, pagination.params, pagination.allPages),
@@ -1748,13 +1906,14 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_blocked_domains',
       {
         description: 'List blocked social web domains.',
         inputSchema: socialWebPaginationSchema,
       },
-      async (args) => {
+      async (global, args) => {
         const pagination = mapSocialWebPaginationArgs(args);
         return toolResult(await listBlockedDomains(global, pagination.params, pagination.allPages));
       },
@@ -1762,6 +1921,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_block',
       {
@@ -1770,11 +1930,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await blockAccount(global, args.id)),
+      async (global, args) => toolResult(await blockAccount(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_unblock',
       {
@@ -1783,11 +1944,12 @@ export function registerCoreTools(
           id: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await unblockAccount(global, args.id)),
+      async (global, args) => toolResult(await unblockAccount(global, args.id)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_block_domain',
       {
@@ -1796,11 +1958,12 @@ export function registerCoreTools(
           url: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await blockDomain(global, args.url)),
+      async (global, args) => toolResult(await blockDomain(global, args.url)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_unblock_domain',
       {
@@ -1809,11 +1972,12 @@ export function registerCoreTools(
           url: socialWebUrlSchema,
         }),
       },
-      async (args) => toolResult(await unblockDomain(global, args.url)),
+      async (global, args) => toolResult(await unblockDomain(global, args.url)),
     );
 
     registerGroupedTool(
       server,
+      global,
       'socialweb',
       'ghost_socialweb_upload',
       {
@@ -1822,13 +1986,14 @@ export function registerCoreTools(
           file_path: z.string().min(1),
         }),
       },
-      async (args) => toolResult(await uploadSocialWebImage(global, args.file_path)),
+      async (global, args) => toolResult(await uploadSocialWebImage(global, args.file_path)),
     );
   }
 
   if (enabledGroups.has('stats')) {
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_overview',
       {
@@ -1837,11 +2002,12 @@ export function registerCoreTools(
           ...statsRangeArgs,
         }),
       },
-      async (args) => toolResult(await getStatsOverview(global, mapStatsRangeArgs(args))),
+      async (global, args) => toolResult(await getStatsOverview(global, mapStatsRangeArgs(args))),
     );
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_web',
       {
@@ -1850,11 +2016,12 @@ export function registerCoreTools(
           ...statsWebArgs,
         }),
       },
-      async (args) => toolResult(await getStatsWeb(global, mapStatsWebArgs(args))),
+      async (global, args) => toolResult(await getStatsWeb(global, mapStatsWebArgs(args))),
     );
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_web_table',
       {
@@ -1864,7 +2031,7 @@ export function registerCoreTools(
           ...statsWebArgs,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsWebTable(global, args.view, {
             ...mapStatsWebArgs(args),
@@ -1875,6 +2042,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_growth',
       {
@@ -1884,7 +2052,7 @@ export function registerCoreTools(
           limit: z.number().int().positive().max(100).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsGrowth(global, { ...mapStatsRangeArgs(args), limit: args.limit ?? 5 }),
         ),
@@ -1892,6 +2060,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_posts',
       {
@@ -1901,7 +2070,7 @@ export function registerCoreTools(
           limit: z.number().int().positive().max(100).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsPosts(global, { ...mapStatsRangeArgs(args), limit: args.limit ?? 5 }),
         ),
@@ -1909,6 +2078,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_email',
       {
@@ -1919,7 +2089,7 @@ export function registerCoreTools(
           limit: z.number().int().positive().max(100).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsNewsletters(global, {
             ...mapStatsRangeArgs(args),
@@ -1931,6 +2101,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_email_clicks',
       {
@@ -1943,7 +2114,7 @@ export function registerCoreTools(
           limit: z.number().int().positive().max(100).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsNewsletterClicks(global, {
             ...mapStatsRangeArgs(args),
@@ -1956,6 +2127,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_email_subscribers',
       {
@@ -1965,7 +2137,7 @@ export function registerCoreTools(
           newsletter_id: z.string().optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsNewsletterSubscribers(global, {
             ...mapStatsRangeArgs(args),
@@ -1976,6 +2148,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_post',
       {
@@ -1985,12 +2158,13 @@ export function registerCoreTools(
           ...statsRangeArgs,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(await getStatsPost(global, { ...mapStatsRangeArgs(args), id: args.id })),
     );
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_post_web',
       {
@@ -2000,12 +2174,13 @@ export function registerCoreTools(
           ...statsWebArgs,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(await getStatsPostWeb(global, { ...mapStatsWebArgs(args), id: args.id })),
     );
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_post_growth',
       {
@@ -2015,12 +2190,13 @@ export function registerCoreTools(
           ...statsRangeArgs,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(await getStatsPostGrowth(global, { ...mapStatsRangeArgs(args), id: args.id })),
     );
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_post_newsletter',
       {
@@ -2030,7 +2206,7 @@ export function registerCoreTools(
           ...statsRangeArgs,
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsPostNewsletter(global, { ...mapStatsRangeArgs(args), id: args.id }),
         ),
@@ -2038,6 +2214,7 @@ export function registerCoreTools(
 
     registerGroupedTool(
       server,
+      global,
       'stats',
       'ghost_stats_post_referrers',
       {
@@ -2048,7 +2225,7 @@ export function registerCoreTools(
           limit: z.number().int().positive().max(100).optional(),
         }),
       },
-      async (args) =>
+      async (global, args) =>
         toolResult(
           await getStatsPostReferrers(global, {
             ...mapStatsRangeArgs(args),

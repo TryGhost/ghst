@@ -69,6 +69,34 @@ function parseMcpJsonResponse(body: string): {
   }
 }
 
+async function mcpPost(
+  baseUrl: string,
+  id: number,
+  method: string,
+  params: Record<string, unknown>,
+): Promise<{ status: number; body: string }> {
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: {
+      authorization: 'Bearer test-token',
+      accept: 'application/json, text/event-stream',
+      'content-type': 'application/json',
+      'mcp-protocol-version': '2025-11-25',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id,
+      method,
+      params,
+    }),
+  });
+
+  return {
+    status: response.status,
+    body: await response.text(),
+  };
+}
+
 describe.sequential('mcp http integration', () => {
   test('parses JSON and event-stream MCP responses', () => {
     expect(parseMcpJsonResponse('{"result":{"tools":[]}}')).toEqual({
@@ -173,6 +201,27 @@ describe.sequential('mcp http integration', () => {
         'ghst/toolGroup': 'site',
         'ghst/toolGroupTitle': 'Site',
       });
+      expect(JSON.stringify(siteTool)).toContain('"site"');
+
+      const noArgumentsCall = await mcpPost(baseUrl, 3, 'tools/call', {
+        name: 'ghost_site_list',
+      });
+      expect(noArgumentsCall.status).toBe(200);
+      expect(noArgumentsCall.body).toContain('"sites"');
+
+      const emptyArgumentsCall = await mcpPost(baseUrl, 4, 'tools/call', {
+        name: 'ghost_site_list',
+        arguments: {},
+      });
+      expect(emptyArgumentsCall.status).toBe(200);
+      expect(emptyArgumentsCall.body).toContain('"sites"');
+
+      const siteArgumentsCall = await mcpPost(baseUrl, 5, 'tools/call', {
+        name: 'ghost_site_list',
+        arguments: { site: 'blog-en' },
+      });
+      expect(siteArgumentsCall.status).toBe(200);
+      expect(siteArgumentsCall.body).toContain('"sites"');
     } finally {
       process.emit('SIGINT');
       await runPromise;
