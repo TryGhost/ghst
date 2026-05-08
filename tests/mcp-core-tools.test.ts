@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  MCP_TOOL_GROUP_METADATA,
   MCP_TOOL_GROUPS,
   type McpToolGroup,
   parseToolGroups,
@@ -130,6 +131,30 @@ describe('mcp core tool registration', () => {
         'ghost_stats_overview',
       ]),
     );
+
+    expect(tools.get('ghost_post_list')?.meta._meta).toMatchObject({
+      'ghst/toolGroup': 'posts',
+      'ghst/toolGroupTitle': 'Posts',
+    });
+    expect(tools.get('ghost_site_info')?.meta._meta).toMatchObject({
+      'ghst/toolGroup': 'site',
+      'ghst/toolGroupTitle': 'Site',
+    });
+    expect(tools.get('ghost_stats_overview')?.meta._meta).toMatchObject({
+      'ghst/toolGroup': 'stats',
+      'ghst/toolGroupTitle': 'Stats',
+    });
+
+    for (const [name, tool] of tools) {
+      const metadata = tool.meta._meta as Record<string, unknown> | undefined;
+      const group = metadata?.['ghst/toolGroup'] as McpToolGroup | undefined;
+
+      expect(metadata, `${name} should expose MCP group metadata`).toBeDefined();
+      expect(MCP_TOOL_GROUPS, `${name} should use a known MCP tool group`).toContain(group);
+      expect(metadata?.['ghst/toolGroupTitle']).toBe(
+        group ? MCP_TOOL_GROUP_METADATA[group].title : undefined,
+      );
+    }
 
     const run = async (
       name: string,
@@ -548,6 +573,12 @@ describe('mcp core tool registration', () => {
       'ghost_theme_upload',
       'ghost_webhook_create',
     ]);
+    for (const tool of tools.values()) {
+      expect(tool.meta._meta).toMatchObject({
+        'ghst/toolGroup': 'site',
+        'ghst/toolGroupTitle': 'Site',
+      });
+    }
   });
 
   test('can register only socialweb tools', () => {

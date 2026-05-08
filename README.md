@@ -333,6 +333,8 @@ Notes:
 
 - `ghst mcp http` binds to loopback by default. Binding to a non-loopback host requires `--unsafe-public-bind`.
 - `--cors-origin` accepts a single exact origin only, for example `https://app.example.com`.
+- `--tools` accepts `all` or comma-separated group names such as `posts,stats`.
+- Exposed MCP tools include `ghst/toolGroup` and `ghst/toolGroupTitle` metadata for clients that render grouped tools.
 
 Supported tool groups:
 
