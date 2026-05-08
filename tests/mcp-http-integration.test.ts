@@ -44,7 +44,46 @@ async function waitForServer(url: string, timeoutMs = 1000): Promise<void> {
   }
 }
 
+function parseMcpJsonResponse(body: string): {
+  result?: {
+    tools?: Array<{
+      name: string;
+      _meta?: Record<string, unknown>;
+    }>;
+  };
+} {
+  const trimmed = body.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const dataLines = trimmed
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice('data:'.length).trimStart());
+
+    if (dataLines.length === 0) {
+      throw new Error('MCP event-stream response did not include a data line');
+    }
+
+    return JSON.parse(dataLines.join('\n'));
+  }
+}
+
 describe.sequential('mcp http integration', () => {
+  test('parses JSON and event-stream MCP responses', () => {
+    expect(parseMcpJsonResponse('{"result":{"tools":[]}}')).toEqual({
+      result: { tools: [] },
+    });
+    expect(parseMcpJsonResponse('data: {"result":{"tools":[]}}\n\n')).toEqual({
+      result: { tools: [] },
+    });
+    expect(
+      parseMcpJsonResponse('event: message\ndata: {"result":\ndata: {"tools":[]}}\n\n'),
+    ).toEqual({
+      result: { tools: [] },
+    });
+  });
+
   test('supports initialize plus follow-up requests with the real SDK transport', async () => {
     const port = await getFreePort();
     const runPromise = runMcpHttp(
@@ -128,7 +167,12 @@ describe.sequential('mcp http integration', () => {
       });
 
       expect(toolsListResponse.status).toBe(200);
-      expect(await toolsListResponse.text()).toContain('"tools":');
+      const toolsListBody = parseMcpJsonResponse(await toolsListResponse.text());
+      const siteTool = toolsListBody.result?.tools?.find((tool) => tool.name === 'ghost_site_info');
+      expect(siteTool?._meta).toMatchObject({
+        'ghst/toolGroup': 'site',
+        'ghst/toolGroupTitle': 'Site',
+      });
     } finally {
       process.emit('SIGINT');
       await runPromise;

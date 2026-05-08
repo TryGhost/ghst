@@ -1,4 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer, ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AnySchema } from '@modelcontextprotocol/sdk/server/zod-compat.js';
+import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { normalizeGhostApiPath } from '../../lib/api-path.js';
 import { GhostClient } from '../../lib/client.js';
@@ -124,6 +126,51 @@ export const MCP_TOOL_GROUPS: readonly McpToolGroup[] = [
   'socialweb',
   'stats',
 ] as const;
+
+export const MCP_TOOL_GROUP_METADATA: Record<McpToolGroup, { title: string }> = {
+  posts: { title: 'Posts' },
+  pages: { title: 'Pages' },
+  tags: { title: 'Tags' },
+  members: { title: 'Members' },
+  comments: { title: 'Comments' },
+  site: { title: 'Site' },
+  settings: { title: 'Settings' },
+  users: { title: 'Users' },
+  api: { title: 'API' },
+  search: { title: 'Search' },
+  socialweb: { title: 'Social web' },
+  stats: { title: 'Stats' },
+} as const;
+
+type GroupedToolConfig<InputSchema extends AnySchema | undefined = undefined> = {
+  title?: string;
+  description?: string;
+  inputSchema?: InputSchema;
+  outputSchema?: AnySchema;
+  annotations?: ToolAnnotations;
+  _meta?: Record<string, unknown>;
+};
+
+function registerGroupedTool<InputSchema extends AnySchema | undefined = undefined>(
+  server: McpServer,
+  group: McpToolGroup,
+  name: string,
+  config: GroupedToolConfig<InputSchema>,
+  handler: ToolCallback<InputSchema>,
+): void {
+  const metadata = MCP_TOOL_GROUP_METADATA[group];
+  const groupedConfig = {
+    ...config,
+    _meta: {
+      ...config._meta,
+      'ghst/toolGroup': group,
+      'ghst/toolGroupTitle': metadata.title,
+    },
+  };
+
+  // The SDK's registerTool generics do not preserve this enriched config shape cleanly.
+  server.registerTool(name, groupedConfig as GroupedToolConfig<InputSchema>, handler);
+}
 
 const statsRangeArgs = {
   range: z.enum(['7d', '30d', '90d', '365d', 'all']).optional(),
@@ -401,7 +448,9 @@ export function registerCoreTools(
   enabledGroups: Set<McpToolGroup>,
 ): void {
   if (enabledGroups.has('posts')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_list',
       {
         description: 'List Ghost posts.',
@@ -419,7 +468,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_get',
       {
         description: 'Get a Ghost post by id or slug.',
@@ -440,7 +491,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_create',
       {
         description: 'Create a Ghost post.',
@@ -470,7 +523,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_update',
       {
         description: 'Update a Ghost post by id or slug.',
@@ -503,7 +558,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_delete',
       {
         description: 'Delete a Ghost post.',
@@ -519,7 +576,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_publish',
       {
         description: 'Publish a Ghost post.',
@@ -533,7 +592,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_post_schedule',
       {
         description: 'Schedule a Ghost post, with optional email delivery settings.',
@@ -555,7 +616,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'posts',
       'ghost_image_upload',
       {
         description: 'Upload an image and return the uploaded image payload.',
@@ -577,7 +640,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('pages')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'pages',
       'ghost_page_list',
       {
         description: 'List Ghost pages.',
@@ -595,7 +660,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'pages',
       'ghost_page_get',
       {
         description: 'Get a Ghost page by id or slug.',
@@ -616,7 +683,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'pages',
       'ghost_page_create',
       {
         description: 'Create a Ghost page.',
@@ -644,7 +713,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'pages',
       'ghost_page_update',
       {
         description: 'Update a Ghost page by id or slug.',
@@ -675,7 +746,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'pages',
       'ghost_page_delete',
       {
         description: 'Delete a Ghost page.',
@@ -693,7 +766,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('tags')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'tags',
       'ghost_tag_list',
       {
         description: 'List Ghost tags.',
@@ -706,7 +781,9 @@ export function registerCoreTools(
       async (args) => toolResult(await listTags(global, { ...args }, false)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'tags',
       'ghost_tag_get',
       {
         description: 'Get a Ghost tag by id or slug.',
@@ -723,7 +800,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'tags',
       'ghost_tag_create',
       {
         description: 'Create a Ghost tag.',
@@ -736,7 +815,9 @@ export function registerCoreTools(
       async (args) => toolResult(await createTag(global, args)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'tags',
       'ghost_tag_update',
       {
         description: 'Update a Ghost tag.',
@@ -760,7 +841,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'tags',
       'ghost_tag_delete',
       {
         description: 'Delete a Ghost tag.',
@@ -777,7 +860,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('members')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_member_list',
       {
         description: 'List Ghost members.',
@@ -791,7 +876,9 @@ export function registerCoreTools(
       async (args) => toolResult(await listMembers(global, { ...args }, false)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_member_get',
       {
         description: 'Get Ghost member by id or email.',
@@ -809,7 +896,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_member_create',
       {
         description: 'Create Ghost member.',
@@ -831,7 +920,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_member_update',
       {
         description: 'Update Ghost member.',
@@ -855,7 +946,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_member_delete',
       {
         description: 'Delete Ghost member.',
@@ -870,7 +963,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_member_import',
       {
         description: 'Import members from a CSV file path.',
@@ -888,7 +983,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_newsletter_list',
       {
         description: 'List Ghost newsletters.',
@@ -901,7 +998,9 @@ export function registerCoreTools(
       async (args) => toolResult(await listNewsletters(global, { ...args }, false)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_tier_list',
       {
         description: 'List Ghost tiers.',
@@ -914,7 +1013,9 @@ export function registerCoreTools(
       async (args) => toolResult(await listTiers(global, { ...args }, false)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'members',
       'ghost_offer_list',
       {
         description: 'List Ghost offers.',
@@ -929,7 +1030,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('comments')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_list',
       {
         description: 'List Ghost comments from the Admin moderation view.',
@@ -955,7 +1058,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_get',
       {
         description: 'Get a Ghost comment with Admin moderation fields.',
@@ -966,7 +1071,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getComment(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_thread',
       {
         description: 'Get a Ghost comment thread using the Admin moderation thread view.',
@@ -977,7 +1084,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getCommentThread(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_replies',
       {
         description: 'List replies for a Ghost comment using the raw replies endpoint.',
@@ -1001,7 +1110,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_likes',
       {
         description: 'List likes for a Ghost comment.',
@@ -1025,7 +1136,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_reports',
       {
         description: 'List reports for a Ghost comment.',
@@ -1049,7 +1162,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_hide',
       {
         description: 'Hide a Ghost comment.',
@@ -1060,7 +1175,9 @@ export function registerCoreTools(
       async (args) => toolResult(await setCommentStatus(global, args.id, 'hidden')),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_show',
       {
         description: 'Show a previously hidden Ghost comment.',
@@ -1071,7 +1188,9 @@ export function registerCoreTools(
       async (args) => toolResult(await setCommentStatus(global, args.id, 'published')),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'comments',
       'ghost_comment_delete',
       {
         description: 'Soft-delete a Ghost comment.',
@@ -1088,7 +1207,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('site')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'site',
       'ghost_site_info',
       {
         description: 'Get Ghost site metadata.',
@@ -1096,7 +1217,9 @@ export function registerCoreTools(
       async () => toolResult(await getSiteInfo(global)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'site',
       'ghost_theme_upload',
       {
         description: 'Upload a Ghost theme zip path and optionally activate it.',
@@ -1122,7 +1245,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'site',
       'ghost_webhook_create',
       {
         description: 'Create a Ghost webhook.',
@@ -1148,7 +1273,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('settings')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'settings',
       'ghost_setting_list',
       {
         description: 'List Ghost settings.',
@@ -1156,7 +1283,9 @@ export function registerCoreTools(
       async () => toolResult(await listSettings(global)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'settings',
       'ghost_setting_get',
       {
         description: 'Get a Ghost setting by key.',
@@ -1167,7 +1296,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getSetting(global, args.key)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'settings',
       'ghost_setting_set',
       {
         description: 'Set a Ghost setting by key.',
@@ -1181,7 +1312,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('users')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'users',
       'ghost_user_list',
       {
         description: 'List Ghost staff users.',
@@ -1195,7 +1328,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('api')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'api',
       'ghost_api_request',
       {
         description: 'Run a raw Ghost API request.',
@@ -1223,7 +1358,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('search')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'search',
       'ghost_search',
       {
         description: 'Search posts, pages, tags and members.',
@@ -1237,7 +1374,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('socialweb')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_status',
       {
         description: 'Show Ghost social web settings and connectivity status.',
@@ -1245,7 +1384,9 @@ export function registerCoreTools(
       async () => toolResult(await getSocialWebStatus(global)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_enable',
       {
         description: 'Enable Ghost social web and return the resulting status.',
@@ -1253,7 +1394,9 @@ export function registerCoreTools(
       async () => toolResult(await enableSocialWeb(global)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_disable',
       {
         description: 'Disable Ghost social web and return the resulting status.',
@@ -1261,7 +1404,9 @@ export function registerCoreTools(
       async () => toolResult(await disableSocialWeb(global)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_profile',
       {
         description: 'Get a social web profile by federated handle or me.',
@@ -1272,7 +1417,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getSocialWebProfile(global, args.handle ?? 'me')),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_profile_update',
       {
         description: 'Update the current social web profile.',
@@ -1290,7 +1437,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_search',
       {
         description: 'Search social web accounts.',
@@ -1301,7 +1450,9 @@ export function registerCoreTools(
       async (args) => toolResult(await searchSocialWeb(global, args.query)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_notes',
       {
         description: 'List the social web note feed.',
@@ -1313,7 +1464,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_reader',
       {
         description: 'List the social web reader feed.',
@@ -1325,7 +1478,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_notifications',
       {
         description: 'List social web notifications.',
@@ -1337,7 +1492,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_notifications_count',
       {
         description: 'Get the unread social web notification count.',
@@ -1345,7 +1502,9 @@ export function registerCoreTools(
       async () => toolResult(await getNotificationsCount(global)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_posts',
       {
         description: 'List posts for a social web account.',
@@ -1364,7 +1523,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_likes',
       {
         description: 'List posts liked by the current social web account.',
@@ -1376,7 +1537,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_followers',
       {
         description: 'List followers for a social web account.',
@@ -1390,7 +1553,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_following',
       {
         description: 'List followed accounts for a social web account.',
@@ -1404,7 +1569,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_post',
       {
         description: 'Get a social web post by ActivityPub id.',
@@ -1415,7 +1582,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getSocialWebPost(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_thread',
       {
         description: 'Get a social web thread by ActivityPub id.',
@@ -1426,7 +1595,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getSocialWebThread(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_follow',
       {
         description: 'Follow a federated social web account.',
@@ -1437,7 +1608,9 @@ export function registerCoreTools(
       async (args) => toolResult(await followAccount(global, args.handle)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_unfollow',
       {
         description: 'Unfollow a federated social web account.',
@@ -1448,7 +1621,9 @@ export function registerCoreTools(
       async (args) => toolResult(await unfollowAccount(global, args.handle)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_like',
       {
         description: 'Like a social web post.',
@@ -1459,7 +1634,9 @@ export function registerCoreTools(
       async (args) => toolResult(await likePost(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_unlike',
       {
         description: 'Unlike a social web post.',
@@ -1470,7 +1647,9 @@ export function registerCoreTools(
       async (args) => toolResult(await unlikePost(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_repost',
       {
         description: 'Repost a social web post.',
@@ -1481,7 +1660,9 @@ export function registerCoreTools(
       async (args) => toolResult(await repostPost(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_derepost',
       {
         description: 'Undo a repost on a social web post.',
@@ -1492,7 +1673,9 @@ export function registerCoreTools(
       async (args) => toolResult(await derepostPost(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_delete',
       {
         description: 'Delete a social web post authored by the current account.',
@@ -1507,7 +1690,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_note',
       {
         description: 'Create a new social web note.',
@@ -1524,7 +1709,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_reply',
       {
         description: 'Reply to a social web post.',
@@ -1543,7 +1730,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_blocked_accounts',
       {
         description: 'List blocked social web accounts.',
@@ -1557,7 +1746,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_blocked_domains',
       {
         description: 'List blocked social web domains.',
@@ -1569,7 +1760,9 @@ export function registerCoreTools(
       },
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_block',
       {
         description: 'Block a social web account by ActivityPub id.',
@@ -1580,7 +1773,9 @@ export function registerCoreTools(
       async (args) => toolResult(await blockAccount(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_unblock',
       {
         description: 'Unblock a social web account by ActivityPub id.',
@@ -1591,7 +1786,9 @@ export function registerCoreTools(
       async (args) => toolResult(await unblockAccount(global, args.id)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_block_domain',
       {
         description: 'Block a social web domain.',
@@ -1602,7 +1799,9 @@ export function registerCoreTools(
       async (args) => toolResult(await blockDomain(global, args.url)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_unblock_domain',
       {
         description: 'Unblock a social web domain.',
@@ -1613,7 +1812,9 @@ export function registerCoreTools(
       async (args) => toolResult(await unblockDomain(global, args.url)),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'socialweb',
       'ghost_socialweb_upload',
       {
         description: 'Upload an image for social web notes and replies.',
@@ -1626,7 +1827,9 @@ export function registerCoreTools(
   }
 
   if (enabledGroups.has('stats')) {
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_overview',
       {
         description: 'Get the Ghost analytics overview report.',
@@ -1637,7 +1840,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getStatsOverview(global, mapStatsRangeArgs(args))),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_web',
       {
         description: 'Get the Ghost web analytics report.',
@@ -1648,7 +1853,9 @@ export function registerCoreTools(
       async (args) => toolResult(await getStatsWeb(global, mapStatsWebArgs(args))),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_web_table',
       {
         description: 'Get a focused Ghost web analytics table view.',
@@ -1666,7 +1873,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_growth',
       {
         description: 'Get Ghost member and revenue growth analytics.',
@@ -1681,7 +1890,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_posts',
       {
         description: 'Get top Ghost posts by views.',
@@ -1696,7 +1907,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_email',
       {
         description: 'Get Ghost email analytics grouped by newsletter.',
@@ -1716,7 +1929,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_email_clicks',
       {
         description:
@@ -1739,7 +1954,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_email_subscribers',
       {
         description: 'Get Ghost newsletter subscriber analytics.',
@@ -1757,7 +1974,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_post',
       {
         description: 'Get Ghost analytics for a single post.',
@@ -1770,7 +1989,9 @@ export function registerCoreTools(
         toolResult(await getStatsPost(global, { ...mapStatsRangeArgs(args), id: args.id })),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_post_web',
       {
         description: 'Get Ghost web analytics for a single post.',
@@ -1783,7 +2004,9 @@ export function registerCoreTools(
         toolResult(await getStatsPostWeb(global, { ...mapStatsWebArgs(args), id: args.id })),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_post_growth',
       {
         description: 'Get Ghost growth analytics for a single post.',
@@ -1796,7 +2019,9 @@ export function registerCoreTools(
         toolResult(await getStatsPostGrowth(global, { ...mapStatsRangeArgs(args), id: args.id })),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_post_newsletter',
       {
         description: 'Get Ghost email performance analytics for a single post.',
@@ -1811,7 +2036,9 @@ export function registerCoreTools(
         ),
     );
 
-    server.registerTool(
+    registerGroupedTool(
+      server,
+      'stats',
       'ghost_stats_post_referrers',
       {
         description: 'Get Ghost referrer analytics for a single post.',
