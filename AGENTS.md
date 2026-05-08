@@ -131,10 +131,12 @@ pnpm build
 - MCP now exposes first-class comment moderation tools via the `comments` tool group, including list/get/thread/replies/likes/reports/hide/show/delete.
 - MCP now exposes first-class social web tools via the `socialweb` tool group, covering status/profile/feed/interaction/moderation/upload flows.
 - MCP `tools/list` exposes `ghst/toolGroup` and `ghst/toolGroupTitle` metadata for clients that can render grouped tools.
+- MCP tools accept an optional `site` argument for per-call targeting of configured site aliases; when omitted, existing config resolution order is preserved.
+- MCP includes `ghost_site_list` for safe configured-alias discovery without exposing stored credentials.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
 - `api [endpointPath]` requires `--enable-destructive-actions` for non-read HTTP methods.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
-- MCP includes dedicated tools such as `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_theme_upload`, and `ghost_webhook_create`.
+- MCP includes dedicated tools such as `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_site_list`, `ghost_theme_upload`, and `ghost_webhook_create`.
 
 ## Config Resolution Order
 

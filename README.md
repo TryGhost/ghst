@@ -339,6 +339,15 @@ Notes:
 - `--cors-origin` accepts a single exact origin only, for example `https://app.example.com`.
 - `--tools` accepts `all` or comma-separated group names such as `posts,stats`.
 - Exposed MCP tools include `ghst/toolGroup` and `ghst/toolGroupTitle` metadata for clients that render grouped tools.
+- MCP tools accept an optional `site` argument to target a configured site alias per call. When omitted, `ghst` uses the normal site resolution order.
+- Use `ghost_site_list` to list configured site aliases without exposing stored credentials.
+
+Example multi-instance workflow:
+
+```text
+ghost_post_get({ id: "abc123", site: "blog-fr" })
+ghost_post_create({ title: "Translated title", html: "<p>...</p>", site: "blog-en" })
+```
 
 Supported tool groups:
 

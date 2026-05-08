@@ -77,6 +77,18 @@ describe('mcp core tool registration', () => {
               apiVersion: 'v6.0',
               addedAt: '2026-01-01T00:00:00.000Z',
             },
+            'blog-fr': {
+              url: 'https://blog-fr.ghost.io',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
+            'blog-en': {
+              url: 'https://blog-en.ghost.io',
+              staffAccessToken: KEY,
+              apiVersion: 'v6.0',
+              addedAt: '2026-01-01T00:00:00.000Z',
+            },
           },
         },
         null,
@@ -486,6 +498,166 @@ describe('mcp core tool registration', () => {
     expect(postReferrersResponse.structuredContent).toHaveProperty('referrers');
   });
 
+  test('routes MCP tool calls to the per-call configured site alias', async () => {
+    const requests: Array<{ hostname: string; pathname: string }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ url, pathname }) => {
+        requests.push({ hostname: url.hostname, pathname });
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+
+    await tools.get('ghost_post_get')?.handler({ id: fixtureIds.postId, site: 'blog-fr' });
+    expect(requests.at(-1)).toMatchObject({
+      hostname: 'blog-fr.ghost.io',
+      pathname: `/ghost/api/admin/posts/${fixtureIds.postId}/`,
+    });
+
+    await tools.get('ghost_site_info')?.handler({ site: 'blog-en' });
+    expect(requests.at(-1)).toMatchObject({
+      hostname: 'blog-en.ghost.io',
+      pathname: '/ghost/api/admin/site/',
+    });
+
+    await tools.get('ghost_api_request')?.handler({
+      path: '/ghost/api/admin/site/',
+      site: 'blog-fr',
+    });
+    expect(requests.at(-1)).toMatchObject({
+      hostname: 'blog-fr.ghost.io',
+      pathname: '/ghost/api/admin/site/',
+    });
+  });
+
+  test('keeps existing MCP site resolution when no per-call site is supplied', async () => {
+    const requests: Array<{ hostname: string; pathname: string }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ url, pathname }) => {
+        requests.push({ hostname: url.hostname, pathname });
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['posts']));
+
+    await tools.get('ghost_post_get')?.handler({ id: fixtureIds.postId });
+
+    expect(requests.at(-1)).toMatchObject({
+      hostname: 'myblog.ghost.io',
+      pathname: `/ghost/api/admin/posts/${fixtureIds.postId}/`,
+    });
+  });
+
+  test('accepts per-call site on refined MCP schemas and stats tools', async () => {
+    const requests: Array<{ hostname: string; pathname: string }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ url, pathname }) => {
+        requests.push({ hostname: url.hostname, pathname });
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['socialweb', 'stats']));
+
+    await tools.get('ghost_socialweb_profile_update')?.handler({
+      name: 'Updated Owner',
+      site: 'blog-fr',
+    });
+    expect(requests.some((request) => request.hostname === 'blog-fr.ghost.io')).toBe(true);
+
+    requests.length = 0;
+    await tools.get('ghost_stats_overview')?.handler({ range: '30d', site: 'blog-en' });
+    expect(requests.some((request) => request.hostname === 'blog-en.ghost.io')).toBe(true);
+  });
+
+  test('keeps site out of Ghost query params and request bodies', async () => {
+    const requests: Array<{ url: URL; body: string }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ url, init }) => {
+        requests.push({
+          url: new URL(url.toString()),
+          body: typeof init?.body === 'string' ? init.body : '',
+        });
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['posts', 'search']));
+
+    await tools.get('ghost_post_list')?.handler({ limit: 5, site: 'blog-fr' });
+    expect(requests.at(-1)?.url.searchParams.has('site')).toBe(false);
+
+    await tools.get('ghost_post_create')?.handler({
+      title: 'Tool Post',
+      html: '<p>tool</p>',
+      site: 'blog-en',
+    });
+    expect(requests.at(-1)?.body).not.toContain('"site"');
+
+    requests.length = 0;
+    await tools.get('ghost_search')?.handler({ query: 'fixture', site: 'blog-fr' });
+    expect(requests).toHaveLength(4);
+    expect(requests.every((request) => !request.url.searchParams.has('site'))).toBe(true);
+  });
+
+  test('validates MCP site aliases and lists configured sites without credentials', async () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['site', 'posts']));
+
+    const postGetSchema = tools.get('ghost_post_get')?.meta.inputSchema as {
+      safeParse: (value: unknown) => { success: boolean; error?: Error };
+    };
+    expect(postGetSchema.safeParse({ id: fixtureIds.postId, site: 'blog-fr' }).success).toBe(true);
+    const invalidSite = postGetSchema.safeParse({ id: fixtureIds.postId, site: 'bad alias' });
+    expect(invalidSite.success).toBe(false);
+    expect(invalidSite.error?.message).toContain('site alias may include');
+
+    const siteListSchema = tools.get('ghost_site_list')?.meta.inputSchema as {
+      safeParse: (value: unknown) => { success: boolean; data?: unknown; error?: Error };
+    };
+    expect(siteListSchema.safeParse(undefined)).toMatchObject({
+      success: true,
+      data: {},
+    });
+    expect(siteListSchema.safeParse({ site: 'blog-en' })).toMatchObject({
+      success: true,
+      data: { site: 'blog-en' },
+    });
+
+    const siteListResponse = (await tools.get('ghost_site_list')?.handler({})) as
+      | {
+          content: Array<{ text: string }>;
+          structuredContent: Record<string, unknown>;
+        }
+      | undefined;
+    const text = siteListResponse?.content[0]?.text ?? '';
+    expect(siteListResponse?.structuredContent).toMatchObject({
+      sites: expect.arrayContaining([
+        {
+          alias: 'myblog',
+          url: 'https://myblog.ghost.io',
+          apiVersion: 'v6.0',
+          active: true,
+        },
+        {
+          alias: 'blog-fr',
+          url: 'https://blog-fr.ghost.io',
+          apiVersion: 'v6.0',
+          active: false,
+        },
+      ]),
+    });
+    expect(text).not.toContain(KEY);
+    expect(text).not.toContain('staffAccessToken');
+    expect(text).not.toContain('credentialRef');
+  });
+
   test('rejects escape-capable ghost api request paths before execution', async () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
@@ -597,6 +769,7 @@ describe('mcp core tool registration', () => {
 
     expect(Array.from(tools.keys())).toEqual([
       'ghost_site_info',
+      'ghost_site_list',
       'ghost_theme_upload',
       'ghost_webhook_create',
     ]);
