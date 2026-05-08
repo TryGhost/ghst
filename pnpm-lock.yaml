@@ -45,8 +45,8 @@ importers:
         specifier: 6.0.1
         version: 6.0.1
       ink:
-        specifier: 7.0.1
-        version: 7.0.1(@types/react@19.2.14)(react@19.2.5)
+        specifier: 7.0.2
+        version: 7.0.2(@types/react@19.2.14)(react@19.2.5)
       jose:
         specifier: 6.2.3
         version: 6.2.3
@@ -3201,8 +3201,8 @@ packages:
     resolution: {integrity: sha512-7PnF4oN3CvZF23ADhA5wRaYEQpJ8qygSkbtTXWBeXWXmEVRXK+1ITciHWwHhsjv1TmW0MgacIv6hEi5pX5NQdA==}
     engines: {node: '>=10'}
 
-  ink@7.0.1:
-    resolution: {integrity: sha512-o6LAC268PLawlGVYrXTyaTfke4VtJftEheuwbgkQf7yvSXyWp1nRwBbAyKEkWXFZZsW/la5wrMuNbuBvZK2C1w==}
+  ink@7.0.2:
+    resolution: {integrity: sha512-cnkE2SsDC/gieJ+BD8+gWpXrZPMInv7agBYN5gcKVlQZYp+IKa/FKM5bp1OIuJFp3ZIuRK7ZNxY4MZR3tUzyfQ==}
     engines: {node: '>=22'}
     peerDependencies:
       '@types/react': '>=19.2.0'
@@ -8221,7 +8221,7 @@ snapshots:
 
   ini@2.0.0: {}
 
-  ink@7.0.1(@types/react@19.2.14)(react@19.2.5):
+  ink@7.0.2(@types/react@19.2.14)(react@19.2.5):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.3.0
       ansi-escapes: 7.3.0
