@@ -56,7 +56,7 @@
     "jose": "6.2.3",
     "markdown-it": "14.1.1",
     "ora": "9.4.0",
-    "react": "19.2.5",
+    "react": "19.2.6",
     "zod": "4.4.3"
   },
   "devDependencies": {

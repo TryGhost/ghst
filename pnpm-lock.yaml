@@ -46,7 +46,7 @@ importers:
         version: 6.0.1
       ink:
         specifier: 7.0.2
-        version: 7.0.2(@types/react@19.2.14)(react@19.2.5)
+        version: 7.0.2(@types/react@19.2.14)(react@19.2.6)
       jose:
         specifier: 6.2.3
         version: 6.2.3
@@ -57,8 +57,8 @@ importers:
         specifier: 9.4.0
         version: 9.4.0
       react:
-        specifier: 19.2.5
-        version: 19.2.5
+        specifier: 19.2.6
+        version: 19.2.6
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -4040,8 +4040,8 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  react@19.2.5:
-    resolution: {integrity: sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA==}
+  react@19.2.6:
+    resolution: {integrity: sha512-sfWGGfavi0xr8Pg0sVsyHMAOziVYKgPLNrS7ig+ivMNb3wbCBw3KxtflsGBAwD3gYQlE/AEZsTLgToRrSCjb0Q==}
     engines: {node: '>=0.10.0'}
 
   readable-stream@2.3.8:
@@ -8221,7 +8221,7 @@ snapshots:
 
   ini@2.0.0: {}
 
-  ink@7.0.2(@types/react@19.2.14)(react@19.2.5):
+  ink@7.0.2(@types/react@19.2.14)(react@19.2.6):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.3.0
       ansi-escapes: 7.3.0
@@ -8236,8 +8236,8 @@ snapshots:
       indent-string: 5.0.0
       is-in-ci: 2.0.0
       patch-console: 2.0.0
-      react: 19.2.5
-      react-reconciler: 0.33.0(react@19.2.5)
+      react: 19.2.6
+      react-reconciler: 0.33.0(react@19.2.6)
       scheduler: 0.27.0
       signal-exit: 3.0.7
       slice-ansi: 9.0.0
@@ -8933,12 +8933,12 @@ snapshots:
       iconv-lite: 0.7.2
       unpipe: 1.0.0
 
-  react-reconciler@0.33.0(react@19.2.5):
+  react-reconciler@0.33.0(react@19.2.6):
     dependencies:
-      react: 19.2.5
+      react: 19.2.6
       scheduler: 0.27.0
 
-  react@19.2.5: {}
+  react@19.2.6: {}
 
   readable-stream@2.3.8:
     dependencies:
