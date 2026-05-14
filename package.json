@@ -24,7 +24,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "packageManager": "pnpm@11.0.9",
+  "packageManager": "pnpm@11.1.0",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup && chmod +x dist/index.js",
