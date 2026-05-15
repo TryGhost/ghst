@@ -322,13 +322,29 @@ export function registerPostCommands(program: Command): void {
           og_title: parsed.data.ogTitle,
           og_image: parsed.data.ogImage,
           codeinjection_head: parsed.data.codeInjectionHead,
-          newsletter: parsed.data.newsletter,
-          email_only: parsed.data.emailOnly,
-          email_segment: parsed.data.emailSegment,
         },
       );
 
-      const payload = await createPost(global, createPayload, source);
+      // Ghost requires email-related fields as URL query parameters, not
+      // body fields, to trigger the email-on-publish pathway. Same as
+      // publishPost / schedulePost in src/lib/posts.ts.
+      const emailParams: Record<string, string> = {};
+      if (parsed.data.newsletter) {
+        emailParams.newsletter = parsed.data.newsletter;
+      }
+      if (parsed.data.emailSegment) {
+        emailParams.email_segment = parsed.data.emailSegment;
+      }
+      if (parsed.data.emailOnly !== undefined) {
+        emailParams.email_only = String(parsed.data.emailOnly);
+      }
+
+      const payload = await createPost(
+        global,
+        createPayload,
+        source,
+        Object.keys(emailParams).length > 0 ? emailParams : undefined,
+      );
 
       if (global.json) {
         printJson(payload, global.jq);
@@ -445,17 +461,28 @@ export function registerPostCommands(program: Command): void {
           og_title: parsed.data.ogTitle,
           og_image: parsed.data.ogImage,
           codeinjection_head: parsed.data.codeInjectionHead,
-          newsletter: parsed.data.newsletter,
-          email_only: parsed.data.emailOnly,
-          email_segment: parsed.data.emailSegment,
         },
       );
+
+      // Ghost requires email-related fields as URL query parameters, not
+      // body fields, to trigger the email-on-publish pathway.
+      const emailParams: Record<string, string> = {};
+      if (parsed.data.newsletter) {
+        emailParams.newsletter = parsed.data.newsletter;
+      }
+      if (parsed.data.emailSegment) {
+        emailParams.email_segment = parsed.data.emailSegment;
+      }
+      if (parsed.data.emailOnly !== undefined) {
+        emailParams.email_only = String(parsed.data.emailOnly);
+      }
 
       const payload = await updatePost(global, {
         id: parsed.data.id,
         slug: parsed.data.slug,
         patch,
         source,
+        params: Object.keys(emailParams).length > 0 ? emailParams : undefined,
       });
 
       if (global.json) {

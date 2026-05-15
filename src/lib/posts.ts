@@ -56,9 +56,10 @@ export async function createPost(
   global: GlobalOptions,
   post: Record<string, unknown>,
   source?: 'html',
+  params?: Record<string, string | number | boolean | undefined>,
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
-  return client.posts.add(post, source);
+  return client.posts.add(post, source, params);
 }
 
 export async function updatePost(
@@ -135,14 +136,24 @@ export async function publishPost(
     email_segment?: string;
   },
 ): Promise<Record<string, unknown>> {
+  // Ghost requires email-related fields as URL query parameters on the PUT
+  // endpoint — passing them in the JSON body has no effect. Same pattern as
+  // schedulePost below.
+  const params: Record<string, string> = {};
+  if (options?.newsletter) {
+    params.newsletter = options.newsletter;
+  }
+  if (options?.email_segment) {
+    params.email_segment = options.email_segment;
+  }
+  if (options?.email_only !== undefined) {
+    params.email_only = String(options.email_only);
+  }
+
   return updatePost(global, {
     id,
-    patch: {
-      status: 'published',
-      newsletter: options?.newsletter,
-      email_only: options?.email_only,
-      email_segment: options?.email_segment,
-    },
+    patch: { status: 'published' },
+    params: Object.keys(params).length > 0 ? params : undefined,
   });
 }
 
@@ -157,8 +168,7 @@ export async function schedulePost(
   },
 ): Promise<Record<string, unknown>> {
   // Ghost requires email-related fields as query parameters on the PUT
-  // endpoint for scheduled posts — passing them in the JSON body has no
-  // effect.  This differs from the publish transition where the body works.
+  // endpoint — same pattern as publishPost above.
   const params: Record<string, string> = {};
   if (options?.newsletter) {
     params.newsletter = options.newsletter;
