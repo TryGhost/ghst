@@ -165,9 +165,11 @@ Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on st
 Create and publish:
 
 ```bash
-ghst post create --title "Launch" --markdown-file ./launch.md --newsletter weekly --email-segment all
-ghst post publish <post-id>
+ghst post create --title "Launch" --markdown-file ./launch.md
+ghst post publish <post-id> --newsletter weekly --email-segment all
 ```
+
+The email delivery flags (`--newsletter`, `--email-only`, `--email-segment`) belong on `post publish` (or `post schedule` / `post update`) — Ghost's email send pipeline fires on the publish transition, not on create.
 
 Bulk updates:
 

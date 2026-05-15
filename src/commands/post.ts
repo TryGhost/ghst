@@ -7,6 +7,7 @@ import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson, printPostHuman, printPostListHuman } from '../lib/output.js';
 import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
 import {
+  buildEmailParams,
   bulkPosts,
   copyPost,
   createPost,
@@ -240,9 +241,6 @@ export function registerPostCommands(program: Command): void {
     .option('--og-title <title>', 'Open Graph title')
     .option('--og-image <url>', 'Open Graph image URL')
     .option('--code-injection-head <value>', 'Code injection head HTML')
-    .option('--newsletter <slug>', 'Newsletter slug for published posts')
-    .option('--email-only', 'Publish as email-only')
-    .option('--email-segment <segment>', 'Email segment for publish email')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const parsed = PostCreateInputSchema.safeParse({
@@ -268,9 +266,6 @@ export function registerPostCommands(program: Command): void {
         ogTitle: options.ogTitle,
         ogImage: options.ogImage,
         codeInjectionHead: options.codeInjectionHead,
-        newsletter: options.newsletter,
-        emailOnly: parseBooleanFlag(options.emailOnly),
-        emailSegment: options.emailSegment,
       });
 
       if (!parsed.success) {
@@ -325,26 +320,7 @@ export function registerPostCommands(program: Command): void {
         },
       );
 
-      // Ghost requires email-related fields as URL query parameters, not
-      // body fields, to trigger the email-on-publish pathway. Same as
-      // publishPost / schedulePost in src/lib/posts.ts.
-      const emailParams: Record<string, string> = {};
-      if (parsed.data.newsletter) {
-        emailParams.newsletter = parsed.data.newsletter;
-      }
-      if (parsed.data.emailSegment) {
-        emailParams.email_segment = parsed.data.emailSegment;
-      }
-      if (parsed.data.emailOnly !== undefined) {
-        emailParams.email_only = String(parsed.data.emailOnly);
-      }
-
-      const payload = await createPost(
-        global,
-        createPayload,
-        source,
-        Object.keys(emailParams).length > 0 ? emailParams : undefined,
-      );
+      const payload = await createPost(global, createPayload, source);
 
       if (global.json) {
         printJson(payload, global.jq);
@@ -380,9 +356,9 @@ export function registerPostCommands(program: Command): void {
     .option('--og-title <title>', 'Open Graph title')
     .option('--og-image <url>', 'Open Graph image URL')
     .option('--code-injection-head <value>', 'Code injection head HTML')
-    .option('--newsletter <slug>', 'Newsletter slug')
-    .option('--email-only <value>', 'true|false')
-    .option('--email-segment <segment>', 'Email segment')
+    .option('--newsletter <slug>', 'Newsletter slug for email delivery')
+    .option('--email-only <value>', 'Send as email only (true|false)')
+    .option('--email-segment <segment>', 'Email segment for delivery')
     .action(async (id: string | undefined, options, command) => {
       const global = getGlobalOptions(command);
       const parsed = PostUpdateInputSchema.safeParse({
@@ -464,25 +440,16 @@ export function registerPostCommands(program: Command): void {
         },
       );
 
-      // Ghost requires email-related fields as URL query parameters, not
-      // body fields, to trigger the email-on-publish pathway.
-      const emailParams: Record<string, string> = {};
-      if (parsed.data.newsletter) {
-        emailParams.newsletter = parsed.data.newsletter;
-      }
-      if (parsed.data.emailSegment) {
-        emailParams.email_segment = parsed.data.emailSegment;
-      }
-      if (parsed.data.emailOnly !== undefined) {
-        emailParams.email_only = String(parsed.data.emailOnly);
-      }
-
       const payload = await updatePost(global, {
         id: parsed.data.id,
         slug: parsed.data.slug,
         patch,
         source,
-        params: Object.keys(emailParams).length > 0 ? emailParams : undefined,
+        params: buildEmailParams({
+          newsletter: parsed.data.newsletter,
+          email_only: parsed.data.emailOnly,
+          email_segment: parsed.data.emailSegment,
+        }),
       });
 
       if (global.json) {
@@ -570,9 +537,9 @@ export function registerPostCommands(program: Command): void {
   post
     .command('publish <id>')
     .description('Publish a post')
-    .option('--newsletter <slug>', 'Newsletter slug')
-    .option('--email-segment <segment>', 'Email segment')
-    .option('--email-only', 'Email only publish')
+    .option('--newsletter <slug>', 'Newsletter slug for email delivery')
+    .option('--email-segment <segment>', 'Email segment for delivery')
+    .option('--email-only', 'Send as email only')
     .action(async (id: string, options, command) => {
       const global = getGlobalOptions(command);
       const parsed = PostPublishInputSchema.safeParse({
@@ -605,8 +572,8 @@ export function registerPostCommands(program: Command): void {
     .description('Schedule a post')
     .requiredOption('--at <datetime>', 'ISO datetime for scheduled publish')
     .option('--newsletter <slug>', 'Newsletter slug for email delivery')
-    .option('--email-only', 'Email only publish')
-    .option('--email-segment <segment>', 'Email segment')
+    .option('--email-only', 'Send as email only')
+    .option('--email-segment <segment>', 'Email segment for delivery')
     .action(async (id: string, options, command) => {
       const global = getGlobalOptions(command);
       const parsed = PostScheduleInputSchema.safeParse({

@@ -4,6 +4,22 @@ import { ExitCode, GhstError } from './errors.js';
 import { collectAllPages } from './pagination.js';
 import type { GlobalOptions } from './types.js';
 
+export function buildEmailParams(
+  options: { newsletter?: string; email_only?: boolean; email_segment?: string } = {},
+): Record<string, string> | undefined {
+  const params: Record<string, string> = {};
+  if (options.newsletter) {
+    params.newsletter = options.newsletter;
+  }
+  if (options.email_segment) {
+    params.email_segment = options.email_segment;
+  }
+  if (options.email_only !== undefined) {
+    params.email_only = String(options.email_only);
+  }
+  return Object.keys(params).length > 0 ? params : undefined;
+}
+
 function getFirstPost(payload: Record<string, unknown>): Record<string, unknown> {
   const posts = payload.posts;
   if (!Array.isArray(posts) || posts.length === 0) {
@@ -56,10 +72,9 @@ export async function createPost(
   global: GlobalOptions,
   post: Record<string, unknown>,
   source?: 'html',
-  params?: Record<string, string | number | boolean | undefined>,
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
-  return client.posts.add(post, source, params);
+  return client.posts.add(post, source);
 }
 
 export async function updatePost(
@@ -136,24 +151,10 @@ export async function publishPost(
     email_segment?: string;
   },
 ): Promise<Record<string, unknown>> {
-  // Ghost requires email-related fields as URL query parameters on the PUT
-  // endpoint — passing them in the JSON body has no effect. Same pattern as
-  // schedulePost below.
-  const params: Record<string, string> = {};
-  if (options?.newsletter) {
-    params.newsletter = options.newsletter;
-  }
-  if (options?.email_segment) {
-    params.email_segment = options.email_segment;
-  }
-  if (options?.email_only !== undefined) {
-    params.email_only = String(options.email_only);
-  }
-
   return updatePost(global, {
     id,
     patch: { status: 'published' },
-    params: Object.keys(params).length > 0 ? params : undefined,
+    params: buildEmailParams(options),
   });
 }
 
@@ -167,26 +168,13 @@ export async function schedulePost(
     email_segment?: string;
   },
 ): Promise<Record<string, unknown>> {
-  // Ghost requires email-related fields as query parameters on the PUT
-  // endpoint — same pattern as publishPost above.
-  const params: Record<string, string> = {};
-  if (options?.newsletter) {
-    params.newsletter = options.newsletter;
-  }
-  if (options?.email_segment) {
-    params.email_segment = options.email_segment;
-  }
-  if (options?.email_only !== undefined) {
-    params.email_only = String(options.email_only);
-  }
-
   return updatePost(global, {
     id,
     patch: {
       status: 'scheduled',
       published_at: at,
     },
-    params: Object.keys(params).length > 0 ? params : undefined,
+    params: buildEmailParams(options),
   });
 }
 

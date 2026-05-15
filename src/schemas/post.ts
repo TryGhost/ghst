@@ -70,9 +70,6 @@ export const PostCreateInputSchema = withSingleContentSource(
       ogTitle: z.string().optional(),
       ogImage: z.string().url().optional(),
       codeInjectionHead: z.string().optional(),
-      newsletter: z.string().optional(),
-      emailOnly: z.boolean().optional(),
-      emailSegment: z.string().optional(),
     })
     .refine((data) => Boolean(data.title || data.fromJson), {
       message: 'Provide --title or --from-json.',

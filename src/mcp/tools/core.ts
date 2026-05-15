@@ -32,6 +32,7 @@ import { listOffers } from '../../lib/offers.js';
 import { createPage, deletePage, getPage, listPages, updatePage } from '../../lib/pages.js';
 import { parseCsv } from '../../lib/parse.js';
 import {
+  buildEmailParams,
   createPost,
   deletePost,
   getPost,
@@ -608,7 +609,8 @@ export function registerCoreTools(
       'posts',
       'ghost_post_update',
       {
-        description: 'Update a Ghost post by id or slug.',
+        description:
+          'Update a Ghost post by id or slug, with optional email delivery settings on the publish transition.',
         inputSchema: z.object({
           id: z.string().optional(),
           slug: z.string().optional(),
@@ -618,6 +620,9 @@ export function registerCoreTools(
           publish_at: z.string().datetime().optional(),
           tags: z.array(z.string()).optional(),
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
+          newsletter: z.string().optional(),
+          email_only: z.boolean().optional(),
+          email_segment: z.string().optional(),
         }),
       },
       async (global, args) => {
@@ -633,6 +638,11 @@ export function registerCoreTools(
             visibility: args.visibility,
           },
           source: args.html ? 'html' : undefined,
+          params: buildEmailParams({
+            newsletter: args.newsletter,
+            email_only: args.email_only,
+            email_segment: args.email_segment,
+          }),
         });
         return toolResult(payload);
       },
@@ -663,13 +673,20 @@ export function registerCoreTools(
       'posts',
       'ghost_post_publish',
       {
-        description: 'Publish a Ghost post.',
+        description: 'Publish a Ghost post, with optional email delivery settings.',
         inputSchema: z.object({
           id: z.string(),
+          newsletter: z.string().optional(),
+          email_only: z.boolean().optional(),
+          email_segment: z.string().optional(),
         }),
       },
       async (global, args) => {
-        const payload = await publishPost(global, args.id);
+        const payload = await publishPost(global, args.id, {
+          newsletter: args.newsletter,
+          email_only: args.email_only,
+          email_segment: args.email_segment,
+        });
         return toolResult(payload);
       },
     );

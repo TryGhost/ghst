@@ -110,7 +110,7 @@ pnpm build
 - `auth logout` requires `--enable-destructive-actions` when removing configured sites and confirmation when removing all configured sites; non-interactive all-site removal also requires `--yes`.
 - `auth link` requires `--enable-destructive-actions` and confirmation before replacing an existing project link; non-interactive use requires `--yes`, and relinking updates the discovered project config within the enclosing repo.
 - Interactive destructive confirmations emit `GHST_AGENT_NOTICE:` lines on stderr instructing cooperative agents to ask the user for approval before continuing.
-- `post publish|schedule` supports `--newsletter`, `--email-segment`, and `--email-only`.
+- `post publish|schedule|update` supports `--newsletter`, `--email-segment`, and `--email-only`.
 - `post delete` supports either `<id>` or `--filter` (requires `--enable-destructive-actions`; non-interactive delete also requires `--yes`).
 - `post bulk` supports `--action` plus compatibility aliases `--update`/`--delete` and update fields including `--add-tag` and `--authors`.
 - `member list --status` composes with `--filter`.

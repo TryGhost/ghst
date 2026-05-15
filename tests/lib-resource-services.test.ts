@@ -50,6 +50,7 @@ import {
   updatePage,
 } from '../src/lib/pages.js';
 import {
+  buildEmailParams,
   bulkPosts,
   copyPost,
   createPost,
@@ -678,6 +679,58 @@ describe('resource service helpers', () => {
     expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
     expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
     expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
+  test('publishPost sends email delivery options as query params instead of request body', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      publishPost({}, fixtureIds.postId, {
+        newsletter: 'weekly',
+        email_only: true,
+        email_segment: 'status:paid',
+      }),
+    ).resolves.toMatchObject({
+      posts: [{ id: fixtureIds.postId }],
+    });
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [
+        {
+          status: 'published',
+          updated_at: expect.any(String),
+        },
+      ],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
+  test('buildEmailParams omits empty options and stringifies email_only', async () => {
+    expect(buildEmailParams()).toBeUndefined();
+    expect(buildEmailParams({})).toBeUndefined();
+    expect(buildEmailParams({ newsletter: 'weekly' })).toEqual({ newsletter: 'weekly' });
+    expect(
+      buildEmailParams({ newsletter: 'weekly', email_only: false, email_segment: 'status:paid' }),
+    ).toEqual({ newsletter: 'weekly', email_only: 'false', email_segment: 'status:paid' });
   });
 
   test('returns zero-op bulk result when no resources match', async () => {

@@ -2021,6 +2021,157 @@ describe('run + commands', () => {
     expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
   });
 
+  test('post publish forwards email delivery flags as query params', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'post',
+        'publish',
+        fixtureIds.postId,
+        '--newsletter',
+        'weekly',
+        '--email-only',
+        '--email-segment',
+        'status:paid',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [
+        {
+          status: 'published',
+          updated_at: expect.any(String),
+        },
+      ],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
+  test('post update forwards email delivery flags as query params', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'post',
+        'update',
+        fixtureIds.postId,
+        '--title',
+        'Updated',
+        '--status',
+        'published',
+        '--newsletter',
+        'weekly',
+        '--email-only',
+        'true',
+        '--email-segment',
+        'status:paid',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [
+        {
+          title: 'Updated',
+          status: 'published',
+          updated_at: expect.any(String),
+        },
+      ],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
+  test('post update accepts --email-only false to unset the flag', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'post',
+        'update',
+        fixtureIds.postId,
+        '--title',
+        'Cleared',
+        '--email-only',
+        'false',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('false');
+  });
+
   test('uses env output mode for json errors', async () => {
     process.env.GHST_OUTPUT = 'json';
     await expect(run(['node', 'ghst', 'api'])).resolves.toBe(ExitCode.USAGE_ERROR);

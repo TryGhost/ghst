@@ -358,15 +358,10 @@ export class GhostClient {
       });
     },
 
-    add: (
-      post: Record<string, unknown>,
-      source?: 'html',
-      params?: Record<string, string | number | boolean | undefined>,
-    ) =>
+    add: (post: Record<string, unknown>, source?: 'html') =>
       this.request<Record<string, unknown>>('POST', '/posts/', {
         body: { posts: [post] },
         source,
-        params,
       }),
 
     edit: (
