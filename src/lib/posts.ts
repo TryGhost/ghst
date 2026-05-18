@@ -4,6 +4,22 @@ import { ExitCode, GhstError } from './errors.js';
 import { collectAllPages } from './pagination.js';
 import type { GlobalOptions } from './types.js';
 
+export function buildEmailParams(
+  options: { newsletter?: string; email_only?: boolean; email_segment?: string } = {},
+): Record<string, string> | undefined {
+  const params: Record<string, string> = {};
+  if (options.newsletter) {
+    params.newsletter = options.newsletter;
+  }
+  if (options.email_segment) {
+    params.email_segment = options.email_segment;
+  }
+  if (options.email_only !== undefined) {
+    params.email_only = String(options.email_only);
+  }
+  return Object.keys(params).length > 0 ? params : undefined;
+}
+
 function getFirstPost(payload: Record<string, unknown>): Record<string, unknown> {
   const posts = payload.posts;
   if (!Array.isArray(posts) || posts.length === 0) {
@@ -137,12 +153,8 @@ export async function publishPost(
 ): Promise<Record<string, unknown>> {
   return updatePost(global, {
     id,
-    patch: {
-      status: 'published',
-      newsletter: options?.newsletter,
-      email_only: options?.email_only,
-      email_segment: options?.email_segment,
-    },
+    patch: { status: 'published' },
+    params: buildEmailParams(options),
   });
 }
 
@@ -156,27 +168,13 @@ export async function schedulePost(
     email_segment?: string;
   },
 ): Promise<Record<string, unknown>> {
-  // Ghost requires email-related fields as query parameters on the PUT
-  // endpoint for scheduled posts — passing them in the JSON body has no
-  // effect.  This differs from the publish transition where the body works.
-  const params: Record<string, string> = {};
-  if (options?.newsletter) {
-    params.newsletter = options.newsletter;
-  }
-  if (options?.email_segment) {
-    params.email_segment = options.email_segment;
-  }
-  if (options?.email_only !== undefined) {
-    params.email_only = String(options.email_only);
-  }
-
   return updatePost(global, {
     id,
     patch: {
       status: 'scheduled',
       published_at: at,
     },
-    params: Object.keys(params).length > 0 ? params : undefined,
+    params: buildEmailParams(options),
   });
 }
 

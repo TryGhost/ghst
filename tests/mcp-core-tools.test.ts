@@ -763,6 +763,85 @@ describe('mcp core tool registration', () => {
     expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
   });
 
+  test('ghost_post_publish forwards email delivery flags as query params', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+    const tool = tools.get('ghost_post_publish');
+
+    expect(tool, 'Tool ghost_post_publish should be registered').toBeDefined();
+    await tool?.handler({
+      id: fixtureIds.postId,
+      newsletter: 'weekly',
+      email_only: true,
+      email_segment: 'status:paid',
+    });
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [{ status: 'published', updated_at: expect.any(String) }],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
+  test('ghost_post_update forwards email delivery flags as query params', async () => {
+    const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, url, init }) => {
+        if (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`)) {
+          putRequests.push({
+            url: new URL(url.toString()),
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set(MCP_TOOL_GROUPS));
+    const tool = tools.get('ghost_post_update');
+
+    expect(tool, 'Tool ghost_post_update should be registered').toBeDefined();
+    await tool?.handler({
+      id: fixtureIds.postId,
+      status: 'published',
+      newsletter: 'weekly',
+      email_only: true,
+      email_segment: 'status:paid',
+    });
+
+    expect(putRequests).toHaveLength(1);
+    expect(putRequests[0]?.url.searchParams.get('newsletter')).toBe('weekly');
+    expect(putRequests[0]?.url.searchParams.get('email_only')).toBe('true');
+    expect(putRequests[0]?.url.searchParams.get('email_segment')).toBe('status:paid');
+    expect(putRequests[0]?.body).toMatchObject({
+      posts: [{ status: 'published', updated_at: expect.any(String) }],
+    });
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"newsletter"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_only"');
+    expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
+  });
+
   test('can register a narrow tool subset', () => {
     const { server, tools } = createRegistry();
     registerCoreTools(server as never, {}, new Set<McpToolGroup>(['site']));
