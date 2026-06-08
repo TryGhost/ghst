@@ -45,8 +45,8 @@ importers:
         specifier: 6.1.0
         version: 6.1.0
       ink:
-        specifier: 7.0.3
-        version: 7.0.3(@types/react@19.2.14)(react@19.2.7)
+        specifier: 7.0.5
+        version: 7.0.5(@types/react@19.2.14)(react@19.2.7)
       jose:
         specifier: 6.2.3
         version: 6.2.3
@@ -3288,8 +3288,8 @@ packages:
     resolution: {integrity: sha512-7PnF4oN3CvZF23ADhA5wRaYEQpJ8qygSkbtTXWBeXWXmEVRXK+1ITciHWwHhsjv1TmW0MgacIv6hEi5pX5NQdA==}
     engines: {node: '>=10'}
 
-  ink@7.0.3:
-    resolution: {integrity: sha512-5kxHkIj9+RuqCU3zyvP4qvYWNOSHP2TW/SHayHGHOmk87KwfVcZwvJGemi9ch+ci2gXUqerK/Eh2DGEDt5q45g==}
+  ink@7.0.5:
+    resolution: {integrity: sha512-zWNjGHQPxSeiSAmDUOq+QPQ6CfmMhmNi85vrJIuy4prafKKUSoZlXEy4wbM7LuLuF1pDURk7qvF4fxrQlLxv3w==}
     engines: {node: '>=22'}
     peerDependencies:
       '@types/react': '>=19.2.0'
@@ -3575,9 +3575,6 @@ packages:
       canvas:
         optional: true
 
-  linkify-it@5.0.0:
-    resolution: {integrity: sha512-5aHCbzQRADcdP+ATqnDuhhJ/MRIqDkZX5pyjFHRRysS8vZ5AbqGEoFIb6pYHPZ+L/OC2Lc+xT8uHVVR5CAK/wQ==}
-
   linkify-it@5.0.1:
     resolution: {integrity: sha512-wVoTjP4Q6R0NW5hiZkVJaFZPWgtXfoGF+6LucL3/FtiNjmcHhYjEr5f1Kqjirc1nBW07J/ZuRFumqr2oqccEWg==}
 
@@ -3646,10 +3643,6 @@ packages:
 
   markdown-it-sup@2.0.0:
     resolution: {integrity: sha512-5VgmdKlkBd8sgXuoDoxMpiU+BiEt3I49GItBzzw7Mxq9CxvnhE/k09HFli09zgfFDRixDQDfDxi0mgBCXtaTvA==}
-
-  markdown-it@14.1.1:
-    resolution: {integrity: sha512-BuU2qnTti9YKgK5N+IeMubp14ZUKUUw7yeJbkjtosvHiP0AZ5c8IAgEMk79D0eC8F23r4Ac/q8cAIFdm2FtyoA==}
-    hasBin: true
 
   markdown-it@14.2.0:
     resolution: {integrity: sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ==}
@@ -8264,7 +8257,7 @@ snapshots:
 
   ini@2.0.0: {}
 
-  ink@7.0.3(@types/react@19.2.14)(react@19.2.7):
+  ink@7.0.5(@types/react@19.2.14)(react@19.2.7):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.3.0
       ansi-escapes: 7.3.0
@@ -8505,10 +8498,6 @@ snapshots:
       htmlparser2: 10.1.0
       uhyphen: 0.2.0
 
-  linkify-it@5.0.0:
-    dependencies:
-      uc.micro: 2.1.0
-
   linkify-it@5.0.1:
     dependencies:
       uc.micro: 2.1.0
@@ -8565,15 +8554,6 @@ snapshots:
   markdown-it-sub@2.0.0: {}
 
   markdown-it-sup@2.0.0: {}
-
-  markdown-it@14.1.1:
-    dependencies:
-      argparse: 2.0.1
-      entities: 4.5.0
-      linkify-it: 5.0.0
-      mdurl: 2.0.0
-      punycode.js: 2.3.1
-      uc.micro: 2.1.0
 
   markdown-it@14.2.0:
     dependencies:
