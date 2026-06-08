@@ -11,8 +11,8 @@
 
 ## Runtime And Tooling
 
-- Node: `20.x`, `22.x`, `24.x` (`.nvmrc` defaults to `24`; `package.json` engines allow all three)
-- Package manager: `pnpm 10.x`
+- Node: `22.13+`, `24.x`, `26.x` (`.nvmrc` defaults to `24`; `package.json` engines allow all three)
+- Package manager: `pnpm 11.x`
 - Language: TypeScript (ESM)
 - Build: `tsup`
 - Test: `vitest`

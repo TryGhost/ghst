@@ -42,9 +42,9 @@ pnpm build
 
 ## Environment Requirements
 
-- Node.js `20.x`, `22.x`, or `24.x` (`.nvmrc` defaults to `24`; CI validates all three)
+- Node.js `22.13+`, `24.x`, or `26.x` (`.nvmrc` defaults to `24`; CI validates all three)
 - `corepack` enabled
-- `pnpm 10.x`
+- `pnpm 11.x`
 - A Ghost development or staging site - don’t run a local development build of `ghst` against a production Ghost instance with data you care about
 
 ## Install Dependencies
@@ -167,8 +167,8 @@ pnpm format:check
 CI reference:
 
 - Workflow: `.github/workflows/ci.yml`
-- Node: `20`, `22`, `24`
-- Package manager: `pnpm 10.x`
+- Node: `22`, `24`, `26`
+- Package manager: `pnpm 11.x`
 
 ## Ghost Fixture Workflow
 
