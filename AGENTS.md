@@ -34,6 +34,7 @@ pnpm build
 
 - Dev CLI: `pnpm dev --help`
 - CLI help: `node dist/index.js --help`
+- CLI version: `node dist/index.js -v`
 - Build: `pnpm build`
 - Typecheck: `pnpm typecheck`
 - Test: `pnpm test`

@@ -1,4 +1,5 @@
 import { realpathSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Command, CommanderError } from 'commander';
 import { registerApiCommands } from './commands/api.js';
@@ -26,12 +27,17 @@ import { registerUserCommands } from './commands/user.js';
 import { registerWebhookCommands } from './commands/webhook.js';
 import { ExitCode, GhstError, normalizeError, printError } from './lib/errors.js';
 
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json') as { version?: string };
+const PACKAGE_VERSION = packageJson.version ?? '0.0.0';
+
 export function buildProgram(): Command {
   const program = new Command();
 
   program
     .name('ghst')
-    .description('A modern CLI for Ghost CMS')
+    .description(`A modern CLI for Ghost CMS\nVersion: ${PACKAGE_VERSION}`)
+    .version(PACKAGE_VERSION, '-v, --version', 'Output version')
     .showHelpAfterError()
     .showSuggestionAfterError(true)
     .option('--json', 'Output JSON')

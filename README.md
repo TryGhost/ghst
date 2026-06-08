@@ -79,6 +79,7 @@ ghst post create --title "Launch" --markdown-file ./launch.md
 5. Get help:
 
 ```bash
+ghst -v
 ghst --help
 ghst <resource> --help
 ghst <resource> <action> --help
@@ -152,6 +153,7 @@ Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on st
 
 | Flag | Purpose |
 | --- | --- |
+| `-v`, `--version` | Print the installed `ghst` version |
 | `--json` | Emit JSON output for automation |
 | `--jq <filter>` | Apply jq-style extraction to JSON output |
 | `--site <alias>` | Use configured site alias |
