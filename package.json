@@ -62,8 +62,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.16",
     "@types/markdown-it": "14.1.2",
-    "@types/node": "25.8.0",
-    "@types/react": "19.2.14",
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.16",
     "@vitest/coverage-v8": "4.1.8",
     "tsup": "8.5.1",
     "tsx": "4.22.4",
