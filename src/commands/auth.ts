@@ -2,7 +2,13 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline/promises';
 import chalk from 'chalk';
 import type { Command } from 'commander';
+import ora from 'ora';
 import { generateStaffJwt, parseStaffAccessToken } from '../lib/auth.js';
+import {
+  type DiscoveredGhostSession,
+  discoverBrowserGhostSessions,
+  mintStaffTokenForSession,
+} from '../lib/browser-auth.js';
 import { GhostClient } from '../lib/client.js';
 import {
   deriveSiteAlias,
@@ -18,7 +24,8 @@ import { credentialRefForAlias, getCredentialStore } from '../lib/credentials.js
 import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { confirmDestructiveAction } from '../lib/prompts.js';
-import { isNonInteractive } from '../lib/tty.js';
+import { selectBrowserSession } from '../lib/session-picker.js';
+import { isNonInteractive, isStdoutTty } from '../lib/tty.js';
 
 type PromptFn = (question: string) => Promise<string>;
 type OpenUrlFn = (url: string) => Promise<void>;
@@ -136,8 +143,38 @@ async function openGhostAdminForLogin(adminOrigin: string, useColor: boolean): P
 }
 /* c8 ignore stop */
 
+type BrowserSessionDiscoveryFn = (version: string) => Promise<DiscoveredGhostSession[]>;
+
+// Default discovery seam. No-op under tests so suites that don't inject never
+// read real browser stores or pop a Keychain prompt.
+function defaultBrowserSessionDiscoveryFn(version: string): Promise<DiscoveredGhostSession[]> {
+  if (process.env.VITEST) {
+    return Promise.resolve([]);
+  }
+  return discoverBrowserGhostSessions(version);
+}
+
+type BrowserSessionTokenFn = (
+  session: DiscoveredGhostSession,
+  version: string,
+) => Promise<string | null>;
+
+// Default mint seam. No-op under tests so suites that don't inject never hit the
+// network; real minting is exercised via setBrowserSessionTokenForTests.
+function defaultBrowserSessionTokenFn(
+  session: DiscoveredGhostSession,
+  version: string,
+): Promise<string | null> {
+  if (process.env.VITEST) {
+    return Promise.resolve(null);
+  }
+  return mintStaffTokenForSession(session, version);
+}
+
 let promptFn: PromptFn = prompt;
 let openUrlFn: OpenUrlFn = openExternalUrl;
+let browserSessionDiscoveryFn: BrowserSessionDiscoveryFn = defaultBrowserSessionDiscoveryFn;
+let browserSessionTokenFn: BrowserSessionTokenFn = defaultBrowserSessionTokenFn;
 
 export function setPromptForTests(nextPrompt: PromptFn | null): void {
   promptFn = nextPrompt ?? prompt;
@@ -145,6 +182,71 @@ export function setPromptForTests(nextPrompt: PromptFn | null): void {
 
 export function setOpenUrlForTests(nextOpenUrl: OpenUrlFn | null): void {
   openUrlFn = nextOpenUrl ?? openExternalUrl;
+}
+
+export function setBrowserSessionDiscoveryForTests(next: BrowserSessionDiscoveryFn | null): void {
+  browserSessionDiscoveryFn = next ?? defaultBrowserSessionDiscoveryFn;
+}
+
+export function setBrowserSessionTokenForTests(next: BrowserSessionTokenFn | null): void {
+  browserSessionTokenFn = next ?? defaultBrowserSessionTokenFn;
+}
+
+interface BrowserImport {
+  urlInput: string; // origin of the chosen session (set even if minting failed)
+  staffTokenInput?: string; // present only when the token was minted
+  imported: boolean; // true when a usable token was imported
+}
+
+// Discovery-first browser login: search for logged-in sessions, let the user
+// pick one, and mint its staff token. Returns null when there's nothing to use
+// (no sessions, or the user chose to type a URL). Throws if the user cancels.
+async function importTokenFromBrowserSession(
+  apiVersion: string,
+  useColor: boolean,
+): Promise<BrowserImport | null> {
+  const spinner =
+    process.platform === 'darwin' && isStdoutTty()
+      ? ora('Searching for Ghost sessions in your browser...').start()
+      : null;
+  const sessions = await browserSessionDiscoveryFn(apiVersion).catch(() => []);
+  // Clear the spinner either way; if nothing was found we fall through to the
+  // URL prompt silently rather than showing a negative message.
+  spinner?.stop();
+  if (sessions.length === 0) {
+    return null;
+  }
+
+  const choice = await selectBrowserSession(sessions, { useColor, prompt: promptFn });
+  /* c8 ignore start -- cancel only reachable from the interactive selector */
+  if (choice === 'cancel') {
+    throw new GhstError('Operation cancelled.', {
+      exitCode: ExitCode.OPERATION_CANCELLED,
+      code: 'OPERATION_CANCELLED',
+    });
+  }
+  /* c8 ignore stop */
+  if (choice === 'url') {
+    return null;
+  }
+
+  // Mint the durable token only now, for the chosen session — the same
+  // create-if-absent the user's profile page does when they proceed.
+  const token = await browserSessionTokenFn(choice, apiVersion).catch(() => null);
+  if (!token) {
+    // Verified during discovery but minting failed (rare); keep the chosen
+    // origin so the user lands on the right site's manual flow.
+    /* c8 ignore next */
+    return { urlInput: choice.origin, imported: false };
+  }
+
+  const who = choice.user ? ` (${choice.user})` : '';
+  const message = `Imported your staff access token from ${choice.source}${who}`;
+  console.log('');
+  console.log(
+    useColor ? message.replace('staff access token', chalk.yellow('staff access token')) : message,
+  );
+  return { urlInput: choice.origin, staffTokenInput: token, imported: true };
 }
 
 function printLoginGuidance(useColor: boolean): void {
@@ -385,6 +487,10 @@ export function registerAuthCommands(program: Command): void {
     .option('--staff-token-env <name>', 'Read staff token from env var name')
     .option('--non-interactive', 'Disable prompts and require explicit credentials')
     .option(
+      '--no-browser-session',
+      'Skip importing a staff token from a logged-in browser session (macOS)',
+    )
+    .option(
       '--insecure-storage',
       'Allow plaintext credential storage when secure storage is unavailable',
     )
@@ -405,6 +511,21 @@ export function registerAuthCommands(program: Command): void {
         : undefined;
       let urlInput = options.url || global.url;
       let staffTokenInput = options.staffToken || global.staffToken || envStaffTokenInput;
+      const browserEnabled = options.browserSession !== false;
+      const apiVersion = process.env.GHOST_API_VERSION ?? 'v6.0';
+
+      // Discovery-first: when no URL/token was supplied, offer the logged-in
+      // browser sessions we can find so the user can pick one instead of typing
+      // a URL. Opt-out via --no-browser-session; falls through if none found.
+      let importedFromBrowser = false;
+      if (!nonInteractive && !urlInput && !staffTokenInput && browserEnabled) {
+        const result = await importTokenFromBrowserSession(apiVersion, global.color !== false);
+        if (result) {
+          urlInput = result.urlInput;
+          staffTokenInput = result.staffTokenInput ?? staffTokenInput;
+          importedFromBrowser = result.imported;
+        }
+      }
 
       if (nonInteractive) {
         if (!urlInput || !staffTokenInput) {
@@ -416,39 +537,42 @@ export function registerAuthCommands(program: Command): void {
             },
           );
         }
-      } else {
-        urlInput = urlInput || (await promptFn('Ghost URL (e.g. https://example.com): '));
+      } else if (!urlInput) {
+        urlInput = await promptFn('Ghost URL (e.g. https://example.com): ');
       }
 
-      const requestedOrigin = normalizeGhostUrl(urlInput ?? '');
-      const resolvedOrigin = await resolveGhostAdminOrigin(requestedOrigin);
-      urlInput = resolvedOrigin.resolvedOrigin;
+      // A discovered origin is already verified, so skip the redirect probe.
+      if (!importedFromBrowser) {
+        const requestedOrigin = normalizeGhostUrl(urlInput ?? '');
+        const resolvedOrigin = await resolveGhostAdminOrigin(requestedOrigin);
+        urlInput = resolvedOrigin.resolvedOrigin;
 
-      if (hasOriginChanged(resolvedOrigin.inputOrigin, resolvedOrigin.resolvedOrigin)) {
-        if (nonInteractive) {
-          throw new GhstError(
-            `Ghost Admin discovery resolved to '${resolvedOrigin.resolvedOrigin}' instead of '${resolvedOrigin.inputOrigin}'. Re-run with --url ${resolvedOrigin.resolvedOrigin}.`,
-            {
-              exitCode: ExitCode.USAGE_ERROR,
-              code: 'USAGE_ERROR',
-            },
+        if (hasOriginChanged(resolvedOrigin.inputOrigin, resolvedOrigin.resolvedOrigin)) {
+          if (nonInteractive) {
+            throw new GhstError(
+              `Ghost Admin discovery resolved to '${resolvedOrigin.resolvedOrigin}' instead of '${resolvedOrigin.inputOrigin}'. Re-run with --url ${resolvedOrigin.resolvedOrigin}.`,
+              {
+                exitCode: ExitCode.USAGE_ERROR,
+                code: 'USAGE_ERROR',
+              },
+            );
+          }
+
+          const shouldContinue = await confirmRedirectedOrigin(
+            resolvedOrigin.inputOrigin,
+            resolvedOrigin.resolvedOrigin,
+            global.color !== false,
           );
-        }
-
-        const shouldContinue = await confirmRedirectedOrigin(
-          resolvedOrigin.inputOrigin,
-          resolvedOrigin.resolvedOrigin,
-          global.color !== false,
-        );
-        if (!shouldContinue) {
-          throw new GhstError('Operation cancelled.', {
-            exitCode: ExitCode.OPERATION_CANCELLED,
-            code: 'OPERATION_CANCELLED',
-          });
+          if (!shouldContinue) {
+            throw new GhstError('Operation cancelled.', {
+              exitCode: ExitCode.OPERATION_CANCELLED,
+              code: 'OPERATION_CANCELLED',
+            });
+          }
         }
       }
 
-      if (!nonInteractive) {
+      if (!nonInteractive && !importedFromBrowser) {
         printLoginGuidance(global.color !== false);
         await promptFn('Press Enter to Continue...');
         await openGhostAdminForLogin(urlInput, global.color !== false);
@@ -457,18 +581,40 @@ export function registerAuthCommands(program: Command): void {
         }
       }
 
-      parseStaffAccessToken(staffTokenInput);
-
-      const client = new GhostClient({
-        url: urlInput,
-        staffToken: staffTokenInput,
-        version: process.env.GHOST_API_VERSION ?? 'v6.0',
-      });
-
-      await client.siteInfo();
+      try {
+        parseStaffAccessToken(staffTokenInput);
+        await new GhostClient({
+          url: urlInput,
+          staffToken: staffTokenInput,
+          version: apiVersion,
+        }).siteInfo();
+      } catch (error) {
+        // An auto-imported token that fails validation (e.g. it expired between
+        // read and use) must not be worse than the manual flow, so fall back to
+        // the paste flow instead of failing the command.
+        if (!importedFromBrowser || nonInteractive) {
+          throw error;
+        }
+        const notice = 'That browser session could not be used; continue in Ghost Admin instead.';
+        console.log('');
+        console.log(global.color === false ? notice : chalk.yellow(notice));
+        importedFromBrowser = false;
+        printLoginGuidance(global.color !== false);
+        await promptFn('Press Enter to Continue...');
+        await openGhostAdminForLogin(urlInput, global.color !== false);
+        staffTokenInput = await promptFn('Ghost Staff Access Token: ');
+        parseStaffAccessToken(staffTokenInput);
+        await new GhostClient({
+          url: urlInput,
+          staffToken: staffTokenInput,
+          version: apiVersion,
+        }).siteInfo();
+      }
 
       const config = await readUserConfig();
-      const alias = options.site ?? deriveSiteAlias(urlInput);
+      // `--site` is declared both globally and on this subcommand; honour
+      // either placement before falling back to deriving from the URL.
+      const alias = options.site ?? global.site ?? deriveSiteAlias(urlInput);
       const persisted = await persistSiteCredential(
         alias,
         staffTokenInput,

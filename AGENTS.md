@@ -108,6 +108,7 @@ pnpm build
 - `comment get` uses Ghost Admin's moderation read include set, and `comment thread` mirrors the Admin moderation sidebar by combining the selected comment read with the filtered thread query.
 - `comment hide|show|delete` map to Ghost Admin comment status transitions (`hidden`, `published`, `deleted`).
 - Destructive commands require the global `--enable-destructive-actions` flag; `--yes` only skips confirmation where confirmation is still required.
+- `auth login` on macOS offers to import a staff token from a browser you are already signed into Ghost with (Chromium-family, Firefox, and Safari): it verifies discovered sessions with a read-only request and only mints the token for the one you pick. `--no-browser-session` forces the manual paste flow; the lookup is macOS-only and the flag is a no-op on other platforms.
 - `auth logout` requires `--enable-destructive-actions` when removing configured sites and confirmation when removing all configured sites; non-interactive all-site removal also requires `--yes`.
 - `auth link` requires `--enable-destructive-actions` and confirmation before replacing an existing project link; non-interactive use requires `--yes`, and relinking updates the discovered project config within the enclosing repo.
 - Interactive destructive confirmations emit `GHST_AGENT_NOTICE:` lines on stderr instructing cooperative agents to ask the user for approval before continuing.

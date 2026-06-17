@@ -2,7 +2,12 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { setOpenUrlForTests, setPromptForTests } from '../src/commands/auth.js';
+import {
+  setBrowserSessionDiscoveryForTests,
+  setBrowserSessionTokenForTests,
+  setOpenUrlForTests,
+  setPromptForTests,
+} from '../src/commands/auth.js';
 import { setMcpRunnersForTests } from '../src/commands/mcp.js';
 import { setThemeDevRunnerForTests, setThemeValidatorForTests } from '../src/commands/theme.js';
 import { setWebhookListenRunnerForTests } from '../src/commands/webhook.js';
@@ -68,6 +73,8 @@ describe('run + commands', () => {
   afterEach(async () => {
     setPromptForTests(null);
     setOpenUrlForTests(null);
+    setBrowserSessionDiscoveryForTests(null);
+    setBrowserSessionTokenForTests(null);
     setPromptHandlerForTests(null);
     setMcpRunnersForTests(null);
     setThemeDevRunnerForTests(null);
@@ -259,6 +266,112 @@ describe('run + commands', () => {
     expect(openedUrls).toEqual(['https://prompted.ghost.io/ghost/#/my-profile']);
 
     delete process.env.MY_GHOST_KEY;
+  });
+
+  test('lists discovered browser sessions and logs in with the selected one', async () => {
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+    const prompts: string[] = [];
+    setPromptForTests(async (question) => {
+      prompts.push(question);
+      return '1';
+    });
+    setBrowserSessionDiscoveryForTests(async () => [
+      {
+        origin: 'https://picked.ghost.io',
+        label: 'picked.ghost.io',
+        source: 'Chrome · Renato',
+        user: 'Renato',
+        cookieValue: 's%3Apicked.sig',
+      },
+      {
+        origin: 'http://localhost:2368',
+        label: 'localhost:2368',
+        source: 'Chrome · Renato',
+        user: 'Renato',
+        cookieValue: 's%3Alocal.sig',
+      },
+    ]);
+    // The token is minted only after the user picks a session.
+    setBrowserSessionTokenForTests(async () => KEY);
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+
+    // Picked a session, so no URL prompt, no "Press Enter", no profile open.
+    expect(openedUrls).toEqual([]);
+    expect(prompts).toEqual(['Select a session [1-2], or press Enter to type a URL: ']);
+  });
+
+  test('falls back to typing a URL when no discovered session is selected', async () => {
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+    setBrowserSessionDiscoveryForTests(async () => [
+      {
+        origin: 'https://picked.ghost.io',
+        label: 'picked.ghost.io',
+        source: 'Chrome · Renato',
+        user: null,
+        cookieValue: 's%3Apicked.sig',
+      },
+    ]);
+    // Picker selection (Enter = type a URL), URL, "Press Enter", token.
+    const answers = ['', 'https://typed.ghost.io', '', KEY];
+    setPromptForTests(async () => answers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual(['https://typed.ghost.io/ghost/#/my-profile']);
+  });
+
+  test('skips the browser import with --no-browser-session and uses the paste flow', async () => {
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+    // Even though a session is discoverable, --no-browser-session skips it.
+    setBrowserSessionDiscoveryForTests(async () => [
+      {
+        origin: 'https://nobrowser.ghost.io',
+        label: 'nobrowser.ghost.io',
+        source: 'Chrome · Renato',
+        user: 'Renato',
+        cookieValue: 's%3Ax.sig',
+      },
+    ]);
+    const answers = ['https://nobrowser.ghost.io', '', KEY];
+    setPromptForTests(async () => answers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login', '--no-browser-session'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(openedUrls).toEqual(['https://nobrowser.ghost.io/ghost/#/my-profile']);
+  });
+
+  test('falls back to the paste flow when an imported token fails validation', async () => {
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+    setBrowserSessionDiscoveryForTests(async () => [
+      {
+        origin: 'http://localhost:2368',
+        label: 'localhost:2368',
+        source: 'Chrome · Renato',
+        user: 'Renato',
+        cookieValue: 's%3Ax.sig',
+      },
+    ]);
+    // The minted token is invalid, so validation throws and we fall back.
+    setBrowserSessionTokenForTests(async () => 'not-a-valid-token');
+    // Picker selection, then the manual paste flow: "Press Enter", token.
+    const answers = ['1', '', KEY];
+    setPromptForTests(async () => answers.shift() ?? '');
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.SUCCESS);
+    expect(openedUrls).toEqual(['http://localhost:2368/ghost/#/my-profile']);
   });
 
   test('shows project link in auth list while leaving auth status unchanged', async () => {

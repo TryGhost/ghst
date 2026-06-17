@@ -94,6 +94,10 @@ Interactive auth flow:
 3. Create or copy a staff access token from your user profile.
 4. Paste `Ghost API URL` and `Ghost Staff Access Token`.
 
+On macOS, `ghst auth login` first offers to import a token from a browser you are
+already signed into Ghost with, so you can skip the copy/paste. Use
+`--no-browser-session` to force the manual flow. See `ghst auth login --help`.
+
 Non-interactive auth for CI/scripts:
 
 ```bash
