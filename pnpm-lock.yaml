@@ -54,8 +54,8 @@ importers:
         specifier: 14.2.0
         version: 14.2.0
       ora:
-        specifier: 9.4.0
-        version: 9.4.0
+        specifier: 9.4.1
+        version: 9.4.1
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -3781,8 +3781,8 @@ packages:
     resolution: {integrity: sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ==}
     engines: {node: '>=18'}
 
-  ora@9.4.0:
-    resolution: {integrity: sha512-84cglkRILFxdtA8hAvLNdMrtBpPNBTrQ9/ulg0FA7xLMnD6mifv+enAIeRmvtv+WgdCE+LPGOfQmtJRrVaIVhQ==}
+  ora@9.4.1:
+    resolution: {integrity: sha512-6VlU9MLXbjVQD04AZCMX28hVtA5bUoadvUqO76MUCVA0ilwJbMiHsITRPfyVm6p/BC0Av/BXMujx39WCe1LEqw==}
     engines: {node: '>=20'}
 
   p-cancelable@4.0.1:
@@ -8404,7 +8404,7 @@ snapshots:
     dependencies:
       mimic-function: 5.0.1
 
-  ora@9.4.0:
+  ora@9.4.1:
     dependencies:
       chalk: 5.6.2
       cli-cursor: 5.0.0
