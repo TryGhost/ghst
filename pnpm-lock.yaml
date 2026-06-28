@@ -42,8 +42,8 @@ importers:
         specifier: 7.0.0
         version: 7.0.0
       gscan:
-        specifier: 6.4.0
-        version: 6.4.0
+        specifier: 6.4.1
+        version: 6.4.1(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4))
       ink:
         specifier: 7.1.0
         version: 7.1.0(@types/react@19.2.17)(react@19.2.7)
@@ -96,6 +96,17 @@ packages:
   '@alcalzone/ansi-tokenize@0.3.0':
     resolution: {integrity: sha512-p+CMKJ93HFmLkjXKlXiVGlMQEuRb6H0MokBSwUsX+S6BRX8eV5naFZpQJFfJHjRZY0Hmnqy1/r6UWl3x+19zYA==}
     engines: {node: '>=18'}
+
+  '@apm-js-collab/code-transformer-bundler-plugins@0.5.0':
+    resolution: {integrity: sha512-YxLBY5nGlurL7QeJLq6e5g0ouBpAp0pwgyA/5rHXEXwhiPLn9ZHbT+Y2LlP90GT872cSocfjWRYu/fnpuBudNQ==}
+    engines: {node: '>=18.0.0'}
+
+  '@apm-js-collab/code-transformer@0.15.0':
+    resolution: {integrity: sha512-XmXYVs8CzJ1Aj79noVbn2weUO/XWtRyURpGqx7aU7DOXlUQhR0WKOQNF0okh7PCeY37vxf7kU3v57OAkEPm3ww==}
+    hasBin: true
+
+  '@apm-js-collab/tracing-hooks@0.10.0':
+    resolution: {integrity: sha512-2/Z3NTewJTruUkmsSnBC5bJlLNUd9keuD1OLlTEpim4FyLhm6m2Rnfv+wrFdUvFfhmH8CRdiDZBqBrn+wyaGuA==}
 
   '@babel/helper-string-parser@7.29.7':
     resolution: {integrity: sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw==}
@@ -1166,12 +1177,16 @@ packages:
     peerDependencies:
       selderee: ~0.12.0
 
-  '@sentry/core@10.58.0':
-    resolution: {integrity: sha512-bkIbh2c6dzwhrWn/FGWu7j8hf6TAat2XxpkGM91LiN09fLYUXIMwcohVsXqze5l2cq35TnvqmSROAbRNr27GVw==}
+  '@sentry/conventions@0.12.0':
+    resolution: {integrity: sha512-z1JQrl/1SLY+8wpzvork6vl+fpsg/oCCxM7HWWhUnI/R+OGNyoIzieQuggX3uUMY7NBtp8UWCQx6FeFazzOF9g==}
+    engines: {node: '>=14'}
+
+  '@sentry/core@10.59.0':
+    resolution: {integrity: sha512-QeG7XZL5j6CkToYCE7OwCerb/r742Tjj9p1BBohBKcypYTPRuqfD+A3FeUj7pk5CGO6Vj1/gOAmdbuuNbR51dQ==}
     engines: {node: '>=18'}
 
-  '@sentry/node-core@10.58.0':
-    resolution: {integrity: sha512-7dTbYuoaSwSmF2GWDl7KK+sXQL8iqaZeZ2I/aFm+SvPZLckZF3OGFb2VsluWsSXQLnxtxPX9QP93viyK+VZsuA==}
+  '@sentry/node-core@10.59.0':
+    resolution: {integrity: sha512-qFbepzntYhDleNG9ZCZWCSoAJK0Nsx+UJxsuiygaaAf1rJMj95RVckLyslhY86pyDLVATNMmWm2elm6etgKaJw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
@@ -1179,7 +1194,6 @@ packages:
       '@opentelemetry/exporter-trace-otlp-http': '>=0.57.0 <1'
       '@opentelemetry/instrumentation': '>=0.57.1 <1'
       '@opentelemetry/sdk-trace-base': ^1.30.1 || ^2.1.0
-      '@opentelemetry/semantic-conventions': ^1.39.0
     peerDependenciesMeta:
       '@opentelemetry/api':
         optional: true
@@ -1191,25 +1205,27 @@ packages:
         optional: true
       '@opentelemetry/sdk-trace-base':
         optional: true
-      '@opentelemetry/semantic-conventions':
-        optional: true
 
-  '@sentry/node@10.58.0':
-    resolution: {integrity: sha512-KICgacBS+I/eWzFlAembutSwFwy0WVSrGp8UMV9n1XZqqu4EBTlALRsbLNlDSv61UgH85L9L3vk91tgq6nJXAA==}
+  '@sentry/node@10.59.0':
+    resolution: {integrity: sha512-qzqbP6OVoMijlDBUxWtbvVF5j73+vyzGFi+yFIslhVvzBj97TFkIeP3TpBLsmu/0L5ZvxpQCCEmzJ677tFkq/g==}
     engines: {node: '>=18'}
 
-  '@sentry/opentelemetry@10.58.0':
-    resolution: {integrity: sha512-qKOGVmt02wDaq7E70VekG8Z9XM641trJPoTHSeVUfGaXVcmGc46ZldTNtfWbxJq/8f/fge2pap60gn066ido2Q==}
+  '@sentry/opentelemetry@10.59.0':
+    resolution: {integrity: sha512-wV9/HR9btrNhSkJC2S0urqsD9pE4K0f6AmdfTK3qhH505mLoyV4ekTG66hdDR9xD2zOYCm58CNzaK+336zu3Gg==}
     engines: {node: '>=18'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
       '@opentelemetry/core': ^1.30.1 || ^2.1.0
       '@opentelemetry/sdk-trace-base': ^1.30.1 || ^2.1.0
-      '@opentelemetry/semantic-conventions': ^1.39.0
 
-  '@sentry/server-utils@10.58.0':
-    resolution: {integrity: sha512-PywIl2jvl+tO5R4j+n72Lcf3ItanHcaMN/oL1U9ZHE8icaT2zpo2W4uOaslpQeQvqPC24HGZ3BW2etzsCFQbag==}
+  '@sentry/server-utils@10.59.0':
+    resolution: {integrity: sha512-mR3fWaU7uGxIstRba6YO+/6V3qIa7432F7/U8EWHry+dY4C9DWAVG90E2GCzeD2MwLSP0tB25i8p1TWTGiQgVg==}
     engines: {node: '>=18'}
+    peerDependencies:
+      vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
+    peerDependenciesMeta:
+      vite:
+        optional: true
 
   '@simple-dom/document@1.4.0':
     resolution: {integrity: sha512-/RUeVH4kuD3rzo5/91+h4Z1meLSLP66eXqpVAw/4aZmYozkeqUkMprq0znL4psX/adEed5cBgiNJcfMz/eKZLg==}
@@ -2014,17 +2030,17 @@ packages:
   '@tryghost/bunyan-rotating-filestream@0.0.7':
     resolution: {integrity: sha512-dswM+dxG8J7WpVoSjzAdoWXqqB5Dg0C2T7Zh6eoUvl5hkA8yWWJi/fS4jNXlHF700lWQ0g8/t+leJ7SGSWd+aw==}
 
-  '@tryghost/config@2.3.0':
-    resolution: {integrity: sha512-TyUb4EriVM/vabO0jD3throcc1FswXxe7PcZeTUAMACSbhzDRM2RuHgorIAEnHk8haSt1g5RsU+mLP6YbEvRTQ==}
+  '@tryghost/config@2.3.1':
+    resolution: {integrity: sha512-fTAJPbBEOQgb7K2XXt3M9YDpfLrLPpbg/FrNZBOWoz6g4T/jtqPE11EnPVvIan/8dhgjC3uORcCh9kF/JuOmnA==}
 
   '@tryghost/debug@2.2.3':
     resolution: {integrity: sha512-twS9SJX83BgbmB62VJBKMLCpG3QAvA6/9OgWH1p/L3rtqiQ5RGVQPmbhEiswWxtIP3PBY9UyETIB/msCnLozXA==}
 
-  '@tryghost/debug@2.3.0':
-    resolution: {integrity: sha512-34dj+En38rKU+CE5Xc9t3Z7bXVGUI8jSL6x4ohBkkfakyGbnC7BK7e7RIhNO7d4+SGMsgmoR2PYga6X5CRwnGA==}
+  '@tryghost/debug@2.3.1':
+    resolution: {integrity: sha512-m35yRGwmmmvHWzs42qJnf0duCvi5Yd456bPa436Gcldv/rxK5YMPehtGDrwjHstJ4K2If0oguXsdHJf3tjgAjw==}
 
-  '@tryghost/elasticsearch@5.3.0':
-    resolution: {integrity: sha512-x/MHt9ykEv2gqdUXKt3OqkSA+PVD/ZcA6BXJRg/jV024KfzcITk95oBg65ebuDwH/Gtb/YMbP+/YBNKRmMnGdg==}
+  '@tryghost/elasticsearch@5.3.1':
+    resolution: {integrity: sha512-QXDj2KxDfBLRWNAQxqMLLGNb/Q7ySd0u2C8mgwYeaxaIkCCpLF7Bw3jHVwjjsA8agWVN1dUmItmptfNXTk/6yw==}
 
   '@tryghost/errors@2.2.1':
     resolution: {integrity: sha512-7zR5Wu9UMalFZbWZs3nN3MzJg6mKek11W51AP8UGz5sN4fQofoeLwXHLI/AuT7nDuWiJZHsJcI1EGJg0iQHV3g==}
@@ -2032,11 +2048,11 @@ packages:
   '@tryghost/errors@3.2.4':
     resolution: {integrity: sha512-hJim7ItPnkb3dQLVpioNk6X66k0rcy+bLMWR6nyViz2hjeNlkP4+/w/XtdwdA9PYJlJSGw3GGJigCw5lPIbxVg==}
 
-  '@tryghost/errors@3.3.0':
-    resolution: {integrity: sha512-kDdCTuZeS38IWp0LwmmFX+ZtvT7j9c6GjJ+JYDStjSXr/63JB76BZIs5mL/5rTs1AcSe5AaaUIwSZlxrxtbu/A==}
+  '@tryghost/errors@3.3.1':
+    resolution: {integrity: sha512-/TbbCWtmNbc6JY3lR7g0wL+RxBndbFCv1O4BrQ/HxrZCi3DFXUs3KUh2jJeOoWTtisqqdRkR1Z76NluKle3fQg==}
 
-  '@tryghost/http-stream@2.3.0':
-    resolution: {integrity: sha512-dQbyB12FczKsRIcCjjtilsioFXsB4hl4TgQQFCxR94M17rxltC2VXrnOVWWqyfF9chUpx4SDgBS/qnNBSFUMow==}
+  '@tryghost/http-stream@2.3.1':
+    resolution: {integrity: sha512-Ecjsg9vHXXOe8HYw/FZET58/u8NygsBpsNERcQoaR4/tDclWICfvX01vtUuG4pkns9lGeYFc6c2us0rF327yaQ==}
 
   '@tryghost/image-transform@1.4.16':
     resolution: {integrity: sha512-9JCxWud8LrQNUb6Ec5vXau2Ue7JpIK4VKTdFPEbZW04h1d5cKBckZFTFWdHQJl2TLlOMqWkuWFCd2xMnS9x67w==}
@@ -2052,8 +2068,8 @@ packages:
   '@tryghost/kg-utils@1.1.2':
     resolution: {integrity: sha512-pATOtb4JhSm+Tx8+7FxHdEkBIi8h43ZffPQu1Mr8bdHVLzN4FalB4fHukRYy53JZc3UEtxSVBZHeg7Q2ZPFR1Q==}
 
-  '@tryghost/logging@5.1.0':
-    resolution: {integrity: sha512-0/w1bZOEmbKWpCi6Q9vyQ0a1vOxLMq04lLDhc4jo1t2ra5mazCGE2I0z7ixAUlrY7vm1vJAR9SpMFA+uInJiBQ==}
+  '@tryghost/logging@5.1.1':
+    resolution: {integrity: sha512-LZHvGN9uVtODK43pCYzkyCWyQoiHJLXQ7XkuWCpvPPY0Ghpyer4GDhPCKgvASZQOx5vgjVGEKee7tk6H7daP0g==}
 
   '@tryghost/mg-fs-utils@0.26.0':
     resolution: {integrity: sha512-ouSTsdQZ4aM6RCj25fdEcC8L8JLt4BLd1Lezv/Yp1e8uk+UxJNCsKk1EWAhuENFPwcK31zUmk4zIvDdcTUy8Sg==}
@@ -2094,23 +2110,23 @@ packages:
   '@tryghost/nql@0.13.1':
     resolution: {integrity: sha512-TQRDur1miWd2ORa3XOhtw8Na8AUj/8h+epNMDgiutOyAH/RTw+d+ksLndMnm/Z9MhnKg7kFy7398peKZ7nF8bQ==}
 
-  '@tryghost/pretty-cli@3.3.0':
-    resolution: {integrity: sha512-p0VMdmjiqKLpWIyhcqakNLQEFBeL8Imw3eWUThIp1t5jVRH4xD7BaWkPJquLGcFiSYpJwITFf4ZBbC/VSz8MIg==}
+  '@tryghost/pretty-cli@3.3.1':
+    resolution: {integrity: sha512-P7/GffeBG0grjmFxMWEeVFONL6HGt1mWUZvI5G36mhlxC/AXSWCSS6+qiQU91ZfenTwBrP6LZRC9Pyt0gqfzLg==}
 
-  '@tryghost/pretty-stream@2.3.0':
-    resolution: {integrity: sha512-V9FkLfKxRdvvuSddyKkM3L0DXrtIVDDuDhZ8iJjBuH3Ds3BeoPnXT5TcO++5ovU1jBp7qpnLx2mWBqLgQQtuCw==}
+  '@tryghost/pretty-stream@2.3.1':
+    resolution: {integrity: sha512-zRkWdT9OPNxwFCADMfTqo/dUCTwz0GME3qEF66ads/6NHo4fFwO+zoboNZLDeDMYOm+20T4dccTvzEe0m7M80A==}
 
-  '@tryghost/request@3.3.0':
-    resolution: {integrity: sha512-q+nypZTs+mG+tuYUUGO2IgMaQF+YiOf6KmBDG7OmV0Mz4IrqjujcXxgyeXYVtwppMDl91C9aVD/MHCHbf2Of9Q==}
+  '@tryghost/request@3.3.1':
+    resolution: {integrity: sha512-GZoGmPuM7LZqBn1PZW/Q+lgoBei8AWEPAZ8PkZ0eu7rGCOHzRi/XQgCfMhN0MUvq3Lv9iItMtnZd5LMvgrcS7Q==}
 
   '@tryghost/root-utils@2.2.3':
     resolution: {integrity: sha512-oR8ryyqF4wrxWprPljfYcHhx8W0yCz3tifniTEjhOVfK9C3bqVoDi2eQ1DWOHcd8sU/Afv0hG9wMefPLD53PFg==}
 
-  '@tryghost/root-utils@2.3.0':
-    resolution: {integrity: sha512-SI0fKjrLwWtGC9h8Dd+FqWwd57blA1G/94/4SgEnUXTWKuYDiNWyFvKkQQv4cs8ufsbOToMq/drrMbj9oGkIXA==}
+  '@tryghost/root-utils@2.3.1':
+    resolution: {integrity: sha512-1g0HskTTDJzn3CzcEWhd4aKtcmPm3IztD7cyfQQiG4QX+6gfpPOkYk7Y5gDOwTKAYtfor0nc8npSY90vvIj93A==}
 
-  '@tryghost/server@3.1.0':
-    resolution: {integrity: sha512-pHK7anoSNOiiWlMKkHEyr06Os4SYi0bxh7dThV18/etWwXj5Ix7p8LIe6HQSn9BKu3tUyYsD55kAGFm7l5MrIg==}
+  '@tryghost/server@3.1.1':
+    resolution: {integrity: sha512-5OUfXOXSuSuDUVpMDbor4BlPaGvoETX0OlHtyMgqAvnRseo+nKFqtB3qBlOFYTpjCIVo9kj6ooxmQi3MzGdwLw==}
 
   '@tryghost/string@0.3.4':
     resolution: {integrity: sha512-eI8B3lEgfv8RQFbQnP7H4KnlhrDkqrh+lAcNLXHyUAoqb5MwqlrHAIAQZxpl5CLW9agBJ8w1UO7ZrcseHEL8Ww==}
@@ -2118,23 +2134,23 @@ packages:
   '@tryghost/string@0.3.5':
     resolution: {integrity: sha512-Ov2UYOuU5QutDo/UECtkhHR3jdT4R/aNxzKFk0iaH0yiwxLnlqEB4QBBVnYYIN8zECNAazRzkygtdFSlSkuaoA==}
 
-  '@tryghost/tpl@2.3.0':
-    resolution: {integrity: sha512-/AFHJLd5U6MYWlIbQ1AdAqa5vozLbiWcItdN6XJFpjCdDPHbL9zTtoChdrX8CqP4/8ZcNLZPAJ1w5PiAaF3twg==}
+  '@tryghost/tpl@2.3.1':
+    resolution: {integrity: sha512-qqa2SvhnBVKFYN+G4hfj2cYZuZXINBDyJ9cTzNBtev/FRNUKniyGarPKAkyb6ZBtvp3Nqlmyvrqe+SFoqHcfrQ==}
 
   '@tryghost/url-utils@5.2.4':
     resolution: {integrity: sha512-Q/8D3/+d9I/SF2XCIUR0mBDeKbeEz8VchtgiasOCzuKPddUvACZ6O1DnEosxlDQ+2B9BjPyVp15VoqAkgWRR/Q==}
 
-  '@tryghost/validator@3.2.0':
-    resolution: {integrity: sha512-wvAvqkiTHzuKiJzxFn/UHin/6ltq97+8IYorE065rRh2bJ+UZPMHahmkmbIBSz1HUWYfNW0jLQeyS1m9nv7GIg==}
+  '@tryghost/validator@3.2.1':
+    resolution: {integrity: sha512-5EaYZzn4HKNJMs/Y4tsWJ4a25xR1yZGHxVlvBEaiFGoIB9sZJJRE2gd/U6SDnvexvsNG8dyTkDWvKU5vvET1AA==}
 
-  '@tryghost/version@2.3.0':
-    resolution: {integrity: sha512-Q8dYk1oeXCGv13+sfph94LztrzqHpiV3VLkwt8buN7OLHix/QUaOZ+E+cTf2YlVT5j2Jazl15WjFOB7YWUnmpA==}
+  '@tryghost/version@2.3.1':
+    resolution: {integrity: sha512-LkUpfUOWbrX2GiQ/aykjKXpdxeCn+LZJnIHFqRXKv+VQy71IQKYXD3gf0wBMY2NPcnOpDRWrLg8gj9qFIwg/QA==}
 
   '@tryghost/zip@3.3.4':
     resolution: {integrity: sha512-VBpjokl+4iTueQfkHFWS18GNMPONgx8g2MMVDYPr2Dgi33Gv0qfbBN655cw8b8K3tYVQMxFPCyqDCOsQw2Anyw==}
 
-  '@tryghost/zip@3.4.0':
-    resolution: {integrity: sha512-H4DnUK1gtSyGAtZwDlvsUF1D0qK8LpIa88ZY2mknopKenrYb52IfY6mHciTM7pR3/TGDcYI14LEMqJhbZlgMng==}
+  '@tryghost/zip@3.5.0':
+    resolution: {integrity: sha512-igHHPyBasmo+MWM+l8qtWWX/cdHlAQps5HbCfESi4zGPlkTzuScHfmFAnuXsCx+MZKP5LozgnQHOVIf6jkaU8A==}
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
@@ -2313,6 +2329,10 @@ packages:
 
   ast-v8-to-istanbul@1.0.4:
     resolution: {integrity: sha512-0bC0/4bTSrnwdhU3IsZDwEdojvuPrSg59OYZfKsLRtJZ0u8VBx9DebfqqG8bRdCC0I7vjgxmPi41P0lpkhJHtA==}
+
+  astring@1.9.0:
+    resolution: {integrity: sha512-LElXdjswlqjWrPpJFg1Fx4wpkOCxj1TDHlSV4PlaRxHGWko024xICaa97ZkMfs6DRKlCguiAI+rbXv5GWwXIkg==}
+    hasBin: true
 
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
@@ -2862,6 +2882,14 @@ packages:
     resolution: {integrity: sha512-UpzcLCXolUWcNu5HtVMHYdXJjArjsF9C0aNnquZYY4uW/Vu0miy5YoWvbV345HauVvcAUnpRuhMMcqTcGOY2+w==}
     engines: {node: '>=8'}
 
+  esquery@1.7.0:
+    resolution: {integrity: sha512-Ap6G0WQwcU/LHsvLwON1fAQX9Zp0A2Y6Y/cJBl9r/JbW90Zyg4/zbG6zzKa2OTALELarYHmKu0GhpM5EO+7T0g==}
+    engines: {node: '>=0.10'}
+
+  estraverse@5.3.0:
+    resolution: {integrity: sha512-MMdARuVEQziNTeJD8DgMqmhwR11BRQ/cBP+pLtYdSTnf3MIO8fFeiINEbX36ZdNlfU/7A9f3gUw49B3oQsvwBA==}
+    engines: {node: '>=4.0'}
+
   estree-walker@3.0.3:
     resolution: {integrity: sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==}
 
@@ -3086,8 +3114,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  gscan@6.4.0:
-    resolution: {integrity: sha512-yy+3qI+zGknwlO95kbEJ0mgAMJX5MX1w9m5vqdpAFQvA4Z7e6jdmRq5a/mxmLlB/6/a9TUMv+IFJSf5mBVT4QA==}
+  gscan@6.4.1:
+    resolution: {integrity: sha512-AhhNc+X8ZA8oTjCxW5eIHoK/OWZgzmW+lVreD+6fnBU4HEIy90aliXKtm72YUlDi03FHo8oMk0zWlFVpp3g1aA==}
     engines: {node: ^22.13.1 || ^24.0.0}
     hasBin: true
 
@@ -3555,6 +3583,10 @@ packages:
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
+
+  meriyah@6.1.4:
+    resolution: {integrity: sha512-Sz8FzjzI0kN13GK/6MVEsVzMZEPvOhnmmI1lU5+/1cGOiK3QUahntrNNtdVeihrO7t9JpoH75iMNXg6R6uWflQ==}
+    engines: {node: '>=18.0.0'}
 
   methods@1.1.2:
     resolution: {integrity: sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==}
@@ -4029,6 +4061,9 @@ packages:
   selderee@0.12.0:
     resolution: {integrity: sha512-b1YMh3+DHZp59DLna3qVwQ5iOla/nrI6mLBNW02XxU77M3046Df6VLkoaJyFz20VsGIG5kkp+FK0kg4K4HnUFw==}
 
+  semifies@1.0.0:
+    resolution: {integrity: sha512-xXR3KGeoxTNWPD4aBvL5NUpMTT7WMANr3EWnaS190QVkY52lqqcVRD7Q05UVbBhiWDGWMlJEUam9m7uFFGVScw==}
+
   semver@7.8.1:
     resolution: {integrity: sha512-rkVq3IXh+4FDGch+KwzX3aV9W3kO54GyEgpvBzSyctDA6Xtd7RJQV1xmXbeQp5v7+VzLOfVqiutSE6GICgPFvg==}
     engines: {node: '>=10'}
@@ -4036,6 +4071,11 @@ packages:
 
   semver@7.8.4:
     resolution: {integrity: sha512-rUCObTnP32Q08R2uuIrt7r9PlEonuTmtuXYcW6s5kjdlj3xbnwe+21yXptAUYcMAABLkYYTtnmzb3w3EDZfueA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -4648,6 +4688,30 @@ snapshots:
     dependencies:
       ansi-styles: 6.2.3
       is-fullwidth-code-point: 5.1.0
+
+  '@apm-js-collab/code-transformer-bundler-plugins@0.5.0':
+    dependencies:
+      '@apm-js-collab/code-transformer': 0.15.0
+      es-module-lexer: 2.1.0
+      magic-string: 0.30.21
+      module-details-from-path: 1.0.4
+
+  '@apm-js-collab/code-transformer@0.15.0':
+    dependencies:
+      '@types/estree': 1.0.9
+      astring: 1.9.0
+      esquery: 1.7.0
+      meriyah: 6.1.4
+      semifies: 1.0.0
+      source-map: 0.6.1
+
+  '@apm-js-collab/tracing-hooks@0.10.0':
+    dependencies:
+      '@apm-js-collab/code-transformer': 0.15.0
+      debug: 4.4.3
+      module-details-from-path: 1.0.4
+    transitivePeerDependencies:
+      - supports-color
 
   '@babel/helper-string-parser@7.29.7': {}
 
@@ -5339,47 +5403,59 @@ snapshots:
       domhandler: 5.0.3
       selderee: 0.12.0
 
-  '@sentry/core@10.58.0': {}
+  '@sentry/conventions@0.12.0': {}
 
-  '@sentry/node-core@10.58.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.214.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)':
+  '@sentry/core@10.59.0': {}
+
+  '@sentry/node-core@10.59.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.214.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))':
     dependencies:
-      '@sentry/core': 10.58.0
-      '@sentry/opentelemetry': 10.58.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)
+      '@sentry/conventions': 0.12.0
+      '@sentry/core': 10.59.0
+      '@sentry/opentelemetry': 10.59.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))
       import-in-the-middle: 3.0.2
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/instrumentation': 0.214.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.41.1
 
-  '@sentry/node@10.58.0':
+  '@sentry/node@10.59.0(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4))':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/instrumentation': 0.214.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.8.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.41.1
-      '@sentry/core': 10.58.0
-      '@sentry/node-core': 10.58.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.214.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)
-      '@sentry/opentelemetry': 10.58.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)
-      '@sentry/server-utils': 10.58.0
+      '@sentry/core': 10.59.0
+      '@sentry/node-core': 10.59.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.214.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))
+      '@sentry/opentelemetry': 10.59.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))
+      '@sentry/server-utils': 10.59.0(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4))
       import-in-the-middle: 3.0.2
     transitivePeerDependencies:
       - '@opentelemetry/exporter-trace-otlp-http'
       - supports-color
+      - vite
 
-  '@sentry/opentelemetry@10.58.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)':
+  '@sentry/opentelemetry@10.59.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.41.1
-      '@sentry/core': 10.58.0
+      '@sentry/conventions': 0.12.0
+      '@sentry/core': 10.59.0
 
-  '@sentry/server-utils@10.58.0':
+  '@sentry/server-utils@10.59.0(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4))':
     dependencies:
-      '@sentry/core': 10.58.0
+      '@apm-js-collab/code-transformer': 0.15.0
+      '@apm-js-collab/code-transformer-bundler-plugins': 0.5.0
+      '@apm-js-collab/tracing-hooks': 0.10.0
+      '@sentry/conventions': 0.12.0
+      '@sentry/core': 10.59.0
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4)
+    transitivePeerDependencies:
+      - supports-color
 
   '@simple-dom/document@1.4.0':
     dependencies:
@@ -6259,9 +6335,9 @@ snapshots:
     dependencies:
       long-timeout: 0.1.1
 
-  '@tryghost/config@2.3.0':
+  '@tryghost/config@2.3.1':
     dependencies:
-      '@tryghost/root-utils': 2.3.0
+      '@tryghost/root-utils': 2.3.1
       nconf: 0.13.0
 
   '@tryghost/debug@2.2.3':
@@ -6271,17 +6347,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tryghost/debug@2.3.0':
+  '@tryghost/debug@2.3.1':
     dependencies:
-      '@tryghost/root-utils': 2.3.0
+      '@tryghost/root-utils': 2.3.1
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
-  '@tryghost/elasticsearch@5.3.0':
+  '@tryghost/elasticsearch@5.3.1':
     dependencies:
       '@elastic/elasticsearch': 8.19.1
-      '@tryghost/debug': 2.3.0
+      '@tryghost/debug': 2.3.1
       split2: 4.2.0
     transitivePeerDependencies:
       - '@75lb/nature'
@@ -6296,12 +6372,12 @@ snapshots:
 
   '@tryghost/errors@3.2.4': {}
 
-  '@tryghost/errors@3.3.0': {}
+  '@tryghost/errors@3.3.1': {}
 
-  '@tryghost/http-stream@2.3.0':
+  '@tryghost/http-stream@2.3.1':
     dependencies:
-      '@tryghost/errors': 3.3.0
-      '@tryghost/request': 3.3.0
+      '@tryghost/errors': 3.3.1
+      '@tryghost/request': 3.3.1
 
   '@tryghost/image-transform@1.4.16':
     dependencies:
@@ -6338,13 +6414,13 @@ snapshots:
     dependencies:
       semver: 7.8.1
 
-  '@tryghost/logging@5.1.0':
+  '@tryghost/logging@5.1.1':
     dependencies:
       '@tryghost/bunyan-rotating-filestream': 0.0.7
-      '@tryghost/elasticsearch': 5.3.0
-      '@tryghost/http-stream': 2.3.0
-      '@tryghost/pretty-stream': 2.3.0
-      '@tryghost/root-utils': 2.3.0
+      '@tryghost/elasticsearch': 5.3.1
+      '@tryghost/http-stream': 2.3.1
+      '@tryghost/pretty-stream': 2.3.1
+      '@tryghost/root-utils': 2.3.1
       bunyan: 1.8.15
       fs-extra: 11.3.5
       gelf-stream: 1.1.1
@@ -6497,22 +6573,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tryghost/pretty-cli@3.3.0':
+  '@tryghost/pretty-cli@3.3.1':
     dependencies:
       chalk: 5.6.2
       sywac: 1.3.0
 
-  '@tryghost/pretty-stream@2.3.0':
+  '@tryghost/pretty-stream@2.3.1':
     dependencies:
       date-format: 4.0.14
       lodash: 4.18.1
       prettyjson: 1.2.5
 
-  '@tryghost/request@3.3.0':
+  '@tryghost/request@3.3.1':
     dependencies:
-      '@tryghost/errors': 3.3.0
-      '@tryghost/validator': 3.2.0
-      '@tryghost/version': 2.3.0
+      '@tryghost/errors': 3.3.1
+      '@tryghost/validator': 3.2.1
+      '@tryghost/version': 2.3.1
       cacheable-lookup: 7.0.0
       got: 14.6.6
       lodash: 4.18.1
@@ -6522,15 +6598,15 @@ snapshots:
       caller: 1.1.0
       find-root: 1.1.0
 
-  '@tryghost/root-utils@2.3.0':
+  '@tryghost/root-utils@2.3.1':
     dependencies:
       caller: 1.1.0
       find-root: 1.1.0
 
-  '@tryghost/server@3.1.0':
+  '@tryghost/server@3.1.1':
     dependencies:
-      '@tryghost/debug': 2.3.0
-      '@tryghost/logging': 5.1.0
+      '@tryghost/debug': 2.3.1
+      '@tryghost/logging': 5.1.1
     transitivePeerDependencies:
       - '@75lb/nature'
       - supports-color
@@ -6543,7 +6619,7 @@ snapshots:
     dependencies:
       unidecode: 1.1.0
 
-  '@tryghost/tpl@2.3.0': {}
+  '@tryghost/tpl@2.3.1': {}
 
   '@tryghost/url-utils@5.2.4':
     dependencies:
@@ -6555,18 +6631,18 @@ snapshots:
       remark-footnotes: 1.0.0
       unist-util-visit: 2.0.3
 
-  '@tryghost/validator@3.2.0':
+  '@tryghost/validator@3.2.1':
     dependencies:
-      '@tryghost/errors': 3.3.0
-      '@tryghost/tpl': 2.3.0
+      '@tryghost/errors': 3.3.1
+      '@tryghost/tpl': 2.3.1
       lodash: 4.18.1
       moment-timezone: 0.5.48
       validator: 13.15.35
 
-  '@tryghost/version@2.3.0':
+  '@tryghost/version@2.3.1':
     dependencies:
-      '@tryghost/root-utils': 2.3.0
-      semver: 7.8.4
+      '@tryghost/root-utils': 2.3.1
+      semver: 7.8.5
 
   '@tryghost/zip@3.3.4':
     dependencies:
@@ -6579,9 +6655,9 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/zip@3.4.0':
+  '@tryghost/zip@3.5.0':
     dependencies:
-      '@tryghost/errors': 3.3.0
+      '@tryghost/errors': 3.3.1
       archiver: 8.0.0
       extract-zip: 2.0.1
     transitivePeerDependencies:
@@ -6795,6 +6871,8 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       estree-walker: 3.0.3
       js-tokens: 10.0.0
+
+  astring@1.9.0: {}
 
   async@3.2.6: {}
 
@@ -7372,6 +7450,12 @@ snapshots:
 
   escape-string-regexp@2.0.0: {}
 
+  esquery@1.7.0:
+    dependencies:
+      estraverse: 5.3.0
+
+  estraverse@5.3.0: {}
+
   estree-walker@3.0.3:
     dependencies:
       '@types/estree': 1.0.9
@@ -7649,17 +7733,17 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  gscan@6.4.0:
+  gscan@6.4.1(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4)):
     dependencies:
-      '@sentry/node': 10.58.0
-      '@tryghost/config': 2.3.0
-      '@tryghost/debug': 2.3.0
-      '@tryghost/errors': 3.3.0
-      '@tryghost/logging': 5.1.0
+      '@sentry/node': 10.59.0(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.4))
+      '@tryghost/config': 2.3.1
+      '@tryghost/debug': 2.3.1
+      '@tryghost/errors': 3.3.1
+      '@tryghost/logging': 5.1.1
       '@tryghost/nql': 0.13.1
-      '@tryghost/pretty-cli': 3.3.0
-      '@tryghost/server': 3.1.0
-      '@tryghost/zip': 3.4.0
+      '@tryghost/pretty-cli': 3.3.1
+      '@tryghost/server': 3.1.1
+      '@tryghost/zip': 3.5.0
       chalk: 5.6.2
       express: 5.2.1
       express-handlebars: 8.0.1
@@ -7667,7 +7751,7 @@ snapshots:
       handlebars: 4.7.9
       lodash: 4.18.1
       multer: 2.2.0
-      semver: 7.8.4
+      semver: 7.8.5
       validator: 13.15.35
     transitivePeerDependencies:
       - '@75lb/nature'
@@ -7676,6 +7760,7 @@ snapshots:
       - bare-buffer
       - react-native-b4a
       - supports-color
+      - vite
 
   handlebars@4.7.9:
     dependencies:
@@ -8086,6 +8171,8 @@ snapshots:
   merge-descriptors@2.0.0: {}
 
   merge2@1.4.1: {}
+
+  meriyah@6.1.4: {}
 
   methods@1.1.2: {}
 
@@ -8619,9 +8706,13 @@ snapshots:
     dependencies:
       parseley: 0.13.1
 
+  semifies@1.0.0: {}
+
   semver@7.8.1: {}
 
   semver@7.8.4: {}
+
+  semver@7.8.5: {}
 
   send@1.2.1:
     dependencies:
