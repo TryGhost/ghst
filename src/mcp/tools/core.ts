@@ -16,7 +16,7 @@ import {
 import { readUserConfig, resolveConnectionConfig } from '../../lib/config.js';
 import {
   assertDestructiveActionsEnabled,
-  isReadOnlyHttpMethod,
+  isDestructiveHttpMethod,
 } from '../../lib/destructive-actions.js';
 import { uploadImage } from '../../lib/images.js';
 import {
@@ -482,8 +482,8 @@ async function callApi(
     contentApi?: boolean;
   },
 ): Promise<Record<string, unknown>> {
-  if (!isReadOnlyHttpMethod(options.method)) {
-    assertDestructiveActionsEnabled(global, 'raw API write request');
+  if (isDestructiveHttpMethod(options.method)) {
+    assertDestructiveActionsEnabled(global, 'raw API delete request');
   }
 
   const connection = await resolveConnectionConfig(global);

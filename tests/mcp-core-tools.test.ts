@@ -687,9 +687,8 @@ describe('mcp core tool registration', () => {
 
     await expect(
       apiTool?.handler({
-        path: '/posts/',
-        method: 'POST',
-        body: { posts: [{ title: 'Blocked' }] },
+        path: `/posts/${fixtureIds.postId}/`,
+        method: 'DELETE',
       }) as Promise<unknown> | undefined,
     ).rejects.toThrow('Destructive actions are disabled');
   });

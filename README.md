@@ -218,7 +218,8 @@ Direct API calls:
 
 ```bash
 ghst api /posts/ --paginate --include-headers
-ghst --enable-destructive-actions api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
+ghst api /settings/ -X PUT -f settings[0].key=title -f settings[0].value="New title"
+ghst --enable-destructive-actions api /posts/<post-id>/ -X DELETE
 ```
 
 Analytics reporting:
@@ -306,7 +307,7 @@ ghst post list --json
 ghst post list --json --jq '.posts[].title'
 ```
 
-Raw `ghst api` requests using non-read HTTP methods also require `--enable-destructive-actions`.
+Raw `ghst api` requests allow `POST`/`PUT`/`PATCH` writes by default; only `DELETE` requests require `--enable-destructive-actions`.
 
 Common machine-safe practices:
 

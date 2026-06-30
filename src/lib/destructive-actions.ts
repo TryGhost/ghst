@@ -18,7 +18,7 @@ export function assertDestructiveActionsEnabled(
   );
 }
 
-export function isReadOnlyHttpMethod(method: string | undefined): boolean {
+export function isDestructiveHttpMethod(method: string | undefined): boolean {
   const normalized = (method ?? 'GET').toUpperCase();
-  return normalized === 'GET' || normalized === 'HEAD' || normalized === 'OPTIONS';
+  return normalized === 'DELETE';
 }

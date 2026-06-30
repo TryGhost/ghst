@@ -135,7 +135,7 @@ pnpm build
 - MCP tools accept an optional `site` argument for per-call targeting of configured site aliases; when omitted, existing config resolution order is preserved.
 - MCP includes `ghost_site_list` for safe configured-alias discovery without exposing stored credentials.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
-- `api [endpointPath]` requires `--enable-destructive-actions` for non-read HTTP methods.
+- `api [endpointPath]` allows `POST`/`PUT`/`PATCH` writes by default; only `DELETE` requests require `--enable-destructive-actions`.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
 - MCP includes dedicated tools such as `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_site_list`, `ghost_theme_upload`, and `ghost_webhook_create`.
 

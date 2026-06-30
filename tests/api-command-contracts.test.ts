@@ -79,7 +79,6 @@ describe('api command contracts', () => {
       run([
         'node',
         'ghst',
-        '--enable-destructive-actions',
         'api',
         '/posts/',
         '--method',
@@ -152,6 +151,49 @@ describe('api command contracts', () => {
         data: { site: { title: 'Demo' } },
       },
       undefined,
+    );
+  });
+
+  test('allows POST/PUT/PATCH writes without --enable-destructive-actions', async () => {
+    apiMocks.rawRequestWithMeta.mockResolvedValue({
+      status: 200,
+      headers: {},
+      data: { posts: [{ id: '1' }] },
+    });
+
+    for (const method of ['POST', 'PUT', 'PATCH']) {
+      await expect(
+        run(['node', 'ghst', 'api', '/posts/', '--method', method, '--body', '{}']),
+      ).resolves.toBe(ExitCode.SUCCESS);
+    }
+
+    expect(apiMocks.rawRequestWithMeta).toHaveBeenCalledTimes(3);
+  });
+
+  test('requires --enable-destructive-actions for DELETE requests', async () => {
+    await expect(run(['node', 'ghst', 'api', '/posts/1/', '--method', 'DELETE'])).resolves.toBe(
+      ExitCode.USAGE_ERROR,
+    );
+    expect(apiMocks.rawRequestWithMeta).not.toHaveBeenCalled();
+
+    apiMocks.rawRequestWithMeta.mockResolvedValue({ status: 204, headers: {}, data: {} });
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'api',
+        '/posts/1/',
+        '--method',
+        'DELETE',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(apiMocks.rawRequestWithMeta).toHaveBeenCalledWith(
+      '/posts/1/',
+      'DELETE',
+      undefined,
+      {},
+      { api: 'admin' },
     );
   });
 

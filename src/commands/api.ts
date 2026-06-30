@@ -6,7 +6,7 @@ import { resolveConnectionConfig } from '../lib/config.js';
 import { getGlobalOptions } from '../lib/context.js';
 import {
   assertDestructiveActionsEnabled,
-  isReadOnlyHttpMethod,
+  isDestructiveHttpMethod,
 } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { printJson } from '../lib/output.js';
@@ -206,8 +206,8 @@ export function registerApiCommands(program: Command): void {
       const normalizedEndpointPath = normalizeGhostApiPath(endpointPath, requestApi);
 
       const global = getGlobalOptions(command);
-      if (!isReadOnlyHttpMethod(options.method)) {
-        assertDestructiveActionsEnabled(global, 'raw API write request');
+      if (isDestructiveHttpMethod(options.method)) {
+        assertDestructiveActionsEnabled(global, 'raw API delete request');
       }
 
       const connection = await resolveConnectionConfig(global);
