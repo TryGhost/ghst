@@ -307,7 +307,7 @@ ghst post list --json
 ghst post list --json --jq '.posts[].title'
 ```
 
-Raw `ghst api` requests allow `POST`/`PUT`/`PATCH` writes by default; only `DELETE` requests require `--enable-destructive-actions`.
+Raw `ghst api` requests allow ordinary `POST`/`PUT`/`PATCH` writes by default; `DELETE` requests and overwrite/import routes (e.g. `POST /db/`) require `--enable-destructive-actions`.
 
 Common machine-safe practices:
 

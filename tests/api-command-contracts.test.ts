@@ -170,6 +170,28 @@ describe('api command contracts', () => {
     expect(apiMocks.rawRequestWithMeta).toHaveBeenCalledTimes(3);
   });
 
+  test('requires --enable-destructive-actions for overwrite routes like /db/ import', async () => {
+    await expect(
+      run(['node', 'ghst', 'api', '/db/', '--method', 'POST', '--body', '{}']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+    expect(apiMocks.rawRequestWithMeta).not.toHaveBeenCalled();
+
+    apiMocks.rawRequestWithMeta.mockResolvedValue({ status: 200, headers: {}, data: { db: [] } });
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--enable-destructive-actions',
+        'api',
+        '/db/',
+        '--method',
+        'POST',
+        '--body',
+        '{}',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+  });
+
   test('requires --enable-destructive-actions for DELETE requests', async () => {
     await expect(run(['node', 'ghst', 'api', '/posts/1/', '--method', 'DELETE'])).resolves.toBe(
       ExitCode.USAGE_ERROR,

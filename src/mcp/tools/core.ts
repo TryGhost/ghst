@@ -16,7 +16,7 @@ import {
 import { readUserConfig, resolveConnectionConfig } from '../../lib/config.js';
 import {
   assertDestructiveActionsEnabled,
-  isDestructiveHttpMethod,
+  isDestructiveRawRequest,
 } from '../../lib/destructive-actions.js';
 import { uploadImage } from '../../lib/images.js';
 import {
@@ -482,8 +482,12 @@ async function callApi(
     contentApi?: boolean;
   },
 ): Promise<Record<string, unknown>> {
-  if (isDestructiveHttpMethod(options.method)) {
-    assertDestructiveActionsEnabled(global, 'raw API delete request');
+  const normalizedPath = normalizeGhostApiPath(
+    options.path,
+    options.contentApi ? 'content' : 'admin',
+  );
+  if (isDestructiveRawRequest({ method: options.method, path: normalizedPath })) {
+    assertDestructiveActionsEnabled(global, 'destructive raw API request');
   }
 
   const connection = await resolveConnectionConfig(global);
@@ -495,7 +499,7 @@ async function callApi(
   });
 
   const payload = await client.rawRequest<Record<string, unknown>>(
-    normalizeGhostApiPath(options.path, options.contentApi ? 'content' : 'admin'),
+    normalizedPath,
     options.method ?? 'GET',
     options.body,
     options.params,
