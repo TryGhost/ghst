@@ -167,18 +167,18 @@ function rowsFromCollection(
   return collection.map((entry) => mapper((entry as Record<string, unknown>) ?? {}));
 }
 
-function stripHtml(value: unknown): string {
+export function stripHtml(value: unknown): string {
   const html = String(value ?? '');
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&#39;/gi, "'")
     .replace(/&quot;/gi, '"')
+    .replace(/&amp;/gi, '&')
     .replace(/\s+/g, ' ')
     .trim();
 }

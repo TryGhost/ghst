@@ -18,8 +18,8 @@ function getFirstMember(payload: Record<string, unknown>): Record<string, unknow
   return (members[0] as Record<string, unknown>) ?? {};
 }
 
-function emailFilter(email: string): string {
-  const escaped = email.replace(/'/g, "\\'");
+export function emailFilter(email: string): string {
+  const escaped = email.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   return `email:'${escaped}'`;
 }
 
