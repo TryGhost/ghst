@@ -1867,17 +1867,7 @@ describe('run + commands', () => {
       run(['node', 'ghst', 'api', '/settings/', '--query', 'limit=1', 'status=published']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
-      run([
-        'node',
-        'ghst',
-        '--enable-destructive-actions',
-        'api',
-        '/posts/',
-        '--method',
-        'POST',
-        '--input',
-        './payload.json',
-      ]),
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--input', './payload.json']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'api', '/posts/', '--content-api', '--method', 'GET']),
@@ -1886,7 +1876,6 @@ describe('run + commands', () => {
       run([
         'node',
         'ghst',
-        '--enable-destructive-actions',
         'api',
         '/posts/',
         '--method',
@@ -1904,17 +1893,7 @@ describe('run + commands', () => {
       ExitCode.SUCCESS,
     );
     await expect(
-      run([
-        'node',
-        'ghst',
-        '--enable-destructive-actions',
-        'api',
-        '/posts/',
-        '--method',
-        'POST',
-        '--field',
-        'status=draft',
-      ]),
+      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--field', 'status=draft']),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run(['node', 'ghst', 'api', '/posts/', '--body', '{}', '--input', './payload.json']),
@@ -2272,7 +2251,7 @@ describe('run + commands', () => {
       ExitCode.USAGE_ERROR,
     );
     await expect(
-      run(['node', 'ghst', 'api', '/posts/', '--method', 'POST', '--body', '{}']),
+      run(['node', 'ghst', 'api', `/posts/${fixtureIds.postId}/`, '--method', 'DELETE']),
     ).resolves.toBe(ExitCode.USAGE_ERROR);
     await expect(
       run(['node', 'ghst', 'page', 'bulk', '--filter', 'status:draft', '--action', 'update']),
