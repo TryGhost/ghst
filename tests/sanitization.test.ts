@@ -53,6 +53,11 @@ describe('setByPath prototype-pollution guard', () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
+  test('rejects __proto__ mid-path', () => {
+    expect(() => setByPath({}, 'a.__proto__.polluted', 'x')).toThrow();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
   test('rejects constructor and prototype segments', () => {
     expect(() => setByPath({}, 'constructor.x', 1)).toThrow();
     expect(() => setByPath({}, 'a.prototype', 1)).toThrow();
