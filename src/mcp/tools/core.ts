@@ -444,8 +444,8 @@ function toolResult(data: unknown): {
   };
 }
 
-function escapeNqlValue(value: string): string {
-  return value.replace(/'/g, "\\'");
+export function escapeNqlValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 async function runSearch(
