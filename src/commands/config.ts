@@ -48,31 +48,26 @@ function getByPath(source: Record<string, unknown>, keyPath: string): unknown {
 
 const RESERVED_CONFIG_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
-function assertSafeConfigKey(key: string): void {
-  if (RESERVED_CONFIG_KEYS.has(key)) {
-    throw new GhstError('Invalid config path.', {
-      code: 'USAGE_ERROR',
-      exitCode: ExitCode.USAGE_ERROR,
-    });
-  }
-}
-
 export function setByPath(target: Record<string, unknown>, keyPath: string, value: unknown): void {
   const parts = keyPath.split('.');
   const leaf = parts.pop();
 
-  if (!leaf) {
+  if (!leaf || RESERVED_CONFIG_KEYS.has(leaf)) {
     throw new GhstError('Invalid config path.', {
       code: 'USAGE_ERROR',
       exitCode: ExitCode.USAGE_ERROR,
     });
   }
 
-  assertSafeConfigKey(leaf);
-
   let cursor: Record<string, unknown> = target;
   for (const part of parts) {
-    assertSafeConfigKey(part);
+    if (RESERVED_CONFIG_KEYS.has(part)) {
+      throw new GhstError('Invalid config path.', {
+        code: 'USAGE_ERROR',
+        exitCode: ExitCode.USAGE_ERROR,
+      });
+    }
+
     const next = cursor[part];
     if (typeof next !== 'object' || next === null) {
       cursor[part] = {};
