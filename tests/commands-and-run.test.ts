@@ -139,6 +139,11 @@ describe('run + commands', () => {
       '{"posts":[{"title":"From JSON"}]}',
       'utf8',
     );
+    await fs.writeFile(
+      path.join(workDir, 'page-from.json'),
+      '{"pages":[{"title":"From JSON","slug":"from-json"}]}',
+      'utf8',
+    );
     await fs.writeFile(path.join(workDir, 'payload.json'), '{"posts":[{"title":"raw"}]}', 'utf8');
     await fs.writeFile(path.join(workDir, 'members.csv'), 'email\nx@example.com\n', 'utf8');
     await fs.writeFile(path.join(workDir, 'photo.jpg'), 'fake-image', 'utf8');
@@ -1123,7 +1128,40 @@ describe('run + commands', () => {
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
+      run([
+        'node',
+        'ghst',
+        'page',
+        'create',
+        '--title',
+        'About',
+        '--slug',
+        'about',
+        '--tags',
+        'Company,Legal',
+        '--markdown-file',
+        './post.md',
+        '--from-json',
+        './page-from.json',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
       run(['node', 'ghst', 'page', 'update', fixtureIds.pageId, '--title', 'Updated Page']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'page',
+        'update',
+        fixtureIds.pageId,
+        '--tags',
+        'Docs',
+        '--from-json',
+        './page-from.json',
+        '--json',
+      ]),
     ).resolves.toBe(ExitCode.SUCCESS);
     await expect(
       run([

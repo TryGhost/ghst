@@ -168,17 +168,21 @@ describe('post schemas', () => {
 });
 
 describe('page and tag schemas', () => {
-  test('default page creation state and require publishAt for scheduled pages', () => {
-    expect(expectValid<{ status: string }>(PageCreateInputSchema, { title: 'About' }).status).toBe(
-      'draft',
-    );
+  test('accept page creation input and require publishAt for scheduled pages', () => {
+    expectValid<{ title?: string; slug?: string; tags?: string }>(PageCreateInputSchema, {
+      title: 'About',
+      slug: 'about',
+      tags: 'company,legal',
+    });
+    expectValid<{ fromJson?: string }>(PageCreateInputSchema, { fromJson: './page.json' });
     expectValid<{ id: string }>(PageCopyInputSchema, { id: 'page-1' });
 
+    expectInvalid(PageCreateInputSchema, { status: 'draft' }, 'Provide --title or --from-json.');
     expectInvalid(PageCreateInputSchema, { title: 'About', status: 'scheduled' }, 'publish-at');
     expectInvalid(
       PageUpdateInputSchema,
       { id: 'page-1', html: '<p>hi</p>', htmlFile: './page.html' },
-      'Use only one of --html, --html-file, or --lexical-file.',
+      'Use only one content source',
     );
     expectInvalid(PageBulkInputSchema, { filter: 'status:draft', action: 'delete' }, '--yes');
   });

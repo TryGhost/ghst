@@ -6,14 +6,20 @@ const VisibilitySchema = z.enum(['public', 'members', 'paid', 'tiers']);
 function withSingleContentSource<T extends z.ZodTypeAny>(schema: T): T {
   return schema.superRefine((value, ctx) => {
     const data = value as Record<string, unknown>;
-    const contentSources = [data.html, data.htmlFile, data.lexicalFile].filter(
-      (entry) => entry !== undefined,
-    );
+    const contentSources = [
+      data.html,
+      data.htmlFile,
+      data.lexicalFile,
+      data.markdownFile,
+      data.markdownStdin,
+      data.htmlRawFile,
+    ].filter((entry) => entry !== undefined && entry !== false);
 
     if (contentSources.length > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Use only one of --html, --html-file, or --lexical-file.',
+        message:
+          'Use only one content source: --html, --html-file, --lexical-file, --markdown-file, --markdown-stdin, or --html-raw-file.',
       });
     }
   }) as T;
@@ -42,14 +48,24 @@ export const PageGetInputSchema = z.object({
 export const PageCreateInputSchema = withSingleContentSource(
   z
     .object({
-      title: z.string().min(1),
-      status: StatusSchema.default('draft'),
+      title: z.string().min(1).optional(),
+      slug: z.string().min(1).optional(),
+      status: StatusSchema.optional(),
       publishAt: z.string().datetime().optional(),
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
+      markdownFile: z.string().min(1).optional(),
+      markdownStdin: z.boolean().optional(),
+      htmlRawFile: z.string().min(1).optional(),
+      fromJson: z.string().min(1).optional(),
+      tags: z.string().optional(),
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
+    })
+    .refine((data) => Boolean(data.title || data.fromJson), {
+      message: 'Provide --title or --from-json.',
+      path: ['title'],
     })
     .refine((data) => !(data.status === 'scheduled' && !data.publishAt), {
       message: 'publish-at is required when status is scheduled',
@@ -68,6 +84,11 @@ export const PageUpdateInputSchema = withSingleContentSource(
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
+      markdownFile: z.string().min(1).optional(),
+      markdownStdin: z.boolean().optional(),
+      htmlRawFile: z.string().min(1).optional(),
+      fromJson: z.string().min(1).optional(),
+      tags: z.string().optional(),
       featured: z.boolean().optional(),
       visibility: VisibilitySchema.optional(),
     })
@@ -84,6 +105,11 @@ export const PageUpdateInputSchema = withSingleContentSource(
             data.html ||
             data.htmlFile ||
             data.lexicalFile ||
+            data.markdownFile ||
+            data.markdownStdin ||
+            data.htmlRawFile ||
+            data.fromJson ||
+            data.tags ||
             data.featured !== undefined ||
             data.visibility,
         ),
