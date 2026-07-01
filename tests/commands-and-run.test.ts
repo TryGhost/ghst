@@ -918,6 +918,15 @@ describe('run + commands', () => {
     await expect(
       run(['node', 'ghst', 'post', 'list', '--json', '--jq', '.posts[].title']),
     ).resolves.toBe(ExitCode.SUCCESS);
+    // Full jq syntax works end-to-end: pipes, indexing, and object construction
+    // (issue #176).
+    await expect(
+      run(['node', 'ghst', 'post', 'list', '--json', '--jq', '.posts[0] | {title, slug}']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    // A malformed filter is a usage error, not an interpreter crash.
+    await expect(
+      run(['node', 'ghst', 'post', 'list', '--json', '--jq', 'not valid jq $$']),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
     await expect(
       run(['node', 'ghst', 'post', 'get', '--slug', fixtureIds.postSlug, '--json']),
     ).resolves.toBe(ExitCode.SUCCESS);

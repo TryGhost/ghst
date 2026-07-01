@@ -1,6 +1,8 @@
 import process from 'node:process';
+import { evaluate, parse } from '@jq-tools/jq';
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import { ExitCode, GhstError } from './errors.js';
 import type {
   SocialWebAccount,
   SocialWebNotification,
@@ -27,52 +29,35 @@ import type {
 import { isStdoutTty } from './tty.js';
 import type { GlobalOptions } from './types.js';
 
-function applyJqSubset(data: unknown, jq?: string): unknown {
-  if (!jq) {
-    return data;
+function describeJqError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// Runs a jq program against the full response envelope (matching `gh --jq` and
+// standard jq), returning the stream of results. Parse/evaluation failures are
+// surfaced as usage errors instead of raw interpreter stack traces.
+function runJqFilter(data: unknown, filter: string): unknown[] {
+  try {
+    return Array.from(evaluate(parse(filter), [data]));
+  } catch (error) {
+    throw new GhstError(`Invalid --jq filter: ${describeJqError(error)}`, {
+      code: 'E_JQ_FILTER',
+      exitCode: ExitCode.USAGE_ERROR,
+    });
   }
-
-  const rootArrayPattern = /^\.\[\]\.([a-zA-Z0-9_]+)$/;
-  const nestedArrayPattern = /^\.([a-zA-Z0-9_]+)\[\]\.([a-zA-Z0-9_]+)$/;
-  const singleFieldPattern = /^\.([a-zA-Z0-9_]+)$/;
-
-  const rootMatch = jq.match(rootArrayPattern);
-  if (rootMatch) {
-    const [, field = ''] = rootMatch;
-    return Array.isArray(data)
-      ? data.map((entry) => (entry as Record<string, unknown>)[field])
-      : [];
-  }
-
-  const nestedMatch = jq.match(nestedArrayPattern);
-  if (nestedMatch) {
-    const [, collection = '', field = ''] = nestedMatch;
-    const collectionValue = (data as Record<string, unknown>)[collection];
-    return Array.isArray(collectionValue)
-      ? collectionValue.map((entry) => (entry as Record<string, unknown>)[field])
-      : [];
-  }
-
-  const singleMatch = jq.match(singleFieldPattern);
-  if (singleMatch) {
-    const [, field = ''] = singleMatch;
-    return (data as Record<string, unknown>)[field];
-  }
-
-  throw new Error(`Unsupported --jq filter: ${jq}`);
 }
 
 export function printJson(data: unknown, jq?: string): void {
-  const filtered = applyJqSubset(data, jq);
-
-  if (Array.isArray(filtered) && jq) {
-    for (const entry of filtered) {
-      console.log(JSON.stringify(entry));
-    }
+  if (!jq) {
+    console.log(JSON.stringify(data, null, 2));
     return;
   }
 
-  console.log(JSON.stringify(filtered, null, 2));
+  // jq is a stream language: print each result on its own line (compact JSONL)
+  // so the output stays pipe-friendly for scripting.
+  for (const result of runJqFilter(data, jq)) {
+    console.log(JSON.stringify(result));
+  }
 }
 
 function formatStatus(status: string, useColor: boolean): string {

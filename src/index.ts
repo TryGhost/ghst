@@ -41,7 +41,10 @@ export function buildProgram(): Command {
     .showHelpAfterError()
     .showSuggestionAfterError(true)
     .option('--json', 'Output JSON')
-    .option('--jq <filter>', 'Apply jq-style field extraction to JSON output')
+    .option(
+      '--jq <filter>',
+      'Apply a jq filter to JSON output (runs against the full response, e.g. .posts[].slug)',
+    )
     .option('--site <site>', 'Configured site alias')
     .option('--url <url>', 'Ghost site URL override')
     .option('--staff-token <token>', 'Ghost staff access token override')
