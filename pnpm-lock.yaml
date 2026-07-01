@@ -79,10 +79,10 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(vitest@4.1.9)
       oxfmt:
-        specifier: ^0.57.0
+        specifier: 0.57.0
         version: 0.57.0
       oxlint:
-        specifier: ^1.72.0
+        specifier: 1.72.0
         version: 1.72.0
       tsup:
         specifier: 8.5.1
