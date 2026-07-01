@@ -173,6 +173,12 @@ ghst post publish <post-id> --newsletter weekly --email-segment all
 
 The email delivery flags (`--newsletter`, `--email-only`, `--email-segment`) belong on `post publish` (or `post schedule` / `post update`) — Ghost's email send pipeline fires on the publish transition, not on create.
 
+Pages share the same content flags as posts, including `--slug`, `--tags`, `--from-json`, and `--markdown-file`:
+
+```bash
+ghst page create --title "About" --slug about --tags company,legal --markdown-file ./about.md
+```
+
 Bulk updates:
 
 ```bash

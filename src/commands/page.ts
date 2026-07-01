@@ -1,5 +1,12 @@
-import fs from 'node:fs/promises';
 import type { Command } from 'commander';
+import {
+  assignDefined,
+  readOptionalFile,
+  readOptionalResourceJson,
+  readOptionalStdin,
+  renderMarkdown,
+  wrapRawHtmlCard,
+} from '../lib/content-input.js';
 import { getGlobalOptions } from '../lib/context.js';
 import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
@@ -13,7 +20,7 @@ import {
   listPages,
   updatePage,
 } from '../lib/pages.js';
-import { parseBooleanFlag, parseInteger } from '../lib/parse.js';
+import { parseBooleanFlag, parseCsv, parseInteger } from '../lib/parse.js';
 import { confirmDestructiveAction } from '../lib/prompts.js';
 import { isNonInteractive } from '../lib/tty.js';
 import {
@@ -36,14 +43,6 @@ function throwValidationError(error: unknown): never {
       details: error,
     },
   );
-}
-
-async function readOptionalFile(filePath: string | undefined): Promise<string | undefined> {
-  if (!filePath) {
-    return undefined;
-  }
-
-  return fs.readFile(filePath, 'utf8');
 }
 
 export function registerPageCommands(program: Command): void {
@@ -149,24 +148,36 @@ export function registerPageCommands(program: Command): void {
   page
     .command('create')
     .description('Create a page')
-    .requiredOption('--title <title>', 'Page title')
-    .option('--status <status>', 'Page status', 'draft')
+    .option('--title <title>', 'Page title')
+    .option('--slug <slug>', 'Page slug')
+    .option('--status <status>', 'Page status')
     .option('--publish-at <datetime>', 'Publish date-time for scheduled pages')
     .option('--html <html>', 'Page HTML content')
     .option('--html-file <path>', 'Path to HTML file')
     .option('--lexical-file <path>', 'Path to Lexical JSON file')
+    .option('--markdown-file <path>', 'Path to Markdown file')
+    .option('--markdown-stdin', 'Read Markdown content from stdin')
+    .option('--html-raw-file <path>', 'Path to raw HTML file wrapped in an HTML card')
+    .option('--from-json <path>', 'Read page payload from JSON file')
+    .option('--tags <tags>', 'Comma separated tag names')
     .option('--featured', 'Mark as featured')
     .option('--visibility <visibility>', 'public|members|paid|tiers')
     .action(async (options, command) => {
       const global = getGlobalOptions(command);
       const parsed = PageCreateInputSchema.safeParse({
         title: options.title,
+        slug: options.slug,
         status: options.status,
         publishAt: options.publishAt,
         html: options.html,
         htmlFile: options.htmlFile,
         lexicalFile: options.lexicalFile,
-        featured: options.featured,
+        markdownFile: options.markdownFile,
+        markdownStdin: parseBooleanFlag(options.markdownStdin),
+        htmlRawFile: options.htmlRawFile,
+        fromJson: options.fromJson,
+        tags: options.tags,
+        featured: parseBooleanFlag(options.featured),
         visibility: options.visibility,
       });
 
@@ -174,25 +185,47 @@ export function registerPageCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      const fromJson = await readOptionalResourceJson(parsed.data.fromJson, 'pages');
       const htmlFromFile = await readOptionalFile(parsed.data.htmlFile);
       const lexicalFromFile = await readOptionalFile(parsed.data.lexicalFile);
-      const html = parsed.data.html ?? htmlFromFile;
-      const lexical = lexicalFromFile;
+      const markdownFromFile = await readOptionalFile(parsed.data.markdownFile);
+      const markdownFromStdin = await readOptionalStdin(parsed.data.markdownStdin);
+      const rawHtmlFromFile = await readOptionalFile(parsed.data.htmlRawFile);
+
+      const markdown = markdownFromStdin ?? markdownFromFile;
+      const renderedMarkdown = markdown ? renderMarkdown(markdown) : undefined;
+      const wrappedRawHtml = rawHtmlFromFile ? wrapRawHtmlCard(rawHtmlFromFile) : undefined;
+
+      const html =
+        parsed.data.html ??
+        htmlFromFile ??
+        wrappedRawHtml ??
+        renderedMarkdown ??
+        (typeof fromJson.html === 'string' ? fromJson.html : undefined);
+      const lexical =
+        lexicalFromFile ??
+        (typeof fromJson.lexical === 'string' ? (fromJson.lexical as string) : undefined);
       const source = html ? 'html' : undefined;
 
-      const payload = await createPage(
-        global,
+      const createPayload = assignDefined(
+        { ...fromJson },
         {
           title: parsed.data.title,
-          status: parsed.data.status,
+          slug: parsed.data.slug,
+          status:
+            parsed.data.status ??
+            (typeof fromJson.status === 'string' ? fromJson.status : undefined) ??
+            'draft',
           published_at: parsed.data.publishAt,
           html,
           lexical,
+          tags: parseCsv(parsed.data.tags),
           featured: parsed.data.featured,
           visibility: parsed.data.visibility,
         },
-        source,
       );
+
+      const payload = await createPage(global, createPayload, source);
 
       if (global.json) {
         printJson(payload, global.jq);
@@ -205,13 +238,18 @@ export function registerPageCommands(program: Command): void {
   page
     .command('update [id]')
     .description('Update a page by id or slug')
-    .option('--slug <slug>', 'Page slug lookup')
+    .option('--slug <slug>', 'Page slug lookup, or new slug when a positional id is given')
     .option('--title <title>', 'Page title')
     .option('--status <status>', 'Page status')
     .option('--publish-at <datetime>', 'Publish date-time for scheduled pages')
     .option('--html <html>', 'Page HTML content')
     .option('--html-file <path>', 'Path to HTML file')
     .option('--lexical-file <path>', 'Path to Lexical JSON file')
+    .option('--markdown-file <path>', 'Path to Markdown file')
+    .option('--markdown-stdin', 'Read Markdown content from stdin')
+    .option('--html-raw-file <path>', 'Path to raw HTML file wrapped in an HTML card')
+    .option('--from-json <path>', 'Read page patch from JSON file')
+    .option('--tags <tags>', 'Comma separated tag names')
     .option('--featured <value>', 'true|false')
     .option('--visibility <visibility>', 'public|members|paid|tiers')
     .action(async (id: string | undefined, options, command) => {
@@ -225,6 +263,11 @@ export function registerPageCommands(program: Command): void {
         html: options.html,
         htmlFile: options.htmlFile,
         lexicalFile: options.lexicalFile,
+        markdownFile: options.markdownFile,
+        markdownStdin: parseBooleanFlag(options.markdownStdin),
+        htmlRawFile: options.htmlRawFile,
+        fromJson: options.fromJson,
+        tags: options.tags,
         featured: parseBooleanFlag(options.featured),
         visibility: options.visibility,
       });
@@ -233,24 +276,53 @@ export function registerPageCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
+      const fromJson = await readOptionalResourceJson(parsed.data.fromJson, 'pages');
       const htmlFromFile = await readOptionalFile(parsed.data.htmlFile);
       const lexicalFromFile = await readOptionalFile(parsed.data.lexicalFile);
-      const html = parsed.data.html ?? htmlFromFile;
-      const lexical = lexicalFromFile;
+      const markdownFromFile = await readOptionalFile(parsed.data.markdownFile);
+      const markdownFromStdin = await readOptionalStdin(parsed.data.markdownStdin);
+      const rawHtmlFromFile = await readOptionalFile(parsed.data.htmlRawFile);
+
+      const markdown = markdownFromStdin ?? markdownFromFile;
+      const renderedMarkdown = markdown ? renderMarkdown(markdown) : undefined;
+      const wrappedRawHtml = rawHtmlFromFile ? wrapRawHtmlCard(rawHtmlFromFile) : undefined;
+
+      const html =
+        parsed.data.html ??
+        htmlFromFile ??
+        wrappedRawHtml ??
+        renderedMarkdown ??
+        (typeof fromJson.html === 'string' ? fromJson.html : undefined);
+      const lexical =
+        lexicalFromFile ??
+        (typeof fromJson.lexical === 'string' ? (fromJson.lexical as string) : undefined);
       const source = html ? 'html' : undefined;
 
-      const payload = await updatePage(global, {
-        id: parsed.data.id,
-        slug: parsed.data.slug,
-        patch: {
+      // When a positional id is supplied, --slug is a new slug to set rather
+      // than the lookup key, so `page update <id> --slug new-slug` renames the
+      // page. With no id, --slug remains the lookup key.
+      const lookupSlug = parsed.data.id ? undefined : parsed.data.slug;
+      const renameSlug = parsed.data.id ? parsed.data.slug : undefined;
+
+      const patch = assignDefined(
+        { ...fromJson },
+        {
           title: parsed.data.title,
+          slug: renameSlug,
           status: parsed.data.status,
           published_at: parsed.data.publishAt,
           html,
           lexical,
+          tags: parseCsv(parsed.data.tags),
           featured: parsed.data.featured,
           visibility: parsed.data.visibility,
         },
+      );
+
+      const payload = await updatePage(global, {
+        id: parsed.data.id,
+        slug: lookupSlug,
+        patch,
         source,
       });
 

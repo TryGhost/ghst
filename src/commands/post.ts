@@ -1,6 +1,12 @@
-import fs from 'node:fs/promises';
 import type { Command } from 'commander';
-import MarkdownIt from 'markdown-it';
+import {
+  assignDefined,
+  readOptionalFile,
+  readOptionalResourceJson,
+  readOptionalStdin,
+  renderMarkdown,
+  wrapRawHtmlCard,
+} from '../lib/content-input.js';
 import { getGlobalOptions } from '../lib/context.js';
 import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
@@ -35,8 +41,6 @@ import {
   PostUpdateInputSchema,
 } from '../schemas/post.js';
 
-const markdownRenderer = new MarkdownIt({ html: true, linkify: true, breaks: true });
-
 function throwValidationError(error: unknown): never {
   throw new GhstError(
     (error as { issues?: Array<{ message: string }> }).issues?.map((i) => i.message).join('; ') ??
@@ -47,74 +51,6 @@ function throwValidationError(error: unknown): never {
       details: error,
     },
   );
-}
-
-async function readOptionalFile(filePath: string | undefined): Promise<string | undefined> {
-  if (!filePath) {
-    return undefined;
-  }
-
-  return fs.readFile(filePath, 'utf8');
-}
-
-async function readOptionalStdin(enabled: boolean | undefined): Promise<string | undefined> {
-  if (!enabled) {
-    return undefined;
-  }
-
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
-  }
-  const value = Buffer.concat(chunks).toString('utf8').trim();
-  return value.length > 0 ? value : undefined;
-}
-
-function wrapRawHtmlCard(html: string): string {
-  return `<!--kg-card-begin: html-->\n${html}\n<!--kg-card-end: html-->`;
-}
-
-function asPostPayload(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object') {
-    throw new GhstError('Invalid --from-json payload: expected JSON object.', {
-      code: 'VALIDATION_ERROR',
-      exitCode: ExitCode.VALIDATION_ERROR,
-    });
-  }
-
-  const record = value as Record<string, unknown>;
-  if (Array.isArray(record.posts) && record.posts.length > 0) {
-    const first = record.posts[0];
-    if (first && typeof first === 'object') {
-      return first as Record<string, unknown>;
-    }
-  }
-
-  return record;
-}
-
-async function readOptionalPostJson(
-  filePath: string | undefined,
-): Promise<Record<string, unknown>> {
-  if (!filePath) {
-    return {};
-  }
-
-  const payload = JSON.parse(await fs.readFile(filePath, 'utf8')) as unknown;
-  return asPostPayload(payload);
-}
-
-function assignDefined(
-  target: Record<string, unknown>,
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  for (const [key, value] of Object.entries(values)) {
-    if (value !== undefined) {
-      target[key] = value;
-    }
-  }
-
-  return target;
 }
 
 export function registerPostCommands(program: Command): void {
@@ -277,7 +213,7 @@ export function registerPostCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
-      const fromJson = await readOptionalPostJson(parsed.data.fromJson);
+      const fromJson = await readOptionalResourceJson(parsed.data.fromJson, 'posts');
       const htmlFromFile = await readOptionalFile(parsed.data.htmlFile);
       const lexicalFromFile = await readOptionalFile(parsed.data.lexicalFile);
       const markdownFromFile = await readOptionalFile(parsed.data.markdownFile);
@@ -285,7 +221,7 @@ export function registerPostCommands(program: Command): void {
       const rawHtmlFromFile = await readOptionalFile(parsed.data.htmlRawFile);
 
       const markdown = markdownFromStdin ?? markdownFromFile;
-      const renderedMarkdown = markdown ? markdownRenderer.render(markdown) : undefined;
+      const renderedMarkdown = markdown ? renderMarkdown(markdown) : undefined;
       const wrappedRawHtml = rawHtmlFromFile ? wrapRawHtmlCard(rawHtmlFromFile) : undefined;
 
       const html =
@@ -400,7 +336,7 @@ export function registerPostCommands(program: Command): void {
         throwValidationError(parsed.error);
       }
 
-      const fromJson = await readOptionalPostJson(parsed.data.fromJson);
+      const fromJson = await readOptionalResourceJson(parsed.data.fromJson, 'posts');
       const htmlFromFile = await readOptionalFile(parsed.data.htmlFile);
       const lexicalFromFile = await readOptionalFile(parsed.data.lexicalFile);
       const markdownFromFile = await readOptionalFile(parsed.data.markdownFile);
@@ -408,7 +344,7 @@ export function registerPostCommands(program: Command): void {
       const rawHtmlFromFile = await readOptionalFile(parsed.data.htmlRawFile);
 
       const markdown = markdownFromStdin ?? markdownFromFile;
-      const renderedMarkdown = markdown ? markdownRenderer.render(markdown) : undefined;
+      const renderedMarkdown = markdown ? renderMarkdown(markdown) : undefined;
       const wrappedRawHtml = rawHtmlFromFile ? wrapRawHtmlCard(rawHtmlFromFile) : undefined;
 
       const html =

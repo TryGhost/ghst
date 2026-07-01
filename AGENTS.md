@@ -104,6 +104,7 @@ pnpm build
 ## Behavior Notes
 
 - `post create|update` supports `--markdown-file`, `--markdown-stdin`, `--html-raw-file`, and `--from-json`.
+- `page create|update` mirrors the shared `post` fields: `--slug`, `--tags`, `--from-json`, `--markdown-file`, `--markdown-stdin`, and `--html-raw-file`. On `page update`, `--slug` is the lookup key when no positional `<id>` is given; with `page update <id> --slug <new-slug>` the positional id is the lookup and `--slug` sets a new slug (rename).
 - `comment list` defaults to site-wide admin moderation semantics and includes replies unless `--top-level-only` is passed.
 - `comment get` uses Ghost Admin's moderation read include set, and `comment thread` mirrors the Admin moderation sidebar by combining the selected comment read with the filtered thread query.
 - `comment hide|show|delete` map to Ghost Admin comment status transitions (`hidden`, `published`, `deleted`).
