@@ -153,6 +153,17 @@ type GroupedToolConfig<InputSchema extends AnySchema | undefined = undefined> = 
   _meta?: Record<string, unknown>;
 };
 
+// Standard MCP tool annotations (readOnlyHint / destructiveHint) so compliant
+// clients (e.g. Claude Desktop) can group tools into read-only vs write/delete
+// buckets natively. These complement the custom `ghst/toolGroup` `_meta`.
+//
+// Note: per the MCP spec `destructiveHint` defaults to `true` when a tool is not
+// read-only, so non-destructive writes must set `destructiveHint: false`
+// explicitly — omitting it would let clients treat create/update as destructive.
+const READ_ONLY_HINT: ToolAnnotations = { readOnlyHint: true };
+const WRITE_HINT: ToolAnnotations = { readOnlyHint: false, destructiveHint: false };
+const DESTRUCTIVE_HINT: ToolAnnotations = { readOnlyHint: false, destructiveHint: true };
+
 type McpToolArgs = Record<string, unknown> & {
   site?: string;
 };
@@ -535,6 +546,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost posts.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -556,6 +568,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_get',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a Ghost post by id or slug.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -580,6 +593,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_create',
       {
+        annotations: WRITE_HINT,
         description: 'Create a Ghost post.',
         inputSchema: z.object({
           title: z.string(),
@@ -613,6 +627,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_update',
       {
+        annotations: WRITE_HINT,
         description:
           'Update a Ghost post by id or slug, with optional email delivery settings on the publish transition.',
         inputSchema: z.object({
@@ -658,6 +673,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_delete',
       {
+        annotations: DESTRUCTIVE_HINT,
         description: 'Delete a Ghost post.',
         inputSchema: z.object({
           id: z.string(),
@@ -677,6 +693,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_publish',
       {
+        annotations: WRITE_HINT,
         description: 'Publish a Ghost post, with optional email delivery settings.',
         inputSchema: z.object({
           id: z.string(),
@@ -701,6 +718,7 @@ export function registerCoreTools(
       'posts',
       'ghost_post_schedule',
       {
+        annotations: WRITE_HINT,
         description: 'Schedule a Ghost post, with optional email delivery settings.',
         inputSchema: z.object({
           id: z.string(),
@@ -726,6 +744,7 @@ export function registerCoreTools(
       'posts',
       'ghost_image_upload',
       {
+        annotations: WRITE_HINT,
         description: 'Upload an image and return the uploaded image payload.',
         inputSchema: z.object({
           file_path: z.string().min(1),
@@ -751,6 +770,7 @@ export function registerCoreTools(
       'pages',
       'ghost_page_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost pages.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -772,6 +792,7 @@ export function registerCoreTools(
       'pages',
       'ghost_page_get',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a Ghost page by id or slug.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -796,6 +817,7 @@ export function registerCoreTools(
       'pages',
       'ghost_page_create',
       {
+        annotations: WRITE_HINT,
         description: 'Create a Ghost page.',
         inputSchema: z.object({
           title: z.string(),
@@ -831,6 +853,7 @@ export function registerCoreTools(
       'pages',
       'ghost_page_update',
       {
+        annotations: WRITE_HINT,
         description: 'Update a Ghost page by id or slug.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -867,6 +890,7 @@ export function registerCoreTools(
       'pages',
       'ghost_page_delete',
       {
+        annotations: DESTRUCTIVE_HINT,
         description: 'Delete a Ghost page.',
         inputSchema: z.object({
           id: z.string(),
@@ -888,6 +912,7 @@ export function registerCoreTools(
       'tags',
       'ghost_tag_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost tags.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -904,6 +929,7 @@ export function registerCoreTools(
       'tags',
       'ghost_tag_get',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a Ghost tag by id or slug.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -924,6 +950,7 @@ export function registerCoreTools(
       'tags',
       'ghost_tag_create',
       {
+        annotations: WRITE_HINT,
         description: 'Create a Ghost tag.',
         inputSchema: z.object({
           name: z.string(),
@@ -940,6 +967,7 @@ export function registerCoreTools(
       'tags',
       'ghost_tag_update',
       {
+        annotations: WRITE_HINT,
         description: 'Update a Ghost tag.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -967,6 +995,7 @@ export function registerCoreTools(
       'tags',
       'ghost_tag_delete',
       {
+        annotations: DESTRUCTIVE_HINT,
         description: 'Delete a Ghost tag.',
         inputSchema: z.object({
           id: z.string(),
@@ -987,6 +1016,7 @@ export function registerCoreTools(
       'members',
       'ghost_member_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost members.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -1004,6 +1034,7 @@ export function registerCoreTools(
       'members',
       'ghost_member_get',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost member by id or email.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -1025,6 +1056,7 @@ export function registerCoreTools(
       'members',
       'ghost_member_create',
       {
+        annotations: WRITE_HINT,
         description: 'Create Ghost member.',
         inputSchema: z.object({
           email: z.string(),
@@ -1050,6 +1082,7 @@ export function registerCoreTools(
       'members',
       'ghost_member_update',
       {
+        annotations: WRITE_HINT,
         description: 'Update Ghost member.',
         inputSchema: z.object({
           id: z.string().optional(),
@@ -1077,6 +1110,7 @@ export function registerCoreTools(
       'members',
       'ghost_member_delete',
       {
+        annotations: DESTRUCTIVE_HINT,
         description: 'Delete Ghost member.',
         inputSchema: z.object({
           id: z.string(),
@@ -1095,6 +1129,7 @@ export function registerCoreTools(
       'members',
       'ghost_member_import',
       {
+        annotations: WRITE_HINT,
         description: 'Import members from a CSV file path.',
         inputSchema: z.object({
           file_path: z.string().min(1),
@@ -1116,6 +1151,7 @@ export function registerCoreTools(
       'members',
       'ghost_newsletter_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost newsletters.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -1132,6 +1168,7 @@ export function registerCoreTools(
       'members',
       'ghost_tier_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost tiers.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -1148,6 +1185,7 @@ export function registerCoreTools(
       'members',
       'ghost_offer_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost offers.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -1166,6 +1204,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost comments from the Admin moderation view.',
         inputSchema: z.object({
           ...commentBrowseArgs,
@@ -1195,6 +1234,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_get',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a Ghost comment with Admin moderation fields.',
         inputSchema: z.object({
           id: z.string(),
@@ -1209,6 +1249,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_thread',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a Ghost comment thread using the Admin moderation thread view.',
         inputSchema: z.object({
           id: z.string(),
@@ -1223,6 +1264,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_replies',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List replies for a Ghost comment using the raw replies endpoint.',
         inputSchema: z.object({
           id: z.string(),
@@ -1250,6 +1292,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_likes',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List likes for a Ghost comment.',
         inputSchema: z.object({
           id: z.string(),
@@ -1277,6 +1320,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_reports',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List reports for a Ghost comment.',
         inputSchema: z.object({
           id: z.string(),
@@ -1304,6 +1348,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_hide',
       {
+        annotations: WRITE_HINT,
         description: 'Hide a Ghost comment.',
         inputSchema: z.object({
           id: z.string(),
@@ -1318,6 +1363,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_show',
       {
+        annotations: WRITE_HINT,
         description: 'Show a previously hidden Ghost comment.',
         inputSchema: z.object({
           id: z.string(),
@@ -1332,6 +1378,7 @@ export function registerCoreTools(
       'comments',
       'ghost_comment_delete',
       {
+        annotations: DESTRUCTIVE_HINT,
         description: 'Soft-delete a Ghost comment.',
         inputSchema: z.object({
           id: z.string(),
@@ -1352,6 +1399,7 @@ export function registerCoreTools(
       'site',
       'ghost_site_info',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost site metadata.',
       },
       async (global) => toolResult(await getSiteInfo(global)),
@@ -1363,6 +1411,7 @@ export function registerCoreTools(
       'site',
       'ghost_site_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List configured Ghost site aliases without credentials.',
       },
       async () => toolResult(await listConfiguredSites()),
@@ -1374,6 +1423,7 @@ export function registerCoreTools(
       'site',
       'ghost_theme_upload',
       {
+        annotations: WRITE_HINT,
         description: 'Upload a Ghost theme zip path and optionally activate it.',
         inputSchema: z.object({
           file_path: z.string().min(1),
@@ -1403,6 +1453,7 @@ export function registerCoreTools(
       'site',
       'ghost_webhook_create',
       {
+        annotations: WRITE_HINT,
         description: 'Create a Ghost webhook.',
         inputSchema: z.object({
           event: z.string().min(1),
@@ -1432,6 +1483,7 @@ export function registerCoreTools(
       'settings',
       'ghost_setting_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost settings.',
       },
       async (global) => toolResult(await listSettings(global)),
@@ -1443,6 +1495,7 @@ export function registerCoreTools(
       'settings',
       'ghost_setting_get',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a Ghost setting by key.',
         inputSchema: z.object({
           key: z.string(),
@@ -1457,6 +1510,7 @@ export function registerCoreTools(
       'settings',
       'ghost_setting_set',
       {
+        annotations: WRITE_HINT,
         description: 'Set a Ghost setting by key.',
         inputSchema: z.object({
           key: z.string(),
@@ -1474,6 +1528,7 @@ export function registerCoreTools(
       'users',
       'ghost_user_list',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List Ghost staff users.',
         inputSchema: z.object({
           limit: z.number().int().positive().max(100).optional(),
@@ -1522,6 +1577,7 @@ export function registerCoreTools(
       'search',
       'ghost_search',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Search posts, pages, tags and members.',
         inputSchema: z.object({
           query: z.string().min(1),
@@ -1539,6 +1595,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_status',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Show Ghost social web settings and connectivity status.',
       },
       async (global) => toolResult(await getSocialWebStatus(global)),
@@ -1550,6 +1607,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_enable',
       {
+        annotations: WRITE_HINT,
         description: 'Enable Ghost social web and return the resulting status.',
       },
       async (global) => toolResult(await enableSocialWeb(global)),
@@ -1561,6 +1619,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_disable',
       {
+        annotations: WRITE_HINT,
         description: 'Disable Ghost social web and return the resulting status.',
       },
       async (global) => toolResult(await disableSocialWeb(global)),
@@ -1572,6 +1631,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_profile',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a social web profile by federated handle or me.',
         inputSchema: z.object({
           handle: socialWebHandleSchema.optional(),
@@ -1586,6 +1646,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_profile_update',
       {
+        annotations: WRITE_HINT,
         description: 'Update the current social web profile.',
         inputSchema: socialWebProfileUpdateSchema,
       },
@@ -1607,6 +1668,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_search',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Search social web accounts.',
         inputSchema: z.object({
           query: z.string().min(1),
@@ -1621,6 +1683,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_notes',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List the social web note feed.',
         inputSchema: socialWebPaginationSchema,
       },
@@ -1636,6 +1699,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_reader',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List the social web reader feed.',
         inputSchema: socialWebPaginationSchema,
       },
@@ -1651,6 +1715,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_notifications',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List social web notifications.',
         inputSchema: socialWebPaginationSchema,
       },
@@ -1666,6 +1731,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_notifications_count',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get the unread social web notification count.',
       },
       async (global) => toolResult(await getNotificationsCount(global)),
@@ -1677,6 +1743,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_posts',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List posts for a social web account.',
         inputSchema: socialWebHandlePaginationSchema,
       },
@@ -1699,6 +1766,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_likes',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List posts liked by the current social web account.',
         inputSchema: socialWebPaginationSchema,
       },
@@ -1714,6 +1782,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_followers',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List followers for a social web account.',
         inputSchema: socialWebHandlePaginationSchema,
       },
@@ -1731,6 +1800,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_following',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List followed accounts for a social web account.',
         inputSchema: socialWebHandlePaginationSchema,
       },
@@ -1748,6 +1818,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_post',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a social web post by ActivityPub id.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1762,6 +1833,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_thread',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a social web thread by ActivityPub id.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1776,6 +1848,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_follow',
       {
+        annotations: WRITE_HINT,
         description: 'Follow a federated social web account.',
         inputSchema: z.object({
           handle: socialWebRemoteHandleSchema,
@@ -1790,6 +1863,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_unfollow',
       {
+        annotations: WRITE_HINT,
         description: 'Unfollow a federated social web account.',
         inputSchema: z.object({
           handle: socialWebRemoteHandleSchema,
@@ -1804,6 +1878,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_like',
       {
+        annotations: WRITE_HINT,
         description: 'Like a social web post.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1818,6 +1893,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_unlike',
       {
+        annotations: WRITE_HINT,
         description: 'Unlike a social web post.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1832,6 +1908,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_repost',
       {
+        annotations: WRITE_HINT,
         description: 'Repost a social web post.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1846,6 +1923,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_derepost',
       {
+        annotations: WRITE_HINT,
         description: 'Undo a repost on a social web post.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1860,6 +1938,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_delete',
       {
+        annotations: DESTRUCTIVE_HINT,
         description: 'Delete a social web post authored by the current account.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1878,6 +1957,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_note',
       {
+        annotations: WRITE_HINT,
         description: 'Create a new social web note.',
         inputSchema: socialWebContentSchema,
       },
@@ -1898,6 +1978,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_reply',
       {
+        annotations: WRITE_HINT,
         description: 'Reply to a social web post.',
         inputSchema: socialWebContentSchema.extend({
           id: socialWebUrlSchema,
@@ -1920,6 +2001,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_blocked_accounts',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List blocked social web accounts.',
         inputSchema: socialWebPaginationSchema,
       },
@@ -1937,6 +2019,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_blocked_domains',
       {
+        annotations: READ_ONLY_HINT,
         description: 'List blocked social web domains.',
         inputSchema: socialWebPaginationSchema,
       },
@@ -1952,6 +2035,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_block',
       {
+        annotations: WRITE_HINT,
         description: 'Block a social web account by ActivityPub id.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1966,6 +2050,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_unblock',
       {
+        annotations: WRITE_HINT,
         description: 'Unblock a social web account by ActivityPub id.',
         inputSchema: z.object({
           id: socialWebUrlSchema,
@@ -1980,6 +2065,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_block_domain',
       {
+        annotations: WRITE_HINT,
         description: 'Block a social web domain.',
         inputSchema: z.object({
           url: socialWebUrlSchema,
@@ -1994,6 +2080,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_unblock_domain',
       {
+        annotations: WRITE_HINT,
         description: 'Unblock a social web domain.',
         inputSchema: z.object({
           url: socialWebUrlSchema,
@@ -2008,6 +2095,7 @@ export function registerCoreTools(
       'socialweb',
       'ghost_socialweb_upload',
       {
+        annotations: WRITE_HINT,
         description: 'Upload an image for social web notes and replies.',
         inputSchema: z.object({
           file_path: z.string().min(1),
@@ -2024,6 +2112,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_overview',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get the Ghost analytics overview report.',
         inputSchema: z.object({
           ...statsRangeArgs,
@@ -2038,6 +2127,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_web',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get the Ghost web analytics report.',
         inputSchema: z.object({
           ...statsWebArgs,
@@ -2052,6 +2142,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_web_table',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get a focused Ghost web analytics table view.',
         inputSchema: z.object({
           view: statsTableViewSchema,
@@ -2073,6 +2164,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_growth',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost member and revenue growth analytics.',
         inputSchema: z.object({
           ...statsRangeArgs,
@@ -2091,6 +2183,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_posts',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get top Ghost posts by views.',
         inputSchema: z.object({
           ...statsRangeArgs,
@@ -2109,6 +2202,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_email',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost email analytics grouped by newsletter.',
         inputSchema: z.object({
           ...statsRangeArgs,
@@ -2132,6 +2226,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_email_clicks',
       {
+        annotations: READ_ONLY_HINT,
         description:
           'Get Ghost email click analytics for a newsletter, optionally filtered by post ids.',
         inputSchema: z.object({
@@ -2158,6 +2253,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_email_subscribers',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost newsletter subscriber analytics.',
         inputSchema: z.object({
           ...statsRangeArgs,
@@ -2179,6 +2275,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_post',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost analytics for a single post.',
         inputSchema: z.object({
           id: z.string(),
@@ -2195,6 +2292,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_post_web',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost web analytics for a single post.',
         inputSchema: z.object({
           id: z.string(),
@@ -2211,6 +2309,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_post_growth',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost growth analytics for a single post.',
         inputSchema: z.object({
           id: z.string(),
@@ -2227,6 +2326,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_post_newsletter',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost email performance analytics for a single post.',
         inputSchema: z.object({
           id: z.string(),
@@ -2245,6 +2345,7 @@ export function registerCoreTools(
       'stats',
       'ghost_stats_post_referrers',
       {
+        annotations: READ_ONLY_HINT,
         description: 'Get Ghost referrer analytics for a single post.',
         inputSchema: z.object({
           id: z.string(),

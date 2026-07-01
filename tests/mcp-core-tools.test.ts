@@ -498,6 +498,66 @@ describe('mcp core tool registration', () => {
     expect(postReferrersResponse.structuredContent).toHaveProperty('referrers');
   });
 
+  test('exposes standard readOnly/destructive annotations for native client grouping', () => {
+    const { server, tools } = createRegistry();
+    registerCoreTools(
+      server as never,
+      { enableDestructiveActions: true },
+      new Set(MCP_TOOL_GROUPS),
+    );
+
+    const annotationsFor = (name: string) =>
+      tools.get(name)?.meta.annotations as
+        | { readOnlyHint?: boolean; destructiveHint?: boolean }
+        | undefined;
+
+    // Reads → readOnlyHint: true
+    for (const name of ['ghost_post_list', 'ghost_post_get', 'ghost_stats_overview']) {
+      expect(annotationsFor(name), `${name} should be read-only`).toEqual({ readOnlyHint: true });
+    }
+
+    // Non-destructive writes → readOnlyHint: false, destructiveHint: false. The
+    // explicit destructiveHint matters: the MCP spec defaults it to true when a
+    // tool is not read-only, so create/update must opt out of the destructive bucket.
+    for (const name of ['ghost_post_create', 'ghost_post_update', 'ghost_comment_hide']) {
+      expect(annotationsFor(name), `${name} should be a non-destructive write`).toEqual({
+        readOnlyHint: false,
+        destructiveHint: false,
+      });
+    }
+
+    // True deletes → destructiveHint: true
+    for (const name of ['ghost_post_delete', 'ghost_member_delete', 'ghost_socialweb_delete']) {
+      expect(annotationsFor(name), `${name} should be destructive`).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+      });
+    }
+
+    // The raw passthrough is intentionally left unhinted since it can read, write, or delete.
+    expect(annotationsFor('ghost_api_request')).toBeUndefined();
+
+    // Every other tool carries an explicit, internally consistent classification.
+    for (const [name, tool] of tools) {
+      if (name === 'ghost_api_request') {
+        continue;
+      }
+      const annotations = tool.meta.annotations as
+        | { readOnlyHint?: boolean; destructiveHint?: boolean }
+        | undefined;
+      expect(annotations, `${name} should carry standard MCP annotations`).toBeDefined();
+      if (annotations?.readOnlyHint) {
+        // Read-only tools never advertise a destructive hint.
+        expect(annotations.destructiveHint, `${name} is read-only`).toBeUndefined();
+      } else {
+        // Writes must state explicitly whether they are destructive.
+        expect(typeof annotations?.destructiveHint, `${name} must set destructiveHint`).toBe(
+          'boolean',
+        );
+      }
+    }
+  });
+
   test('routes MCP tool calls to the per-call configured site alias', async () => {
     const requests: Array<{ hostname: string; pathname: string }> = [];
     installGhostFixtureFetchMock({
