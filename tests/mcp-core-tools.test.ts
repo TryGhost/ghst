@@ -760,7 +760,7 @@ describe('mcp core tool registration', () => {
     const tool = tools.get('ghost_socialweb_notes');
     expect(tool).toBeDefined();
     const parsed = (
-      tool?.meta.inputSchema as {
+      tool!.meta.inputSchema as {
         safeParse: (value: unknown) => { success: boolean; error?: Error };
       }
     ).safeParse({

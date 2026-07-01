@@ -16,7 +16,8 @@
 - Language: TypeScript (ESM)
 - Build: `tsup`
 - Test: `vitest`
-- Lint/format: Biome
+- Lint: oxlint
+- Format: oxfmt
 
 ## Quick Start
 
@@ -25,6 +26,7 @@ nvm use
 corepack enable
 pnpm install
 pnpm lint
+pnpm run format:check
 pnpm typecheck
 pnpm test
 pnpm build
@@ -38,7 +40,8 @@ pnpm build
 - Build: `pnpm build`
 - Typecheck: `pnpm typecheck`
 - Test: `pnpm test`
-- Lint: `pnpm lint` (Biome check: lint + formatting)
+- Lint: `pnpm lint` (oxlint)
+- Format check: `pnpm run format:check` (oxfmt)
 - Check committed Ghost fixtures offline: `pnpm fixtures:ghost:check`
 
 ## Documentation Rules
@@ -171,7 +174,7 @@ pnpm build
 After any non-trivial change, run:
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm lint && pnpm run format:check && pnpm typecheck && pnpm test && pnpm build
 ```
 
 When changing Ghost API fixtures or fixture-backed mocks, also run:

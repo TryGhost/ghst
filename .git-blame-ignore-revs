@@ -1,0 +1,8 @@
+# git blame ignore revs
+#
+# Use locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub applies this file automatically.)
+
+# style: reformat with oxfmt (Biome -> oxfmt migration)
+c28912cd8867ff391c580f3cd46792812f758169

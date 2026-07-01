@@ -2,15 +2,14 @@
   "name": "@tryghost/ghst",
   "version": "0.15.3",
   "description": "A modern Ghost CMS CLI",
-  "type": "module",
+  "homepage": "https://github.com/TryGhost/ghst#readme",
+  "bugs": {
+    "url": "https://github.com/TryGhost/ghst/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TryGhost/ghst.git"
-  },
-  "homepage": "https://github.com/TryGhost/ghst#readme",
-  "bugs": {
-    "url": "https://github.com/TryGhost/ghst/issues"
   },
   "bin": {
     "ghst": "dist/index.js"
@@ -18,13 +17,10 @@
   "files": [
     "dist"
   ],
-  "engines": {
-    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
-  },
+  "type": "module",
   "publishConfig": {
     "access": "public"
   },
-  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup && chmod +x dist/index.js",
@@ -33,10 +29,10 @@
     "test:watch": "vitest",
     "fixtures:ghost:capture": "tsx scripts/capture-ghost-fixtures.ts",
     "fixtures:ghost:check": "tsx scripts/check-ghost-fixtures.ts",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "format:check": "biome format .",
-    "format": "biome format --write .",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format:check": "oxfmt --check",
+    "format": "oxfmt",
     "prepack": "pnpm build"
   },
   "dependencies": {
@@ -61,14 +57,19 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.1",
     "@types/markdown-it": "14.1.2",
     "@types/node": "25.9.4",
     "@types/react": "19.2.17",
     "@vitest/coverage-v8": "4.1.9",
+    "oxfmt": "^0.57.0",
+    "oxlint": "^1.72.0",
     "tsup": "8.5.1",
     "tsx": "4.22.4",
     "typescript": "6.0.3",
     "vitest": "4.1.9"
-  }
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
+  },
+  "packageManager": "pnpm@11.9.0"
 }

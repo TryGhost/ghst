@@ -46,13 +46,13 @@ export const NewsletterUpdateInputSchema = z
     (data) =>
       Boolean(
         data.name !== undefined ||
-          data.description !== undefined ||
-          data.senderName !== undefined ||
-          data.senderEmail !== undefined ||
-          data.senderReplyTo !== undefined ||
-          data.status !== undefined ||
-          data.visibility !== undefined ||
-          data.subscribeOnSignup !== undefined,
+        data.description !== undefined ||
+        data.senderName !== undefined ||
+        data.senderEmail !== undefined ||
+        data.senderReplyTo !== undefined ||
+        data.status !== undefined ||
+        data.visibility !== undefined ||
+        data.subscribeOnSignup !== undefined,
       ),
     {
       message: 'Provide at least one update field.',

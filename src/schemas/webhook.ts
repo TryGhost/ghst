@@ -21,10 +21,10 @@ export const WebhookUpdateInputSchema = z
     (data) =>
       Boolean(
         data.event !== undefined ||
-          data.targetUrl !== undefined ||
-          data.name !== undefined ||
-          data.secret !== undefined ||
-          data.apiVersion !== undefined,
+        data.targetUrl !== undefined ||
+        data.name !== undefined ||
+        data.secret !== undefined ||
+        data.apiVersion !== undefined,
       ),
     {
       message: 'Provide at least one update field.',

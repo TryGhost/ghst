@@ -35,6 +35,7 @@ corepack enable
 pnpm install
 pnpm dev --help
 pnpm lint
+pnpm run format:check
 pnpm typecheck
 pnpm test
 pnpm build
@@ -59,6 +60,7 @@ If this is your first time in the repo, verify local tooling:
 
 ```bash
 pnpm lint
+pnpm run format:check
 pnpm typecheck
 pnpm test
 pnpm build
@@ -150,6 +152,7 @@ Run the same checks as CI:
 
 ```bash
 pnpm lint
+pnpm run format:check
 pnpm typecheck
 pnpm test
 pnpm build
@@ -207,7 +210,7 @@ Important notes:
 2. Ensure all local checks pass:
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm lint && pnpm run format:check && pnpm typecheck && pnpm test && pnpm build
 ```
 
 3. Push your branch and open a PR against `main`.

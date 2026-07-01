@@ -100,21 +100,21 @@ export const PageUpdateInputSchema = withSingleContentSource(
       (data) =>
         Boolean(
           data.title ||
-            // A positional id present alongside --slug is a rename, so the slug
-            // is an update field rather than the lookup key.
-            (data.id && data.slug) ||
-            data.status ||
-            data.publishAt ||
-            data.html ||
-            data.htmlFile ||
-            data.lexicalFile ||
-            data.markdownFile ||
-            data.markdownStdin ||
-            data.htmlRawFile ||
-            data.fromJson ||
-            data.tags ||
-            data.featured !== undefined ||
-            data.visibility,
+          // A positional id present alongside --slug is a rename, so the slug
+          // is an update field rather than the lookup key.
+          (data.id && data.slug) ||
+          data.status ||
+          data.publishAt ||
+          data.html ||
+          data.htmlFile ||
+          data.lexicalFile ||
+          data.markdownFile ||
+          data.markdownStdin ||
+          data.htmlRawFile ||
+          data.fromJson ||
+          data.tags ||
+          data.featured !== undefined ||
+          data.visibility,
         ),
       {
         message: 'Provide at least one update field.',

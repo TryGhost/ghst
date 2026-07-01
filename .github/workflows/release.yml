@@ -96,7 +96,7 @@ jobs:
 
       - name: Validate
         if: steps.gate.outputs.publish == 'true'
-        run: pnpm lint && pnpm typecheck && pnpm test && pnpm build
+        run: pnpm lint && pnpm run format:check && pnpm typecheck && pnpm test && pnpm build
 
       - name: Bump release version
         id: version
