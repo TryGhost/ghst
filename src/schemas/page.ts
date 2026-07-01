@@ -100,6 +100,9 @@ export const PageUpdateInputSchema = withSingleContentSource(
       (data) =>
         Boolean(
           data.title ||
+            // A positional id present alongside --slug is a rename, so the slug
+            // is an update field rather than the lookup key.
+            (data.id && data.slug) ||
             data.status ||
             data.publishAt ||
             data.html ||

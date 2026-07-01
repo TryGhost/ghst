@@ -1163,6 +1163,11 @@ describe('run + commands', () => {
         '--json',
       ]),
     ).resolves.toBe(ExitCode.SUCCESS);
+    // Positional id + --slug renames the page (slug is patched, not a lookup).
+    await expect(
+      run(['node', 'ghst', 'page', 'update', fixtureIds.pageId, '--slug', 'renamed', '--json']),
+    ).resolves.toBe(ExitCode.SUCCESS);
+    expect(lastLogJson<{ pages: Array<{ id: string }> }>().pages[0]?.id).toBe(fixtureIds.pageId);
     await expect(
       run([
         'node',

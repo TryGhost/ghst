@@ -238,7 +238,7 @@ export function registerPageCommands(program: Command): void {
   page
     .command('update [id]')
     .description('Update a page by id or slug')
-    .option('--slug <slug>', 'Page slug lookup')
+    .option('--slug <slug>', 'Page slug lookup, or new slug when a positional id is given')
     .option('--title <title>', 'Page title')
     .option('--status <status>', 'Page status')
     .option('--publish-at <datetime>', 'Publish date-time for scheduled pages')
@@ -298,10 +298,17 @@ export function registerPageCommands(program: Command): void {
         (typeof fromJson.lexical === 'string' ? (fromJson.lexical as string) : undefined);
       const source = html ? 'html' : undefined;
 
+      // When a positional id is supplied, --slug is a new slug to set rather
+      // than the lookup key, so `page update <id> --slug new-slug` renames the
+      // page. With no id, --slug remains the lookup key.
+      const lookupSlug = parsed.data.id ? undefined : parsed.data.slug;
+      const renameSlug = parsed.data.id ? parsed.data.slug : undefined;
+
       const patch = assignDefined(
         { ...fromJson },
         {
           title: parsed.data.title,
+          slug: renameSlug,
           status: parsed.data.status,
           published_at: parsed.data.publishAt,
           html,
@@ -314,7 +321,7 @@ export function registerPageCommands(program: Command): void {
 
       const payload = await updatePage(global, {
         id: parsed.data.id,
-        slug: parsed.data.slug,
+        slug: lookupSlug,
         patch,
         source,
       });
