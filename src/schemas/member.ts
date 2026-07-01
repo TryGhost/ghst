@@ -74,14 +74,14 @@ export const MemberUpdateInputSchema = z
     (data) =>
       Boolean(
         data.name !== undefined ||
-          data.note !== undefined ||
-          data.labels !== undefined ||
-          data.newsletters !== undefined ||
-          data.subscribed !== undefined ||
-          data.comp !== undefined ||
-          data.tier !== undefined ||
-          data.expiry !== undefined ||
-          data.clearTiers,
+        data.note !== undefined ||
+        data.labels !== undefined ||
+        data.newsletters !== undefined ||
+        data.subscribed !== undefined ||
+        data.comp !== undefined ||
+        data.tier !== undefined ||
+        data.expiry !== undefined ||
+        data.clearTiers,
       ),
     {
       message: 'Provide at least one update field.',

@@ -120,30 +120,30 @@ export const PostUpdateInputSchema = withSingleContentSource(
       (data) =>
         Boolean(
           data.title ||
-            data.status ||
-            data.publishAt ||
-            data.html ||
-            data.htmlFile ||
-            data.lexicalFile ||
-            data.markdownFile ||
-            data.markdownStdin ||
-            data.htmlRawFile ||
-            data.fromJson ||
-            data.tags ||
-            data.authors ||
-            data.featured !== undefined ||
-            data.visibility ||
-            data.tier ||
-            data.featureImage ||
-            data.excerpt ||
-            data.metaTitle ||
-            data.metaDescription ||
-            data.ogTitle ||
-            data.ogImage ||
-            data.codeInjectionHead ||
-            data.newsletter ||
-            data.emailOnly !== undefined ||
-            data.emailSegment,
+          data.status ||
+          data.publishAt ||
+          data.html ||
+          data.htmlFile ||
+          data.lexicalFile ||
+          data.markdownFile ||
+          data.markdownStdin ||
+          data.htmlRawFile ||
+          data.fromJson ||
+          data.tags ||
+          data.authors ||
+          data.featured !== undefined ||
+          data.visibility ||
+          data.tier ||
+          data.featureImage ||
+          data.excerpt ||
+          data.metaTitle ||
+          data.metaDescription ||
+          data.ogTitle ||
+          data.ogImage ||
+          data.codeInjectionHead ||
+          data.newsletter ||
+          data.emailOnly !== undefined ||
+          data.emailSegment,
         ),
       {
         message: 'Provide at least one update field.',
@@ -236,9 +236,9 @@ export const PostBulkInputSchema = z
 
       return Boolean(
         data.status !== undefined ||
-          data.tags !== undefined ||
-          data.addTag !== undefined ||
-          data.authors !== undefined,
+        data.tags !== undefined ||
+        data.addTag !== undefined ||
+        data.authors !== undefined,
       );
     },
     {

@@ -2,15 +2,14 @@
   "name": "@tryghost/ghst",
   "version": "0.15.3",
   "description": "A modern Ghost CMS CLI",
-  "type": "module",
+  "homepage": "https://github.com/TryGhost/ghst#readme",
+  "bugs": {
+    "url": "https://github.com/TryGhost/ghst/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TryGhost/ghst.git"
-  },
-  "homepage": "https://github.com/TryGhost/ghst#readme",
-  "bugs": {
-    "url": "https://github.com/TryGhost/ghst/issues"
   },
   "bin": {
     "ghst": "dist/index.js"
@@ -18,13 +17,10 @@
   "files": [
     "dist"
   ],
-  "engines": {
-    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
-  },
+  "type": "module",
   "publishConfig": {
     "access": "public"
   },
-  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup && chmod +x dist/index.js",
@@ -71,5 +67,9 @@
     "tsx": "4.22.4",
     "typescript": "6.0.3",
     "vitest": "4.1.9"
-  }
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
+  },
+  "packageManager": "pnpm@11.9.0"
 }

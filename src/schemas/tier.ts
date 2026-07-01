@@ -55,15 +55,15 @@ export const TierUpdateInputSchema = z
     (data) =>
       Boolean(
         data.name !== undefined ||
-          data.description !== undefined ||
-          data.active !== undefined ||
-          data.type !== undefined ||
-          data.visibility !== undefined ||
-          data.monthlyPrice !== undefined ||
-          data.yearlyPrice !== undefined ||
-          data.currency !== undefined ||
-          data.trialDays !== undefined ||
-          data.benefits !== undefined,
+        data.description !== undefined ||
+        data.active !== undefined ||
+        data.type !== undefined ||
+        data.visibility !== undefined ||
+        data.monthlyPrice !== undefined ||
+        data.yearlyPrice !== undefined ||
+        data.currency !== undefined ||
+        data.trialDays !== undefined ||
+        data.benefits !== undefined,
       ),
     {
       message: 'Provide at least one update field.',

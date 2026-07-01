@@ -63,18 +63,18 @@ export const OfferUpdateInputSchema = z
     (data) =>
       Boolean(
         data.name !== undefined ||
-          data.code !== undefined ||
-          data.displayTitle !== undefined ||
-          data.displayDescription !== undefined ||
-          data.type !== undefined ||
-          data.cadence !== undefined ||
-          data.amount !== undefined ||
-          data.duration !== undefined ||
-          data.durationInMonths !== undefined ||
-          data.currency !== undefined ||
-          data.status !== undefined ||
-          data.redemptionType !== undefined ||
-          data.tierId !== undefined,
+        data.code !== undefined ||
+        data.displayTitle !== undefined ||
+        data.displayDescription !== undefined ||
+        data.type !== undefined ||
+        data.cadence !== undefined ||
+        data.amount !== undefined ||
+        data.duration !== undefined ||
+        data.durationInMonths !== undefined ||
+        data.currency !== undefined ||
+        data.status !== undefined ||
+        data.redemptionType !== undefined ||
+        data.tierId !== undefined,
       ),
     {
       message: 'Provide at least one update field.',

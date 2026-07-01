@@ -54,13 +54,13 @@ export const TagUpdateInputSchema = z
     (data) =>
       Boolean(
         data.name ||
-          data.slug ||
-          data.description ||
-          data.featureImage ||
-          data.accentColor ||
-          data.visibility ||
-          data.metaTitle ||
-          data.metaDescription,
+        data.slug ||
+        data.description ||
+        data.featureImage ||
+        data.accentColor ||
+        data.visibility ||
+        data.metaTitle ||
+        data.metaDescription,
       ),
     {
       message: 'Provide at least one update field.',
