@@ -356,6 +356,7 @@ Notes:
 - `--cors-origin` accepts a single exact origin only, for example `https://app.example.com`.
 - `--tools` accepts `all` or comma-separated group names such as `posts,stats`.
 - Exposed MCP tools include `ghst/toolGroup` and `ghst/toolGroupTitle` metadata for clients that render grouped tools.
+- MCP tools also carry standard `readOnlyHint`/`destructiveHint` annotations so clients like Claude Desktop group them into read-only and write/delete buckets automatically.
 - MCP tools accept an optional `site` argument to target a configured site alias per call. When omitted, `ghst` uses the normal site resolution order.
 - Use `ghost_site_list` to list configured site aliases without exposing stored credentials.
 

@@ -133,6 +133,7 @@ pnpm build
 - MCP now exposes first-class comment moderation tools via the `comments` tool group, including list/get/thread/replies/likes/reports/hide/show/delete.
 - MCP now exposes first-class social web tools via the `socialweb` tool group, covering status/profile/feed/interaction/moderation/upload flows.
 - MCP `tools/list` exposes `ghst/toolGroup` and `ghst/toolGroupTitle` metadata for clients that can render grouped tools.
+- MCP tools also carry standard `annotations.readOnlyHint`/`destructiveHint` so compliant clients (e.g. Claude Desktop) group them into read-only vs write/delete buckets natively; reads set `readOnlyHint: true`, non-destructive writes set `destructiveHint: false` explicitly, deletes set `destructiveHint: true`, and the raw `ghost_api_request` passthrough is left unhinted.
 - MCP tools accept an optional `site` argument for per-call targeting of configured site aliases; when omitted, existing config resolution order is preserved.
 - MCP includes `ghost_site_list` for safe configured-alias discovery without exposing stored credentials.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
