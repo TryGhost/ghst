@@ -136,36 +136,38 @@ describe('output helpers', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const lines = () => logSpy.mock.calls.map((call) => call[0]);
 
-    // Field extraction over a nested collection (the documented idiom).
-    printJson({ posts: [{ title: 'a' }, { title: 'b' }] }, '.posts[].title');
-    expect(lines()).toEqual(['"a"', '"b"']);
+    try {
+      // Field extraction over a nested collection (the documented idiom).
+      printJson({ posts: [{ title: 'a' }, { title: 'b' }] }, '.posts[].title');
+      expect(lines()).toEqual(['"a"', '"b"']);
 
-    // Pipes.
-    logSpy.mockClear();
-    printJson({ posts: [{ slug: 'a' }, { slug: 'b' }] }, '.posts[] | .slug');
-    expect(lines()).toEqual(['"a"', '"b"']);
+      // Pipes.
+      logSpy.mockClear();
+      printJson({ posts: [{ slug: 'a' }, { slug: 'b' }] }, '.posts[] | .slug');
+      expect(lines()).toEqual(['"a"', '"b"']);
 
-    // Array indexing.
-    logSpy.mockClear();
-    printJson({ posts: [{ slug: 'a' }, { slug: 'b' }] }, '.posts[0].slug');
-    expect(lines()).toEqual(['"a"']);
+      // Array indexing.
+      logSpy.mockClear();
+      printJson({ posts: [{ slug: 'a' }, { slug: 'b' }] }, '.posts[0].slug');
+      expect(lines()).toEqual(['"a"']);
 
-    // Object construction.
-    logSpy.mockClear();
-    printJson({ posts: [{ slug: 'a', status: 'published' }] }, '.posts[] | {slug, status}');
-    expect(lines()).toEqual([JSON.stringify({ slug: 'a', status: 'published' })]);
+      // Object construction.
+      logSpy.mockClear();
+      printJson({ posts: [{ slug: 'a', status: 'published' }] }, '.posts[] | {slug, status}');
+      expect(lines()).toEqual([JSON.stringify({ slug: 'a', status: 'published' })]);
 
-    // Top-level array input still iterates its records.
-    logSpy.mockClear();
-    printJson([{ title: 'a' }, { title: 'b' }], '.[].title');
-    expect(lines()).toEqual(['"a"', '"b"']);
+      // Top-level array input still iterates its records.
+      logSpy.mockClear();
+      printJson([{ title: 'a' }, { title: 'b' }], '.[].title');
+      expect(lines()).toEqual(['"a"', '"b"']);
 
-    // Whole-document output when no filter is supplied.
-    logSpy.mockClear();
-    printJson({ ok: true });
-    expect(lines()).toEqual([JSON.stringify({ ok: true }, null, 2)]);
-
-    logSpy.mockRestore();
+      // Whole-document output when no filter is supplied.
+      logSpy.mockClear();
+      printJson({ ok: true });
+      expect(lines()).toEqual([JSON.stringify({ ok: true }, null, 2)]);
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 
   test('raises a usage error on an invalid jq filter', () => {

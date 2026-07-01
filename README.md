@@ -317,7 +317,7 @@ ghst post list --json --jq '.posts[0] | {title, slug}'
 ghst post list --json --jq '.posts[] | select(.status == "published") | .slug'
 ```
 
-Each result is printed on its own line as compact JSON, so the output stays pipe-friendly.
+Each result is printed on its own line as compact JSON, so the output stays pipe-friendly. An invalid `--jq` filter exits with code `2` (`USAGE_ERROR`) rather than leaking interpreter errors.
 
 Raw `ghst api` requests allow ordinary `POST`/`PUT`/`PATCH` writes by default; `DELETE` requests and overwrite/import routes (e.g. `POST /db/`) require `--enable-destructive-actions`.
 
