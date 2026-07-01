@@ -920,6 +920,15 @@ describe('run + commands', () => {
       fixturePrimaryPostTitle,
     );
 
+    // A positional slug (not a Ghost ObjectId) resolves via the slug endpoint,
+    // matching the "by id or slug" help text (issue #179).
+    await expect(run(['node', 'ghst', 'post', 'get', fixtureIds.postSlug, '--json'])).resolves.toBe(
+      ExitCode.SUCCESS,
+    );
+    expect(lastLogJson<{ posts: Array<{ title: string }> }>().posts[0]?.title).toBe(
+      fixturePrimaryPostTitle,
+    );
+
     await expect(
       run([
         'node',

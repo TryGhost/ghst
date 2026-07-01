@@ -56,6 +56,17 @@ export async function listPosts(
   return collectAllPages('posts', (page) => client.posts.browse({ ...params, page, limit }));
 }
 
+const GHOST_OBJECT_ID = /^[0-9a-f]{24}$/;
+
+/**
+ * Ghost resource ids are 24-character lowercase hex ObjectIds. A positional
+ * lookup value that doesn't match is treated as a slug so `get <slug>` works
+ * as the "by id or slug" help text promises.
+ */
+export function looksLikeGhostId(value: string): boolean {
+  return GHOST_OBJECT_ID.test(value);
+}
+
 export async function getPost(
   global: GlobalOptions,
   idOrSlug: string,
