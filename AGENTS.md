@@ -137,6 +137,7 @@ pnpm build
 - MCP includes `ghost_site_list` for safe configured-alias discovery without exposing stored credentials.
 - `api [endpointPath]` only accepts resource-relative paths or canonical Ghost API paths within the selected API root.
 - `api [endpointPath]` allows ordinary `POST`/`PUT`/`PATCH` writes by default; `DELETE` requests and overwrite/import routes (e.g. `POST /db/`) require `--enable-destructive-actions`.
+- `--jq <filter>` is a full jq interpreter (`@jq-tools/jq`) applied to the JSON response envelope (like `gh --jq`); use `.posts[]` to reach records, and invalid filters exit with `USAGE_ERROR`.
 - `mcp http` requires `--unsafe-public-bind` for non-loopback hosts and `--cors-origin` accepts one exact origin only.
 - MCP includes dedicated tools such as `ghost_post_schedule`, `ghost_image_upload`, `ghost_member_import`, `ghost_newsletter_list`, `ghost_tier_list`, `ghost_offer_list`, `ghost_site_list`, `ghost_theme_upload`, and `ghost_webhook_create`.
 

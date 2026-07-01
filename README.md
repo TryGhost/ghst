@@ -155,7 +155,7 @@ Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on st
 | --- | --- |
 | `-v`, `--version` | Print the installed `ghst` version |
 | `--json` | Emit JSON output for automation |
-| `--jq <filter>` | Apply jq-style extraction to JSON output |
+| `--jq <filter>` | Apply a jq filter to JSON output (full jq syntax; runs against the response envelope) |
 | `--site <alias>` | Use configured site alias |
 | `--url <url>` + `--staff-token <token>` | Use direct credentials for this invocation |
 | `--enable-destructive-actions` | Allow destructive operations such as deletes |
@@ -306,12 +306,18 @@ Environment variables:
 
 ## Output, Automation, and Exit Codes
 
-JSON + jq-style extraction:
+JSON + jq filtering:
+
+`--jq` accepts full jq syntax (pipes, indexing, object construction, and built-ins) and runs against the full JSON response, so reach into the collection with `.posts[]` rather than `.[]`:
 
 ```bash
 ghst post list --json
 ghst post list --json --jq '.posts[].title'
+ghst post list --json --jq '.posts[0] | {title, slug}'
+ghst post list --json --jq '.posts[] | select(.status == "published") | .slug'
 ```
+
+Each result is printed on its own line as compact JSON, so the output stays pipe-friendly. An invalid `--jq` filter exits with code `2` (`USAGE_ERROR`) rather than leaking interpreter errors.
 
 Raw `ghst api` requests allow ordinary `POST`/`PUT`/`PATCH` writes by default; `DELETE` requests and overwrite/import routes (e.g. `POST /db/`) require `--enable-destructive-actions`.
 

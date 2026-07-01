@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@jq-tools/jq':
+        specifier: 0.0.11
+        version: 0.0.11(tslib@2.8.1)
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.3)
@@ -846,6 +849,12 @@ packages:
   '@isaacs/cliui@9.0.0':
     resolution: {integrity: sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==}
     engines: {node: '>=18'}
+
+  '@jq-tools/jq@0.0.11':
+    resolution: {integrity: sha512-wTTHKZ/sBq1ECm9DGwYMesRfylbE4LIzXxsfThjv/MPTOsLEeXewKjG0nd3B7G0nG+d8SPKZq1Do677QxAso7w==}
+    hasBin: true
+    peerDependencies:
+      tslib: ^2.3.0
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -5172,6 +5181,10 @@ snapshots:
     optional: true
 
   '@isaacs/cliui@9.0.0': {}
+
+  '@jq-tools/jq@0.0.11(tslib@2.8.1)':
+    dependencies:
+      tslib: 2.8.1
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

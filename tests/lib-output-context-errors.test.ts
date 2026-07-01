@@ -132,19 +132,54 @@ describe('error helpers', () => {
 });
 
 describe('output helpers', () => {
-  test('prints json and jq-filtered json', () => {
+  test('applies real jq filters against the response envelope', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const lines = () => logSpy.mock.calls.map((call) => call[0]);
 
-    printJson({ posts: [{ title: 'a' }, { title: 'b' }] }, '.posts[].title');
-    printJson([{ title: 'a' }, { title: 'b' }], '.[].title');
-    printJson({ ok: true }, '.ok');
+    try {
+      // Field extraction over a nested collection (the documented idiom).
+      printJson({ posts: [{ title: 'a' }, { title: 'b' }] }, '.posts[].title');
+      expect(lines()).toEqual(['"a"', '"b"']);
 
-    expect(logSpy).toHaveBeenCalled();
-    logSpy.mockRestore();
+      // Pipes.
+      logSpy.mockClear();
+      printJson({ posts: [{ slug: 'a' }, { slug: 'b' }] }, '.posts[] | .slug');
+      expect(lines()).toEqual(['"a"', '"b"']);
+
+      // Array indexing.
+      logSpy.mockClear();
+      printJson({ posts: [{ slug: 'a' }, { slug: 'b' }] }, '.posts[0].slug');
+      expect(lines()).toEqual(['"a"']);
+
+      // Object construction.
+      logSpy.mockClear();
+      printJson({ posts: [{ slug: 'a', status: 'published' }] }, '.posts[] | {slug, status}');
+      expect(lines()).toEqual([JSON.stringify({ slug: 'a', status: 'published' })]);
+
+      // Top-level array input still iterates its records.
+      logSpy.mockClear();
+      printJson([{ title: 'a' }, { title: 'b' }], '.[].title');
+      expect(lines()).toEqual(['"a"', '"b"']);
+
+      // Whole-document output when no filter is supplied.
+      logSpy.mockClear();
+      printJson({ ok: true });
+      expect(lines()).toEqual([JSON.stringify({ ok: true }, null, 2)]);
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 
-  test('throws on unsupported jq syntax', () => {
-    expect(() => printJson({ posts: [] }, 'bad-filter')).toThrowError('Unsupported --jq filter');
+  test('raises a usage error on an invalid jq filter', () => {
+    let thrown: unknown;
+    try {
+      printJson({ posts: [] }, 'this is not valid jq $$');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(GhstError);
+    expect((thrown as GhstError).exitCode).toBe(ExitCode.USAGE_ERROR);
   });
 
   test('prints human list/details for resources', () => {
