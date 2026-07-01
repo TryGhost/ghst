@@ -14,6 +14,7 @@ import {
   deletePost,
   getPost,
   listPosts,
+  looksLikeGhostId,
   publishPost,
   schedulePost,
   unschedulePost,
@@ -199,8 +200,12 @@ export function registerPostCommands(program: Command): void {
         });
       }
 
+      // An explicit --slug is always a slug; a positional value is resolved as a
+      // slug unless it looks like a Ghost ObjectId, so `get <slug>` works too.
+      const bySlug = parsed.data.slug ? true : !looksLikeGhostId(lookup);
+
       const payload = await getPost(global, lookup, {
-        bySlug: Boolean(parsed.data.slug),
+        bySlug,
         params: {
           include: parsed.data.include,
           fields: parsed.data.fields,
