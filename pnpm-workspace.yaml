@@ -1,3 +1,6 @@
+minimumReleaseAgeExclude:
+  - '@tryghost/*'
+
 allowBuilds:
   dtrace-provider: false
   esbuild: true
