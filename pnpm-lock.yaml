@@ -42,8 +42,8 @@ importers:
         specifier: 15.1.0
         version: 15.1.0
       csv-parse:
-        specifier: 7.0.0
-        version: 7.0.0
+        specifier: 7.0.1
+        version: 7.0.1
       gscan:
         specifier: 6.4.1
         version: 6.4.1(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(tsx@4.22.5))
@@ -2910,6 +2910,9 @@ packages:
 
   csv-parse@7.0.0:
     resolution: {integrity: sha512-CSssqPAK5us09FhMI9juM0jnqXUJP+rtWeIfivTYBLNH/8rnxkQlZvoRemF6MAyfNov9XU8mN2wwF/pP68sxTA==}
+
+  csv-parse@7.0.1:
+    resolution: {integrity: sha512-+2z7Ar0APQ7Uu6fX4cn+pitRmxjZ1WPBcGmZFKmA74FCyi7Et/XZx8cjNQ5CjbZ4HCOxXCOpRBYvYH08Qa003A==}
 
   date-fns@2.30.0:
     resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
@@ -7583,6 +7586,8 @@ snapshots:
   csstype@3.2.3: {}
 
   csv-parse@7.0.0: {}
+
+  csv-parse@7.0.1: {}
 
   date-fns@2.30.0:
     dependencies:
