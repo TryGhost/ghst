@@ -1,6 +1,6 @@
 {
   "name": "@tryghost/ghst",
-  "version": "0.15.3",
+  "version": "0.16.0",
   "description": "A modern Ghost CMS CLI",
   "homepage": "https://github.com/TryGhost/ghst#readme",
   "bugs": {
