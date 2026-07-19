@@ -48,8 +48,8 @@ importers:
         specifier: 6.4.2
         version: 6.4.2(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))
       ink:
-        specifier: 7.1.0
-        version: 7.1.0(@types/react@19.2.17)(react@19.2.7)
+        specifier: 7.1.1
+        version: 7.1.1(@types/react@19.2.17)(react@19.2.7)
       jose:
         specifier: 6.2.3
         version: 6.2.3
@@ -3580,8 +3580,8 @@ packages:
     resolution: {integrity: sha512-7PnF4oN3CvZF23ADhA5wRaYEQpJ8qygSkbtTXWBeXWXmEVRXK+1ITciHWwHhsjv1TmW0MgacIv6hEi5pX5NQdA==}
     engines: {node: '>=10'}
 
-  ink@7.1.0:
-    resolution: {integrity: sha512-VWE6/yeLtFCJBNLflyI2OSylyXK1Rc24LuXup8Qt+icwkmmycFNdbn8IkSp6Frc0h1iA0NOvvi1ajW44U/w3Qg==}
+  ink@7.1.1:
+    resolution: {integrity: sha512-Y43xxa1ZSPvpmfLHcN5o+OdP8Rf8ykkNJEuKYOUNZKT8wXVNLFTtEm1nSDMQkfBH+YANF4Xuu0hhZ4ejqAtN2w==}
     engines: {node: '>=22'}
     peerDependencies:
       '@types/react': '>=19.2.0'
@@ -8457,7 +8457,7 @@ snapshots:
 
   ini@2.0.0: {}
 
-  ink@7.1.0(@types/react@19.2.17)(react@19.2.7):
+  ink@7.1.1(@types/react@19.2.17)(react@19.2.7):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.3.0
       ansi-escapes: 7.3.0
