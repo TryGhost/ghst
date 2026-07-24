@@ -176,7 +176,11 @@ function createLinuxAdapter(): CredentialStoreAdapter {
           LINUX_ATTR_REF,
           '__probe__',
         ]);
-        return probe.code === 0 || probe.code === 1;
+        // code 1 = credential not found (service healthy); code 0 = found.
+        // When the Secret Service is not activatable, secret-tool exits with a
+        // non-zero code AND writes a D-Bus error to stderr. A healthy "not found"
+        // response produces no stderr output, so any stderr indicates unavailability.
+        return (probe.code === 0 || probe.code === 1) && probe.stderr.trim() === '';
       } catch {
         return false;
       }
