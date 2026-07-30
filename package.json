@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@jq-tools/jq": "0.0.11",
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@tryghost/mg-json": "0.22.2",
     "@tryghost/mg-medium-export": "0.27.2",
     "@tryghost/mg-substack": "1.8.0",
