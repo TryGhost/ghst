@@ -179,6 +179,31 @@ describe.sequential('credential store adapters', () => {
     await expect(store.isAvailable()).resolves.toBe(false);
   });
 
+  test('linux adapter returns unavailable when probe exits code 1 with D-Bus stderr', async () => {
+    delete process.env.VITEST;
+    setPlatform('linux');
+    resetCredentialStoreCacheForTests();
+
+    queueSpawnOutcomes([
+      { code: 1, stderr: 'secret-tool: The name is not activatable\n' },
+    ]);
+
+    const store = getCredentialStore();
+    await expect(store.isAvailable()).resolves.toBe(false);
+  });
+
+  test('linux adapter considers service available only when probe exits cleanly with no stderr', async () => {
+    delete process.env.VITEST;
+    setPlatform('linux');
+    resetCredentialStoreCacheForTests();
+
+    // code 1 with no stderr = "not found" (service healthy)
+    queueSpawnOutcomes([{ code: 1, stderr: '' }]);
+
+    const store = getCredentialStore();
+    await expect(store.isAvailable()).resolves.toBe(true);
+  });
+
   test('linux adapter handles input piping and error branches', async () => {
     delete process.env.VITEST;
     setPlatform('linux');

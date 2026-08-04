@@ -357,8 +357,17 @@ async function persistSiteCredential(
 
   if (available) {
     const credentialRef = credentialRefForAlias(alias);
-    await store.set(credentialRef, staffTokenInput);
-    return { credentialRef };
+    try {
+      await store.set(credentialRef, staffTokenInput);
+      return { credentialRef };
+    } catch (err) {
+      if (!allowInsecureStorage) {
+        throw err;
+      }
+      // store.set() failed even though isAvailable() returned true (e.g. D-Bus
+      // service became unavailable between probe and write). Fall through to
+      // plaintext storage since --insecure-storage was explicitly requested.
+    }
   }
 
   if (!allowInsecureStorage) {
