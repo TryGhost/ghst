@@ -86,16 +86,16 @@ importers:
         version: 1.77.0
       tsup:
         specifier: 8.5.1
-        version: 8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.9)(typescript@7.0.2)
+        version: 8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.10)(typescript@7.0.2)
       tsx:
-        specifier: 4.23.9
-        version: 4.23.9
+        specifier: 4.23.10
+        version: 4.23.10
       typescript:
         specifier: 7.0.2
         version: 7.0.2
       vitest:
         specifier: 4.1.10
-        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9))
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10))
 
 packages:
 
@@ -4675,8 +4675,8 @@ packages:
       typescript:
         optional: true
 
-  tsx@4.23.9:
-    resolution: {integrity: sha512-6q8uTORRGauQVjqMQnKUucLFoeXZAfw6zKvG35GLbdKWbLdeOtZ3H4mhyA5mxuUd2o2cRTskhj59nLLQseUvUw==}
+  tsx@4.23.10:
+    resolution: {integrity: sha512-0Vb9eKU47njkxv/6B8CRZRDsxNDT/Pz+BIU+M5jw7xL3TdzAjSxlZUxu0xFL/kLpaG3sHZ0LH2wbK1T1yo7CUQ==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -7145,7 +7145,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10))
 
   '@vitest/expect@4.1.10':
     dependencies:
@@ -7156,13 +7156,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.10(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9))':
+  '@vitest/mocker@4.1.10(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10))':
     dependencies:
       '@vitest/spy': 4.1.10
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9)
+      vite: 8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10)
 
   '@vitest/pretty-format@4.1.10':
     dependencies:
@@ -8901,12 +8901,12 @@ snapshots:
       mlly: 1.8.2
       pathe: 2.0.3
 
-  postcss-load-config@6.0.1(postcss@8.5.26)(tsx@4.23.9):
+  postcss-load-config@6.0.1(postcss@8.5.26)(tsx@4.23.10):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       postcss: 8.5.26
-      tsx: 4.23.9
+      tsx: 4.23.10
 
   postcss@8.5.26:
     dependencies:
@@ -9533,7 +9533,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsup@8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.9)(typescript@7.0.2):
+  tsup@8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.10)(typescript@7.0.2):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
       cac: 6.7.14
@@ -9544,7 +9544,7 @@ snapshots:
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
-      postcss-load-config: 6.0.1(postcss@8.5.26)(tsx@4.23.9)
+      postcss-load-config: 6.0.1(postcss@8.5.26)(tsx@4.23.10)
       resolve-from: 5.0.0
       rollup: 4.62.4
       source-map: 0.7.6
@@ -9561,7 +9561,7 @@ snapshots:
       - tsx
       - yaml
 
-  tsx@4.23.9:
+  tsx@4.23.10:
     dependencies:
       esbuild: 0.28.2
     optionalDependencies:
@@ -9707,7 +9707,7 @@ snapshots:
       unist-util-stringify-position: 2.0.3
       vfile-message: 2.0.4
 
-  vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9):
+  vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.5
@@ -9718,12 +9718,12 @@ snapshots:
       '@types/node': 25.9.5
       esbuild: 0.27.7
       fsevents: 2.3.3
-      tsx: 4.23.9
+      tsx: 4.23.10
 
-  vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9)):
+  vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@25.9.5)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10)):
     dependencies:
       '@vitest/expect': 4.1.10
-      '@vitest/mocker': 4.1.10(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9))
+      '@vitest/mocker': 4.1.10(vite@8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10))
       '@vitest/pretty-format': 4.1.10
       '@vitest/runner': 4.1.10
       '@vitest/snapshot': 4.1.10
@@ -9740,7 +9740,7 @@ snapshots:
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.9)
+      vite: 8.2.1(@types/node@25.9.5)(esbuild@0.27.7)(tsx@4.23.10)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
