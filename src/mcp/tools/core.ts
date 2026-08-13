@@ -188,11 +188,11 @@ function withMcpSiteSchema<InputSchema extends AnySchema | undefined>(
   inputSchema?: InputSchema,
 ): AnySchema {
   if (!inputSchema) {
-    // No-argument tools still accept the optional per-call `site`. This must be a
-    // plain object schema: the MCP SDK derives a tool's advertised JSON Schema from
-    // `normalizeObjectSchema`, which only surfaces `properties` for object schemas.
-    // Wrapping in a union/transform/default hides `site` from `tools/list`.
-    return z.object({ site: mcpSiteArgSchema });
+    // No-argument tools still accept the optional per-call `site`. Reuse the shared
+    // object schema: the MCP SDK derives a tool's advertised JSON Schema from
+    // `normalizeObjectSchema`, which only surfaces `properties` for object schemas,
+    // so wrapping in a union/transform/default would hide `site` from `tools/list`.
+    return mcpSiteSchema;
   }
 
   const objectSchema = inputSchema as ExtendableZodObject;
