@@ -49,6 +49,7 @@ function parseMcpJsonResponse(body: string): {
     tools?: Array<{
       name: string;
       _meta?: Record<string, unknown>;
+      inputSchema?: { properties?: Record<string, unknown> };
     }>;
   };
 } {
@@ -201,14 +202,13 @@ describe.sequential('mcp http integration', () => {
         'ghst/toolGroup': 'site',
         'ghst/toolGroupTitle': 'Site',
       });
-      expect(JSON.stringify(siteTool)).toContain('"site"');
+      // A no-argument tool must still advertise the optional per-call `site` in its
+      // published input schema, otherwise clients cannot discover per-call targeting.
+      // (Asserting the schema itself, not a substring match that also hits `_meta`.)
+      expect(siteTool?.inputSchema?.properties).toHaveProperty('site');
 
-      const noArgumentsCall = await mcpPost(baseUrl, 3, 'tools/call', {
-        name: 'ghost_site_list',
-      });
-      expect(noArgumentsCall.status).toBe(200);
-      expect(noArgumentsCall.body).toContain('"sites"');
-
+      // No-argument tools now expose an object input schema (so `site` is
+      // discoverable), which means an empty arguments object is accepted...
       const emptyArgumentsCall = await mcpPost(baseUrl, 4, 'tools/call', {
         name: 'ghost_site_list',
         arguments: {},

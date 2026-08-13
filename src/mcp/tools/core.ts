@@ -178,9 +178,6 @@ const mcpSiteArgSchema = SiteAliasSchema.optional();
 const mcpSiteSchema = z.object({
   site: mcpSiteArgSchema,
 });
-const mcpOptionalSiteOnlySchema = z
-  .union([mcpSiteSchema, z.undefined()])
-  .transform((value) => value ?? {});
 
 type ExtendableZodObject = AnySchema & {
   safeExtend?: (shape: { site: typeof mcpSiteArgSchema }) => AnySchema;
@@ -191,7 +188,11 @@ function withMcpSiteSchema<InputSchema extends AnySchema | undefined>(
   inputSchema?: InputSchema,
 ): AnySchema {
   if (!inputSchema) {
-    return mcpOptionalSiteOnlySchema;
+    // No-argument tools still accept the optional per-call `site`. This must be a
+    // plain object schema: the MCP SDK derives a tool's advertised JSON Schema from
+    // `normalizeObjectSchema`, which only surfaces `properties` for object schemas.
+    // Wrapping in a union/transform/default hides `site` from `tools/list`.
+    return z.object({ site: mcpSiteArgSchema });
   }
 
   const objectSchema = inputSchema as ExtendableZodObject;

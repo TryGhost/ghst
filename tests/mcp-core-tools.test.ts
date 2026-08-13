@@ -681,7 +681,7 @@ describe('mcp core tool registration', () => {
     const siteListSchema = tools.get('ghost_site_list')?.meta.inputSchema as {
       safeParse: (value: unknown) => { success: boolean; data?: unknown; error?: Error };
     };
-    expect(siteListSchema.safeParse(undefined)).toMatchObject({
+    expect(siteListSchema.safeParse({})).toMatchObject({
       success: true,
       data: {},
     });
