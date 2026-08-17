@@ -49,6 +49,7 @@ function parseMcpJsonResponse(body: string): {
     tools?: Array<{
       name: string;
       _meta?: Record<string, unknown>;
+      inputSchema?: { properties?: Record<string, unknown> };
     }>;
   };
 } {
@@ -201,14 +202,13 @@ describe.sequential('mcp http integration', () => {
         'ghst/toolGroup': 'site',
         'ghst/toolGroupTitle': 'Site',
       });
-      expect(JSON.stringify(siteTool)).toContain('"site"');
+      // A no-argument tool must still advertise the optional per-call `site` in its
+      // published input schema, otherwise clients cannot discover per-call targeting.
+      // (Asserting the schema itself, not a substring match that also hits `_meta`.)
+      expect(siteTool?.inputSchema?.properties).toHaveProperty('site');
 
-      const noArgumentsCall = await mcpPost(baseUrl, 3, 'tools/call', {
-        name: 'ghost_site_list',
-      });
-      expect(noArgumentsCall.status).toBe(200);
-      expect(noArgumentsCall.body).toContain('"sites"');
-
+      // No-argument tools now expose an object input schema (so `site` is
+      // discoverable), which means an empty arguments object is accepted...
       const emptyArgumentsCall = await mcpPost(baseUrl, 4, 'tools/call', {
         name: 'ghost_site_list',
         arguments: {},
@@ -222,6 +222,90 @@ describe.sequential('mcp http integration', () => {
       });
       expect(siteArgumentsCall.status).toBe(200);
       expect(siteArgumentsCall.body).toContain('"sites"');
+    } finally {
+      process.emit('SIGINT');
+      await runPromise;
+    }
+  });
+
+  test('every published tool advertises the optional per-call site argument', async () => {
+    const port = await getFreePort();
+    const runPromise = runMcpHttp(
+      () => createGhostMcpServer({}, { enabledGroups: parseToolGroups('all') }),
+      { host: '127.0.0.1', port, authToken: 'test-token' },
+    );
+
+    const baseUrl = `http://127.0.0.1:${port}/mcp`;
+
+    try {
+      await waitForServer(baseUrl);
+
+      await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer test-token',
+          accept: 'application/json, text/event-stream',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-11-25',
+            capabilities: {},
+            clientInfo: { name: 'test', version: '0.1' },
+          },
+        }),
+      });
+
+      await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer test-token',
+          accept: 'application/json, text/event-stream',
+          'content-type': 'application/json',
+          'mcp-protocol-version': '2025-11-25',
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }),
+      });
+
+      const toolsListResponse = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer test-token',
+          accept: 'application/json, text/event-stream',
+          'content-type': 'application/json',
+          'mcp-protocol-version': '2025-11-25',
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
+      });
+
+      const tools = parseMcpJsonResponse(await toolsListResponse.text()).result?.tools ?? [];
+      expect(tools.length).toBeGreaterThan(0);
+
+      // withMcpSiteSchema injects `site` into every tool. Assert the invariant across
+      // the whole surface so a tool registered with a schema shape that drops `site`
+      // from the published `tools/list` projection (as the old no-argument fallback
+      // did) fails here instead of silently shipping.
+      const missingSite = tools
+        .filter((tool) => tool.inputSchema?.properties?.site === undefined)
+        .map((tool) => tool.name);
+      expect(missingSite).toEqual([]);
+
+      // Explicitly cover the no-argument tools, the ones the fallback affected.
+      const names = new Set(tools.map((tool) => tool.name));
+      for (const name of [
+        'ghost_site_info',
+        'ghost_site_list',
+        'ghost_setting_list',
+        'ghost_socialweb_status',
+        'ghost_socialweb_enable',
+        'ghost_socialweb_disable',
+        'ghost_socialweb_notifications_count',
+      ]) {
+        expect(names.has(name)).toBe(true);
+      }
     } finally {
       process.emit('SIGINT');
       await runPromise;
