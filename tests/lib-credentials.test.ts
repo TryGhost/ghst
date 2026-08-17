@@ -184,9 +184,7 @@ describe.sequential('credential store adapters', () => {
     setPlatform('linux');
     resetCredentialStoreCacheForTests();
 
-    queueSpawnOutcomes([
-      { code: 1, stderr: 'secret-tool: The name is not activatable\n' },
-    ]);
+    queueSpawnOutcomes([{ code: 1, stderr: 'secret-tool: The name is not activatable\n' }]);
 
     const store = getCredentialStore();
     await expect(store.isAvailable()).resolves.toBe(false);

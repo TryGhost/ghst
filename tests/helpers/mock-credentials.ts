@@ -32,7 +32,9 @@ export function createBrokenCredentialStore(): CredentialStore {
   return {
     isAvailable: async () => true,
     set: async () => {
-      throw new Error('Failed to store credential in Secret Service: secret-tool: The name is not activatable');
+      throw new Error(
+        'Failed to store credential in Secret Service: secret-tool: The name is not activatable',
+      );
     },
     get: async () => null,
     delete: async () => undefined,
