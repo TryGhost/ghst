@@ -7,6 +7,7 @@ import { readUserConfig } from '../src/lib/config.js';
 import { setCredentialStoreForTests } from '../src/lib/credentials.js';
 import { ExitCode } from '../src/lib/errors.js';
 import {
+  createBrokenCredentialStore,
   createMemoryCredentialStore,
   createUnavailableCredentialStore,
 } from './helpers/mock-credentials.js';
@@ -134,6 +135,53 @@ describe('credential storage and security defaults', () => {
     };
     expect(raw.sites?.myblog?.staffAccessToken).toBe(KEY);
     expect(raw.sites?.myblog?.credentialRef).toBeUndefined();
+  });
+
+  test('falls back to plaintext when store reports available but set throws and --insecure-storage is passed', async () => {
+    setCredentialStoreForTests(createBrokenCredentialStore());
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        '--site',
+        'myblog',
+        '--insecure-storage',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    const raw = JSON.parse(await fs.readFile(path.join(configDir, 'config.json'), 'utf8')) as {
+      sites?: Record<string, { staffAccessToken?: string; credentialRef?: string }>;
+    };
+    expect(raw.sites?.myblog?.staffAccessToken).toBe(KEY);
+    expect(raw.sites?.myblog?.credentialRef).toBeUndefined();
+  });
+
+  test('re-throws store set error without --insecure-storage when store reports available but set throws', async () => {
+    setCredentialStoreForTests(createBrokenCredentialStore());
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        '--site',
+        'myblog',
+      ]),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
   });
 
   test('migrates plaintext staff tokens into secure store on read', async () => {
