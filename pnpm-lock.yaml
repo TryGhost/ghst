@@ -15,17 +15,17 @@ importers:
         specifier: 1.30.0
         version: 1.30.0(supports-color@7.2.0)(zod@4.4.3)
       '@tryghost/mg-json':
-        specifier: 0.22.4
-        version: 0.22.4
+        specifier: 0.22.5
+        version: 0.22.5
       '@tryghost/mg-medium-export':
-        specifier: 0.27.4
-        version: 0.27.4(@types/node@25.9.5)(supports-color@7.2.0)
+        specifier: 0.27.5
+        version: 0.27.5(@types/node@25.9.5)(supports-color@7.2.0)
       '@tryghost/mg-substack':
-        specifier: 1.10.0
-        version: 1.10.0(@types/node@25.9.5)(supports-color@7.2.0)
+        specifier: 1.11.0
+        version: 1.11.0(@types/node@25.9.5)(supports-color@7.2.0)
       '@tryghost/mg-wp-xml':
-        specifier: 0.17.4
-        version: 0.17.4(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+        specifier: 0.17.5
+        version: 0.17.5(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       '@tryghost/string':
         specifier: 0.3.5
         version: 0.3.5
@@ -2118,32 +2118,32 @@ packages:
   '@tryghost/logging@5.1.1':
     resolution: {integrity: sha512-LZHvGN9uVtODK43pCYzkyCWyQoiHJLXQ7XkuWCpvPPY0Ghpyer4GDhPCKgvASZQOx5vgjVGEKee7tk6H7daP0g==}
 
-  '@tryghost/mg-fs-utils@0.26.4':
-    resolution: {integrity: sha512-Q2QMp0aXiDRAMd8RlcVlQCQlMGdkMWJzTQv1MWQsXoWR8ipGREDxrn19ghaToyVf03GWEvGTCPTr3m1CR4VYWQ==}
+  '@tryghost/mg-fs-utils@0.26.5':
+    resolution: {integrity: sha512-baZjvw9sS2/idkgOxKAtFvyW8g4OkVwxfFZV/DqinYSO4bgQX6QOJ2vXIlkNwmVAPuGn/arpoBox19K3Yi+BpQ==}
 
-  '@tryghost/mg-json@0.22.4':
-    resolution: {integrity: sha512-zP5P5G+RMulB6EQOO/Sn/lcFR0+FddPvdjYtgQTpRGnEdcbfuc7WYeh9gjCf5my0pI1+1R2wDL5ICZuYAcBo8w==}
+  '@tryghost/mg-json@0.22.5':
+    resolution: {integrity: sha512-RRwEI3fI4/l4h6fevpS9PHoVznB0Xz30gumkpgD20l+txYxNEh3RAfu9NMocb8Q7oBtzC2QRtSPznum5lLVhlg==}
 
-  '@tryghost/mg-medium-export@0.27.4':
-    resolution: {integrity: sha512-CHumm1/WKE7UIkWbn0ynSQ1b2j1p+gZYSOahp6u91HfTsaHtPpjYTsG+SDwyEW1/bJqO/N+VE+wJi1DpJJY9jw==}
+  '@tryghost/mg-medium-export@0.27.5':
+    resolution: {integrity: sha512-bkCeg2rmigHIGQQLUevxQAohtM/kmH7ahwkvBktv2C3yXsIKq6Fq1kWMEti6kmLqo8AGqsUn3IaI/enedtXFrQ==}
 
-  '@tryghost/mg-shortcodes@0.12.4':
-    resolution: {integrity: sha512-dYETduNicwSDaprLtLBJM2DUAy1Hcn1LgeQyOQP1XMYNjZzu7xjjZCW44YfJp4cuYYSjrqEAO185KWM6iw4QAA==}
+  '@tryghost/mg-shortcodes@0.12.5':
+    resolution: {integrity: sha512-pLyny2Zpd4tWe1KTMNVwJWAfI+offJNrSbt7Or7m9c8J1wvdz3L9qJbyqV4Yr3mnmI0MPEUk3/w+qwoabPoGIA==}
 
-  '@tryghost/mg-substack@1.10.0':
-    resolution: {integrity: sha512-ljOfJrFHz3G3uSm6VsncVsNqcZLUYDo7Q3hmBSqfX5FpIgtn5oMBSuOHavkA8fe5UBzhMP6lmXpEYSfzipAPoQ==}
+  '@tryghost/mg-substack@1.11.0':
+    resolution: {integrity: sha512-SdEq1frBqqpFnL0DRJKPXVSdZezf9jQNGKFTqVQOgCPVk6arKF7am+2/1I00+8V5IXjsI19aj2Dal/OGiM05jQ==}
 
-  '@tryghost/mg-utils@0.11.4':
-    resolution: {integrity: sha512-bYs4yMUq2y4Scjx7EdkjfsEdFPf05HVcvqFN1tuyz5PxHvrVfKAoshL/Umy3SDP9UHS3PA/99oEVzV+LaMpyQg==}
+  '@tryghost/mg-utils@0.11.5':
+    resolution: {integrity: sha512-/sIw7cUz9zNNX8KY46Wo7WlB1pb4ddnVvCOirA4YH0uzu04D7wxSaNV8GT9+bD9FRT5OBXkP3/qvXJwCVF5aEQ==}
 
-  '@tryghost/mg-webscraper@0.19.4':
-    resolution: {integrity: sha512-TOe4u2Ej0xYvhOceYb7SJ2YUcGUgcm96zOKgcRWJv/YCKkjeQ/rb/u9OgeYKC8A9sGwmnVkrC81cQkTLS1BVGw==}
+  '@tryghost/mg-webscraper@0.19.5':
+    resolution: {integrity: sha512-DedBdj7/RaB0PR+7aii9Mpiqc6d3y0bydAbuBySQK78MzncKTslcwm+NHzImUjlU2bLgbJ3ZaDVo8WrcDJ1pcw==}
 
-  '@tryghost/mg-wp-api@0.23.4':
-    resolution: {integrity: sha512-QQwgJzejBuMwK5KRZZS563yBTzyNKuivLdmWaJGjSYPzYcfErNull7oLL7MvNbG80G4kd8g70Z4HphVn2sIr8A==}
+  '@tryghost/mg-wp-api@0.23.5':
+    resolution: {integrity: sha512-BXT7tLZ3LBp/W0uL7IQfZKF9KGZ/9aK8HtoqiaxKiFgJLX0G9YxUIuMexglV6K8uhkwBGsuYys4aYQN4RAo+Xw==}
 
-  '@tryghost/mg-wp-xml@0.17.4':
-    resolution: {integrity: sha512-ENfOnS4pJAoxllPiYa2Sd9IlAAWMna8v2gEXPeftUqkooa5XrJw4/nOYJB1svkHiHI5HuwtqiuTspW+SM41IhA==}
+  '@tryghost/mg-wp-xml@0.17.5':
+    resolution: {integrity: sha512-X2prlFeSv7OCAoEPhWI32KvVG4+dSW1UQNwOD2rhswzivLVCkCdawJhO5bCkHMdSuBcdfy6a+cN/C5+qetKs7A==}
 
   '@tryghost/mongo-knex@0.10.1':
     resolution: {integrity: sha512-6LRA4zVpNvCrVrA9hOhs8N4iylAiafGssiKuD8yML/13xg2PvKw6dzOZj6hg0CKQwG7tVp8TA+7Nw3iDOzy/jQ==}
@@ -6588,7 +6588,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tryghost/mg-fs-utils@0.26.4(@types/node@25.9.5)(supports-color@7.2.0)':
+  '@tryghost/mg-fs-utils@0.26.5(@types/node@25.9.5)(supports-color@7.2.0)':
     dependencies:
       '@tryghost/errors': 3.3.6
       '@tryghost/image-transform': 1.4.17(@types/node@25.9.5)(supports-color@7.2.0)
@@ -6607,9 +6607,9 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-json@0.22.4':
+  '@tryghost/mg-json@0.22.5':
     dependencies:
-      '@tryghost/mg-utils': 0.11.4
+      '@tryghost/mg-utils': 0.11.5
       '@tryghost/string': 0.3.5
       bson-objectid: 2.0.4
       html-entities: 2.6.0
@@ -6617,11 +6617,11 @@ snapshots:
     transitivePeerDependencies:
       - canvas
 
-  '@tryghost/mg-medium-export@0.27.4(@types/node@25.9.5)(supports-color@7.2.0)':
+  '@tryghost/mg-medium-export@0.27.5(@types/node@25.9.5)(supports-color@7.2.0)':
     dependencies:
       '@tryghost/debug': 2.3.6(supports-color@7.2.0)
-      '@tryghost/mg-fs-utils': 0.26.4(@types/node@25.9.5)(supports-color@7.2.0)
-      '@tryghost/mg-utils': 0.11.4
+      '@tryghost/mg-fs-utils': 0.26.5(@types/node@25.9.5)(supports-color@7.2.0)
+      '@tryghost/mg-utils': 0.11.5
       '@tryghost/string': 0.3.5
       simple-dom: 1.4.0
     transitivePeerDependencies:
@@ -6632,14 +6632,14 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-shortcodes@0.12.4': {}
+  '@tryghost/mg-shortcodes@0.12.5': {}
 
-  '@tryghost/mg-substack@1.10.0(@types/node@25.9.5)(supports-color@7.2.0)':
+  '@tryghost/mg-substack@1.11.0(@types/node@25.9.5)(supports-color@7.2.0)':
     dependencies:
       '@tryghost/debug': 2.3.6(supports-color@7.2.0)
       '@tryghost/errors': 3.3.6
-      '@tryghost/mg-fs-utils': 0.26.4(@types/node@25.9.5)(supports-color@7.2.0)
-      '@tryghost/mg-utils': 0.11.4
+      '@tryghost/mg-fs-utils': 0.26.5(@types/node@25.9.5)(supports-color@7.2.0)
+      '@tryghost/mg-utils': 0.11.5
       '@tryghost/string': 0.3.5
       escape-string-regexp: 5.0.0
       he: 1.2.0
@@ -6654,7 +6654,7 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-utils@0.11.4':
+  '@tryghost/mg-utils@0.11.5':
     dependencies:
       '@tryghost/kg-default-cards': 10.3.5
       fast-xml-parser: 5.10.1
@@ -6662,7 +6662,7 @@ snapshots:
     transitivePeerDependencies:
       - canvas
 
-  '@tryghost/mg-webscraper@0.19.4(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@tryghost/mg-webscraper@0.19.5(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)':
     dependencies:
       '@tryghost/errors': 3.3.6
       '@tryghost/string': 0.3.5
@@ -6672,13 +6672,13 @@ snapshots:
       - debug
       - supports-color
 
-  '@tryghost/mg-wp-api@0.23.4(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@tryghost/mg-wp-api@0.23.5(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)':
     dependencies:
       '@tryghost/debug': 2.3.6(supports-color@7.2.0)
-      '@tryghost/mg-fs-utils': 0.26.4(@types/node@25.9.5)(supports-color@7.2.0)
-      '@tryghost/mg-shortcodes': 0.12.4
-      '@tryghost/mg-utils': 0.11.4
-      '@tryghost/mg-webscraper': 0.19.4(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      '@tryghost/mg-fs-utils': 0.26.5(@types/node@25.9.5)(supports-color@7.2.0)
+      '@tryghost/mg-shortcodes': 0.12.5
+      '@tryghost/mg-utils': 0.11.5
+      '@tryghost/mg-webscraper': 0.19.5(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       '@tryghost/string': 0.3.5
       html-to-text: 10.0.0
       simple-dom: 1.4.0
@@ -6693,14 +6693,13 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@tryghost/mg-wp-xml@0.17.4(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@tryghost/mg-wp-xml@0.17.5(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)':
     dependencies:
       '@tryghost/errors': 3.3.6
-      '@tryghost/mg-utils': 0.11.4
-      '@tryghost/mg-wp-api': 0.23.4(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      '@tryghost/mg-utils': 0.11.5
+      '@tryghost/mg-wp-api': 0.23.5(@types/node@25.9.5)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       '@tryghost/string': 0.3.5
       fast-glob: 3.3.3
-      fast-xml-parser: 5.10.1
       markdown-it: 15.0.0
       php-serialize: 5.1.3
     transitivePeerDependencies:
