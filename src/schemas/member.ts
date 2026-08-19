@@ -59,7 +59,7 @@ export const MemberUpdateInputSchema = z
     subscribed: z.boolean().optional(),
     comp: z.boolean().optional(),
     tier: z.string().min(1).optional(),
-    expiry: z.string().datetime().optional(),
+    expiry: z.string().datetime({ offset: true }).optional(),
     clearTiers: z.boolean().optional(),
   })
   .refine((data) => Boolean(data.id || data.email), {
