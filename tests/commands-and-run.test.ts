@@ -3293,4 +3293,45 @@ describe('run + commands', () => {
       'Warning: Social web is enabled, but the social web service is not reachable yet.',
     );
   });
+
+  test('member list ANDs --status against the whole --filter (parenthesized)', async () => {
+    const requests: Array<{ method: string; pathname: string; url: URL }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: async ({ method, pathname, url }) => {
+        requests.push({ method, pathname, url: new URL(url.toString()) });
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'member',
+        'list',
+        '--filter',
+        'label:vip,label:founders',
+        '--status',
+        'paid',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    const listRequest = requests.find(
+      (request) => request.method === 'GET' && request.pathname.endsWith('/members/'),
+    );
+    // The user filter must be parenthesized so `--status` ANDs against the whole
+    // filter. NQL binds `+` (AND) tighter than `,` (OR), so an unparenthesized
+    // `label:vip,label:founders+status:paid` parses as
+    // `label:vip OR (label:founders AND status:paid)` — dropping the status
+    // constraint from the first OR branch.
+    expect(listRequest?.url.searchParams.get('filter')).toBe(
+      '(label:vip,label:founders)+status:paid',
+    );
+    // `--status` is folded into the filter; it must not also leak as its own param.
+    expect(listRequest?.url.searchParams.has('status')).toBe(false);
+  });
 });
