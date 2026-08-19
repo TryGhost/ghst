@@ -514,6 +514,14 @@ describe('datetime input handling', () => {
       status: 'scheduled',
       publishAt: '2026-06-01T12:00:00+02:00',
     });
+    expectValid<{ publishAt?: string }>(PostUpdateInputSchema, {
+      id: 'post-1',
+      publishAt: '2026-06-01T12:00:00+02:00',
+    });
+    expectValid<{ publishAt?: string }>(PageUpdateInputSchema, {
+      id: 'page-1',
+      publishAt: '2026-06-01T12:00:00-05:00',
+    });
     expectValid<{ expiry?: string }>(MemberUpdateInputSchema, {
       id: 'member-1',
       tier: 'tier-1',
