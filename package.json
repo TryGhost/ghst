@@ -57,7 +57,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@types/markdown-it": "14.1.2",
+    "@types/markdown-it": "14.2.0",
     "@types/node": "25.9.5",
     "@types/react": "19.2.18",
     "@vitest/coverage-v8": "4.1.10",
