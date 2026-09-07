@@ -48,7 +48,7 @@
     "commander": "15.0.0",
     "conf": "15.1.0",
     "csv-parse": "7.0.2",
-    "gscan": "6.4.2",
+    "gscan": "6.5.0",
     "ink": "7.1.1",
     "jose": "6.2.10",
     "markdown-it": "15.0.1",
