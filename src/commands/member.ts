@@ -93,15 +93,22 @@ export function registerMemberCommands(program: Command): void {
       }
 
       const allPages = parsed.data.limit === 'all';
+      // Parenthesize the user filter so `--status` ANDs against the whole filter.
+      // NQL binds `+` (AND) tighter than `,` (OR), so an unparenthesized
+      // `<filter>+status:<status>` would attach the status to only the last OR
+      // term instead of the entire filter.
       const combinedFilter =
         parsed.data.filter && parsed.data.status
-          ? `${parsed.data.filter}+status:${parsed.data.status}`
+          ? `(${parsed.data.filter})+status:${parsed.data.status}`
           : (parsed.data.filter ??
             (parsed.data.status ? `status:${parsed.data.status}` : undefined));
+      // `status` is folded into `filter`; drop it so it is not also sent as a
+      // standalone query param.
+      const { status: _status, ...listInput } = parsed.data;
       const payload = await listMembers(
         global,
         {
-          ...parsed.data,
+          ...listInput,
           filter: combinedFilter,
           limit: parsed.data.limit === 'all' ? undefined : parsed.data.limit,
         },
