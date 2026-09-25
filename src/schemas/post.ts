@@ -50,7 +50,7 @@ export const PostCreateInputSchema = withSingleContentSource(
     .object({
       title: z.string().min(1).optional(),
       status: StatusSchema.optional(),
-      publishAt: z.string().datetime().optional(),
+      publishAt: z.string().datetime({ offset: true }).optional(),
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
@@ -88,7 +88,7 @@ export const PostUpdateInputSchema = withSingleContentSource(
       slug: z.string().min(1).optional(),
       title: z.string().min(1).optional(),
       status: StatusSchema.optional(),
-      publishAt: z.string().datetime().optional(),
+      publishAt: z.string().datetime({ offset: true }).optional(),
       html: z.string().optional(),
       htmlFile: z.string().min(1).optional(),
       lexicalFile: z.string().min(1).optional(),
@@ -179,7 +179,7 @@ export const PostPublishInputSchema = z.object({
 
 export const PostScheduleInputSchema = z.object({
   id: z.string().min(1),
-  at: z.string().datetime(),
+  at: z.string().datetime({ offset: true }),
   newsletter: z.string().optional(),
   emailOnly: z.boolean().optional(),
   emailSegment: z.string().optional(),
