@@ -200,8 +200,8 @@ importers:
         specifier: 15.1.0
         version: 15.1.0
       csv-parse:
-        specifier: 7.0.2
-        version: 7.0.2
+        specifier: 7.0.3
+        version: 7.0.3
       gscan:
         specifier: 6.6.1
         version: 6.6.1(supports-color@7.2.0)
@@ -2790,6 +2790,9 @@ packages:
 
   csv-parse@7.0.2:
     resolution: {integrity: sha512-uKZghv9UmPkMVLYy//KZ9HFAIJsl7wkhoEdIL0+rhuSY9pZQlhaeGEDPIe+/w7eh81MOql8Q/9+inAGWG6ZHYA==}
+
+  csv-parse@7.0.3:
+    resolution: {integrity: sha512-YFd3QM/yo17vH91L1IOZuvl09zM0zEEtdfTcOCKWcMdM++MNaQSyp09slXyFCLaPXvHstQFx/xC8myiFHSMUvw==}
 
   debounce-fn@6.0.0:
     resolution: {integrity: sha512-rBMW+F2TXryBwB54Q0d8drNEI+TfoS9JpNTAoVpukbWEhjXQq4rySFYLaqXMFXwdv61Zb2OHtj5bviSoimqxRQ==}
@@ -6812,6 +6815,8 @@ snapshots:
   csstype@3.2.3: {}
 
   csv-parse@7.0.2: {}
+
+  csv-parse@7.0.3: {}
 
   debounce-fn@6.0.0:
     dependencies:
