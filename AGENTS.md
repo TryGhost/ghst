@@ -65,6 +65,8 @@ pnpm build
 
 ## Implemented Commands
 
+- `ghst canvas connect|wait|status|tools|state|read|edit|inspect|content|history|reveal|review|result|disconnect` (local extension; see README).
+
 - `ghst auth login|status|list|switch|logout|link|token`
 - `ghst comment list|get|thread|replies|likes|reports|hide|show|delete`
 - `ghst post list|get|create|update|delete|publish|schedule|unschedule|copy|bulk`

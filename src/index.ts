@@ -1,3 +1,4 @@
+import { registerCanvasCommands } from './commands/canvas.js';
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -66,6 +67,7 @@ export function buildProgram(): Command {
   registerUserCommands(program);
   registerImageCommands(program);
   registerThemeCommands(program);
+  registerCanvasCommands(program);
   registerSiteCommands(program);
   registerSocialWebCommands(program);
   registerStatsCommands(program);
