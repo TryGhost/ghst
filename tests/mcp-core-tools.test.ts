@@ -861,6 +861,55 @@ describe('mcp core tool registration', () => {
     expect(JSON.stringify(putRequests[0]?.body ?? {})).not.toContain('"email_segment"');
   });
 
+  test('ghost_post_create and ghost_post_update forward feature image fields', async () => {
+    const writes: Array<{ method: string; body: Record<string, unknown> }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, init }) => {
+        if (
+          (method === 'POST' && pathname.endsWith('/ghost/api/admin/posts/')) ||
+          (method === 'PUT' && pathname.endsWith(`/ghost/api/admin/posts/${fixtureIds.postId}/`))
+        ) {
+          writes.push({
+            method,
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['posts']));
+    const featureImage = {
+      feature_image: 'https://example.com/content/images/2026/09/hero.png',
+      feature_image_alt: 'A tram passing apartment blocks in autumn',
+      feature_image_caption: 'Zurich in late September',
+    };
+
+    await tools.get('ghost_post_create')?.handler({ title: 'Tool Post', ...featureImage });
+    await tools.get('ghost_post_update')?.handler({ id: fixtureIds.postId, ...featureImage });
+    await tools
+      .get('ghost_post_update')
+      ?.handler({ id: fixtureIds.postId, title: 'No image change' });
+
+    expect(writes.map((write) => write.method)).toEqual(['POST', 'PUT', 'PUT']);
+    expect(writes[0]?.body).toMatchObject({ posts: [featureImage] });
+    expect(writes[1]?.body).toMatchObject({ posts: [featureImage] });
+    // Omitted fields are not sent, so an update never clears an existing feature image.
+    expect(JSON.stringify(writes[2]?.body ?? {})).not.toContain('feature_image');
+
+    const updateSchema = tools.get('ghost_post_update')?.meta.inputSchema as {
+      safeParse: (value: unknown) => { success: boolean };
+    };
+    expect(
+      updateSchema.safeParse({ id: fixtureIds.postId, feature_image: 'not a url' }).success,
+    ).toBe(false);
+    expect(
+      updateSchema.safeParse({ id: fixtureIds.postId, feature_image_alt: 'x'.repeat(192) }).success,
+    ).toBe(false);
+  });
+
   test('ghost_post_update forwards email delivery flags as query params', async () => {
     const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
     installGhostFixtureFetchMock({
