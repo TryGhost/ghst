@@ -113,7 +113,7 @@ async function requestRaw(
   });
 }
 
-describe.sequential('mcp transports', () => {
+describe('mcp transports', { concurrent: false }, () => {
   test('stdio transport connects and waits for onclose', async () => {
     mcpTransportMocks.stdioInstances.length = 0;
 

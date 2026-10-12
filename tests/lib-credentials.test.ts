@@ -84,7 +84,7 @@ function setPlatform(platform: NodeJS.Platform): void {
   });
 }
 
-describe.sequential('credential store adapters', () => {
+describe('credential store adapters', { concurrent: false }, () => {
   const originalPlatform = process.platform;
   const originalVitest = process.env.VITEST;
 
