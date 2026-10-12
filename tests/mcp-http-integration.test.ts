@@ -98,7 +98,7 @@ async function mcpPost(
   };
 }
 
-describe.sequential('mcp http integration', () => {
+describe('mcp http integration', { concurrent: false }, () => {
   test('parses JSON and event-stream MCP responses', () => {
     expect(parseMcpJsonResponse('{"result":{"tools":[]}}')).toEqual({
       result: { tools: [] },

@@ -60,7 +60,7 @@ async function waitFor(check: () => boolean, timeoutMs = 1000): Promise<void> {
   }
 }
 
-describe.sequential('webhook listener runtime', () => {
+describe('webhook listener runtime', { concurrent: false }, () => {
   beforeEach(() => {
     webhookMocks.createWebhook.mockReset();
     webhookMocks.deleteWebhook.mockReset();

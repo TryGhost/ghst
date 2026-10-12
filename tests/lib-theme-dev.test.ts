@@ -89,7 +89,7 @@ async function waitFor(check: () => boolean, timeoutMs = 1000): Promise<void> {
   }
 }
 
-describe.sequential('theme dev runtime', () => {
+describe('theme dev runtime', { concurrent: false }, () => {
   let tempRoot = '';
 
   beforeEach(async () => {
