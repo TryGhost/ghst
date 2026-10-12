@@ -495,3 +495,43 @@ describe('site schema', () => {
     expect(SiteInfoInputSchema.parse({})).toEqual({});
   });
 });
+
+describe('datetime input handling', () => {
+  test('accepts ISO-8601 datetimes with a timezone offset, not only UTC Z', () => {
+    // A user in a non-UTC timezone naturally passes an offset datetime, which
+    // Ghost's Admin API accepts. These must validate, not just the `Z` form.
+    expectValid<{ at: string }>(PostScheduleInputSchema, {
+      id: 'post-1',
+      at: '2026-06-01T12:00:00-05:00',
+    });
+    expectValid<{ publishAt?: string }>(PostCreateInputSchema, {
+      title: 'Hello',
+      status: 'scheduled',
+      publishAt: '2026-06-01T12:00:00+02:00',
+    });
+    expectValid<{ publishAt?: string }>(PageCreateInputSchema, {
+      title: 'About',
+      status: 'scheduled',
+      publishAt: '2026-06-01T12:00:00+02:00',
+    });
+    expectValid<{ publishAt?: string }>(PostUpdateInputSchema, {
+      id: 'post-1',
+      publishAt: '2026-06-01T12:00:00+02:00',
+    });
+    expectValid<{ publishAt?: string }>(PageUpdateInputSchema, {
+      id: 'page-1',
+      publishAt: '2026-06-01T12:00:00-05:00',
+    });
+    expectValid<{ expiry?: string }>(MemberUpdateInputSchema, {
+      id: 'member-1',
+      tier: 'tier-1',
+      expiry: '2027-01-01T00:00:00-08:00',
+    });
+  });
+
+  test('still rejects datetimes without a timezone designator', () => {
+    // Naive/local and date-only values are ambiguous and stay rejected.
+    expectInvalid(PostScheduleInputSchema, { id: 'post-1', at: '2026-06-01T12:00:00' });
+    expectInvalid(PostScheduleInputSchema, { id: 'post-1', at: '2026-06-01' });
+  });
+});
