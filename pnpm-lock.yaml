@@ -185,8 +185,8 @@ importers:
         specifier: 0.17.7
         version: 0.17.7(@types/node@25.9.9)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       '@tryghost/string':
-        specifier: 0.3.7
-        version: 0.3.7
+        specifier: 0.3.8
+        version: 0.3.8
       chalk:
         specifier: 6.0.1
         version: 6.0.1
@@ -2330,6 +2330,9 @@ packages:
 
   '@tryghost/string@0.3.7':
     resolution: {integrity: sha512-IOffwVz3OD8JYbLhuWSm8433R0aKT2sbcVyOy50T41Ii3y+zs8qr4KwEDxD542hR9VsP7Y2RB/whPsSDoy4MMQ==}
+
+  '@tryghost/string@0.3.8':
+    resolution: {integrity: sha512-Q73QaW9mTgfeuL3554SnUvu9gM1ISowKb683knajTamy1zZsuk3AjDSiEiEGi9BfzjW2RxBQ4rKnlFD9S2oqLg==}
 
   '@tryghost/url-utils@5.4.0':
     resolution: {integrity: sha512-XEYx0kKnm7rYo8NG82MtWlJnI/eBNsxMLYR/1Anv+j6snTJskHpQYPje8Q5iuRQA3Rtt/3seVkHZlumwmhcG7w==}
@@ -6419,6 +6422,10 @@ snapshots:
       unidecode: 1.1.0
 
   '@tryghost/string@0.3.7':
+    dependencies:
+      unidecode: 1.1.0
+
+  '@tryghost/string@0.3.8':
     dependencies:
       unidecode: 1.1.0
 
