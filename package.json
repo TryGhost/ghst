@@ -42,7 +42,7 @@
     "@tryghost/mg-medium-export": "0.27.7",
     "@tryghost/mg-substack": "1.13.0",
     "@tryghost/mg-wp-xml": "0.17.7",
-    "@tryghost/string": "0.3.7",
+    "@tryghost/string": "0.3.8",
     "chalk": "6.0.1",
     "cli-table3": "0.6.5",
     "commander": "15.0.0",
