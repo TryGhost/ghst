@@ -61,7 +61,7 @@
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@vitest/coverage-v8": "5.0.5",
-    "oxfmt": "0.74.0",
+    "oxfmt": "0.75.0",
     "oxlint": "1.89.0",
     "tsup": "9.0.0",
     "tsx": "4.23.15",
