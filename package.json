@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@types/markdown-it": "14.2.0",
-    "@types/node": "26.6.5",
+    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@vitest/coverage-v8": "5.0.5",
     "oxfmt": "0.75.0",
