@@ -60,13 +60,13 @@
     "@types/markdown-it": "14.2.0",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "oxfmt": "0.76.0",
     "oxlint": "1.90.0",
     "tsup": "9.0.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
