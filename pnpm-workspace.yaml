@@ -1,6 +1,18 @@
 minimumReleaseAgeExclude:
   - '@tryghost/*'
 
+# Security fixes for transitive dependencies that @tryghost/mg-* packages pin to
+# vulnerable versions. Drop each override once upstream ships the fixed version.
+overrides:
+  # extract-zip has no fixed release (GHSA-jmr9-qjv8-65gv, GHSA-7pqw-9j4j-h8q3);
+  # @tryghost/zip 4 replaces it with yauzl and keeps the same API.
+  '@tryghost/mg-fs-utils>@tryghost/zip': ^4.0.0
+  handlebars@<4.7.10: ^4.7.10
+  markdown-it@>=15.0.0 <15.0.3: ^15.0.3
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1
+  parse-link-header@<2.0.0: ^2.0.0
+  trim@<0.0.3: ^0.0.3
+
 allowBuilds:
   dtrace-provider: false
   esbuild: true
