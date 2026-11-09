@@ -11,8 +11,8 @@
 
 ## Runtime And Tooling
 
-- Node: `22.13+`, `24.x`, `26.x` (`.nvmrc` defaults to `24`; `package.json` engines allow all three)
-- Package manager: `pnpm 11.x`
+- Node: `22.13+`, `24.x`, `26.x` (`.nvmrc` defaults to `26`; `package.json` engines allow all three)
+- Package manager: `pnpm 12.x` (switches itself to the `packageManager` version in `package.json`; no Corepack needed)
 - Language: TypeScript (ESM)
 - Build: `tsup`
 - Test: `vitest`
@@ -23,7 +23,6 @@
 
 ```bash
 nvm use
-corepack enable
 pnpm install
 pnpm lint
 pnpm run format:check

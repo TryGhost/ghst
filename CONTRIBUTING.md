@@ -31,7 +31,6 @@ This guide is the complete contributor workflow for cloning, installing, running
 
 ```bash
 nvm use
-corepack enable
 pnpm install
 pnpm dev --help
 pnpm lint
@@ -43,16 +42,14 @@ pnpm build
 
 ## Environment Requirements
 
-- Node.js `22.13+`, `24.x`, or `26.x` (`.nvmrc` defaults to `24`; CI validates all three)
-- `corepack` enabled
-- `pnpm 11.x`
+- Node.js `22.13+`, `24.x`, or `26.x` (`.nvmrc` defaults to `26`; CI validates all three)
+- `pnpm 12.x` ([installation](https://pnpm.io/installation)); pnpm switches itself to the exact `packageManager` version in `package.json`, so Corepack is not needed (Node.js 25+ no longer bundles it)
 - A Ghost development or staging site - don’t run a local development build of `ghst` against a production Ghost instance with data you care about
 
 ## Install Dependencies
 
 ```bash
 nvm use
-corepack enable
 pnpm install
 ```
 
@@ -171,7 +168,7 @@ CI reference:
 
 - Workflow: `.github/workflows/ci.yml`
 - Node: `22`, `24`, `26`
-- Package manager: `pnpm 11.x`
+- Package manager: `pnpm 12.x`
 
 ## Ghost Fixture Workflow
 
