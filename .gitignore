@@ -11,3 +11,4 @@ coverage
 *.pfx
 .tmp/
 .claude/
+.amp/portals/*

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Prepares an Amp orb for ghst development. The orb already provides Node 26
+# (the .nvmrc default) and pnpm, so setup only adds system tools and the
+# locked dependencies. Runs on fresh and restored orbs, so every step must be
+# idempotent and quick when its work is already done.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+step() {
+  local label="$1" start=$SECONDS
+  shift
+  echo "==> $label"
+  "$@"
+  echo "    done in $((SECONDS - start))s"
+}
+
+install_system_packages() {
+  # `ghst theme upload <dir>` and `ghst theme dev` zip themes with the zip CLI.
+  if command -v zip >/dev/null 2>&1; then
+    echo "    zip already installed"
+    return
+  fi
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip
+}
+
+write_agent_notes() {
+  local notes="$HOME/.config/amp/AGENTS.md"
+  local marker="# ghst Orb Toolchain"
+  if grep -Fqx "$marker" "$notes" 2>/dev/null; then
+    echo "    orb notes already present"
+    return
+  fi
+  mkdir -p "$(dirname "$notes")"
+  cat >> "$notes" <<'EOF'
+
+# ghst Orb Toolchain
+
+- The orb's Node is the `.nvmrc` default, and `.agents/setup` already installed the locked dependencies. Skip `nvm use`; nvm is not installed or needed.
+- `pnpm` switches to the `packageManager` version from `package.json` on its own.
+- Rerun `pnpm install --frozen-lockfile` after the lockfile changes.
+EOF
+}
+
+install_dependencies() {
+  # pnpm runs the packageManager version from package.json, downloading it once.
+  pnpm install --frozen-lockfile
+}
+
+step "System packages" install_system_packages
+step "Orb agent notes" write_agent_notes
+step "Dependencies" install_dependencies
+echo "==> Ready: node $(node -v), pnpm $(pnpm -v)"
