@@ -193,8 +193,8 @@ importers:
         specifier: 0.17.7
         version: 0.17.7(@types/node@26.6.6)(bare-buffer@3.7.1)(debug@4.4.3)
       '@tryghost/string':
-        specifier: 0.3.8
-        version: 0.3.8
+        specifier: 0.3.9
+        version: 0.3.9
       chalk:
         specifier: 6.0.1
         version: 6.0.1
@@ -2032,8 +2032,8 @@ packages:
   '@tryghost/string@0.3.7':
     resolution: {integrity: sha512-IOffwVz3OD8JYbLhuWSm8433R0aKT2sbcVyOy50T41Ii3y+zs8qr4KwEDxD542hR9VsP7Y2RB/whPsSDoy4MMQ==}
 
-  '@tryghost/string@0.3.8':
-    resolution: {integrity: sha512-Q73QaW9mTgfeuL3554SnUvu9gM1ISowKb683knajTamy1zZsuk3AjDSiEiEGi9BfzjW2RxBQ4rKnlFD9S2oqLg==}
+  '@tryghost/string@0.3.9':
+    resolution: {integrity: sha512-4ngm0f7lvnPgE6mmCavyeHeFxIwkZIhT+LXT/7Tccp9VT3IbLKwigEirI8ccjJltWc0x7ADmb55x3aDo2x3CLA==}
 
   '@tryghost/url-utils@5.4.0':
     resolution: {integrity: sha512-XEYx0kKnm7rYo8NG82MtWlJnI/eBNsxMLYR/1Anv+j6snTJskHpQYPje8Q5iuRQA3Rtt/3seVkHZlumwmhcG7w==}
@@ -5913,7 +5913,7 @@ snapshots:
     dependencies:
       unidecode: 1.1.0
 
-  '@tryghost/string@0.3.8':
+  '@tryghost/string@0.3.9':
     dependencies:
       unidecode: 1.1.0
 
