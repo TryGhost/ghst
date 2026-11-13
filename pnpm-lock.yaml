@@ -193,8 +193,8 @@ importers:
         specifier: 0.17.7
         version: 0.17.7(@types/node@26.6.6)(bare-buffer@3.7.1)(debug@4.4.3)
       '@tryghost/string':
-        specifier: 0.3.9
-        version: 0.3.9
+        specifier: 0.3.10
+        version: 0.3.10
       chalk:
         specifier: 6.0.1
         version: 6.0.1
@@ -2026,14 +2026,14 @@ packages:
   '@tryghost/root-utils@2.3.19':
     resolution: {integrity: sha512-PIFzf2FUBiDe9H7UZ5om1yX/LgIpl7L96dtcgxahGqEhss5/OLVePaPTAray+VV3Nx7o/VM5HTOVPvuGai3mSw==}
 
+  '@tryghost/string@0.3.10':
+    resolution: {integrity: sha512-bXf8EWBujR0Vvz3DwWK61VfDG7XcIq0j4++mTLnKjS05HgojeqYyM3g7iF3YvFjkytPaVVfNS7jmdpZL3LTn0Q==}
+
   '@tryghost/string@0.3.6':
     resolution: {integrity: sha512-aYlvmvicb4nj3QtvkIr8JsQqKks1mphlCWJVirNMAyxzKIHY6rJC1g4FjCOlTHUCtNDhJyxxUaT6UznVndY0ZQ==}
 
   '@tryghost/string@0.3.7':
     resolution: {integrity: sha512-IOffwVz3OD8JYbLhuWSm8433R0aKT2sbcVyOy50T41Ii3y+zs8qr4KwEDxD542hR9VsP7Y2RB/whPsSDoy4MMQ==}
-
-  '@tryghost/string@0.3.9':
-    resolution: {integrity: sha512-4ngm0f7lvnPgE6mmCavyeHeFxIwkZIhT+LXT/7Tccp9VT3IbLKwigEirI8ccjJltWc0x7ADmb55x3aDo2x3CLA==}
 
   '@tryghost/url-utils@5.4.0':
     resolution: {integrity: sha512-XEYx0kKnm7rYo8NG82MtWlJnI/eBNsxMLYR/1Anv+j6snTJskHpQYPje8Q5iuRQA3Rtt/3seVkHZlumwmhcG7w==}
@@ -5905,15 +5905,15 @@ snapshots:
       caller: 1.1.0
       find-root: 1.1.0
 
+  '@tryghost/string@0.3.10':
+    dependencies:
+      unidecode: 1.1.0
+
   '@tryghost/string@0.3.6':
     dependencies:
       unidecode: 1.1.0
 
   '@tryghost/string@0.3.7':
-    dependencies:
-      unidecode: 1.1.0
-
-  '@tryghost/string@0.3.9':
     dependencies:
       unidecode: 1.1.0
 
