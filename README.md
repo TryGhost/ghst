@@ -358,6 +358,7 @@ Notes:
 - Exposed MCP tools include `ghst/toolGroup` and `ghst/toolGroupTitle` metadata for clients that render grouped tools.
 - MCP tools also carry standard `readOnlyHint`/`destructiveHint` annotations so clients like Claude Desktop group them into read-only and write/delete buckets automatically.
 - MCP tools accept an optional `site` argument to target a configured site alias per call. When omitted, `ghst` uses the normal site resolution order.
+- `ghost_post_create` and `ghost_page_create` accept an optional `authors` list of author emails. When it is omitted, the post or page is authored by the token's own user, which lets Contributor and Author tokens create drafts; those tokens should omit `authors`, because Ghost checks the author's user id, not the email.
 - Use `ghost_site_list` to list configured site aliases without exposing stored credentials.
 
 Example multi-instance workflow:

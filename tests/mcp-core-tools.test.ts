@@ -951,6 +951,39 @@ describe('mcp core tool registration', () => {
     });
   });
 
+  test('ghost_post_create falls back without authors when /users/me/ is unavailable', async () => {
+    let meStatus = 403;
+    const posts: Array<Record<string, unknown>> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, init }) => {
+        if (method === 'GET' && pathname.endsWith('/ghost/api/admin/users/me/')) {
+          return new Response(JSON.stringify({ errors: [{ message: 'nope' }] }), {
+            status: meStatus,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        if (method === 'POST' && pathname.endsWith('/ghost/api/admin/posts/')) {
+          posts.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>);
+        }
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['posts']));
+    const create = tools.get('ghost_post_create');
+
+    // A token without user context still creates, leaving the author to Ghost.
+    await create?.handler({ title: 'No user context' });
+    expect(posts).toHaveLength(1);
+    expect(JSON.stringify(posts[0])).not.toContain('authors');
+
+    // Other lookup failures surface instead of silently creating a post.
+    meStatus = 500;
+    await expect(create?.handler({ title: 'Server error' })).rejects.toThrow('nope');
+    expect(posts).toHaveLength(1);
+  });
+
   test('ghost_post_update forwards email delivery flags as query params', async () => {
     const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
     installGhostFixtureFetchMock({
