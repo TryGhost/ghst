@@ -2,6 +2,7 @@ import { GhostClient, type GhostPaginatedResponse } from './client.js';
 import { resolveConnectionConfig } from './config.js';
 import { ExitCode, GhstError } from './errors.js';
 import { collectAllPages } from './pagination.js';
+import { withDefaultAuthor } from './posts.js';
 import type { GlobalOptions } from './types.js';
 
 function getFirstPage(payload: Record<string, unknown>): Record<string, unknown> {
@@ -58,7 +59,7 @@ export async function createPage(
   source?: 'html',
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
-  return client.pages.add(page, source);
+  return client.pages.add(await withDefaultAuthor(client, page), source);
 }
 
 export async function updatePage(

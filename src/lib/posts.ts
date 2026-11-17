@@ -79,13 +79,40 @@ export async function getPost(
   return client.posts.read(idOrSlug, options);
 }
 
+/**
+ * Ghost only lets Contributor and Author tokens create a post or page whose
+ * first author has their user id; author emails are not enough. When no
+ * authors are given, name the token's own user, which is also Ghost's default.
+ */
+export async function withDefaultAuthor(
+  client: GhostClient,
+  resource: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  if (resource.authors !== undefined) {
+    return resource;
+  }
+
+  try {
+    const payload = await client.users.me();
+    const users = Array.isArray(payload.users) ? payload.users : [];
+    const id = (users[0] as Record<string, unknown> | undefined)?.id;
+    return typeof id === 'string' ? { ...resource, authors: [{ id }] } : resource;
+  } catch (error) {
+    // Tokens without user context fall back to Ghost's own default author.
+    if (error instanceof GhostApiError && (error.status === 403 || error.status === 404)) {
+      return resource;
+    }
+    throw error;
+  }
+}
+
 export async function createPost(
   global: GlobalOptions,
   post: Record<string, unknown>,
   source?: 'html',
 ): Promise<Record<string, unknown>> {
   const client = await getClient(global);
-  return client.posts.add(post, source);
+  return client.posts.add(await withDefaultAuthor(client, post), source);
 }
 
 export async function updatePost(

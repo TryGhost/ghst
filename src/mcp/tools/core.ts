@@ -602,6 +602,12 @@ export function registerCoreTools(
           status: z.enum(['draft', 'published', 'scheduled']).optional(),
           publish_at: z.string().datetime().optional(),
           tags: z.array(z.string()).optional(),
+          authors: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'Author emails; the first is the primary author. Omit to use the authenticated staff user, which Contributor and Author tokens require.',
+            ),
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
           feature_image: z.string().url().optional(),
           feature_image_alt: z.string().max(191).optional(),
@@ -617,6 +623,7 @@ export function registerCoreTools(
             status: args.status,
             published_at: args.publish_at,
             tags: args.tags,
+            authors: args.authors,
             visibility: args.visibility,
             feature_image: args.feature_image,
             feature_image_alt: args.feature_image_alt,
@@ -839,6 +846,12 @@ export function registerCoreTools(
           status: z.enum(['draft', 'published', 'scheduled']).optional(),
           publish_at: z.string().datetime().optional(),
           tags: z.array(z.string()).optional(),
+          authors: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'Author emails; the first is the primary author. Omit to use the authenticated staff user, which Contributor and Author tokens require.',
+            ),
           visibility: z.enum(['public', 'members', 'paid', 'tiers']).optional(),
         }),
       },
@@ -852,6 +865,7 @@ export function registerCoreTools(
             status: args.status,
             published_at: args.publish_at,
             tags: args.tags,
+            authors: args.authors,
             visibility: args.visibility,
           },
           args.html ? 'html' : undefined,

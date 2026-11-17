@@ -910,6 +910,47 @@ describe('mcp core tool registration', () => {
     ).toBe(false);
   });
 
+  test('ghost_post_create and ghost_page_create default authors to the token user', async () => {
+    const creates: Array<{ pathname: string; body: Record<string, unknown> }> = [];
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, init }) => {
+        if (
+          method === 'POST' &&
+          (pathname.endsWith('/ghost/api/admin/posts/') ||
+            pathname.endsWith('/ghost/api/admin/pages/'))
+        ) {
+          creates.push({
+            pathname,
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    const { server, tools } = createRegistry();
+    registerCoreTools(server as never, {}, new Set<McpToolGroup>(['posts', 'pages']));
+
+    await tools.get('ghost_post_create')?.handler({ title: 'Draft' });
+    await tools.get('ghost_page_create')?.handler({ title: 'Draft Page' });
+    await tools
+      .get('ghost_post_create')
+      ?.handler({ title: 'Explicit', authors: ['writer@example.com', 'editor@example.com'] });
+
+    expect(creates).toHaveLength(3);
+    // Contributor and Author tokens are only allowed to create when the first author is their own id.
+    expect(creates[0]?.body).toMatchObject({
+      posts: [{ title: 'Draft', authors: [{ id: fixtureIds.userId }] }],
+    });
+    expect(creates[1]?.body).toMatchObject({
+      pages: [{ title: 'Draft Page', authors: [{ id: fixtureIds.userId }] }],
+    });
+    expect(creates[2]?.body).toMatchObject({
+      posts: [{ title: 'Explicit', authors: ['writer@example.com', 'editor@example.com'] }],
+    });
+  });
+
   test('ghost_post_update forwards email delivery flags as query params', async () => {
     const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
     installGhostFixtureFetchMock({
