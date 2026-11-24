@@ -254,7 +254,7 @@ ghst socialweb reply https://example.com/users/alice/statuses/1 --content "Reply
 
 Social web auth note:
 - `ghst socialweb` bootstraps a short-lived identity JWT from `/ghost/api/admin/identities/`.
-- That bridge requires an Owner or Administrator staff access token.
+- Social web requires an Owner or Administrator staff access token.
 - `ghst socialweb delete` requires `--enable-destructive-actions` and confirmation; use `--yes` in non-interactive scripts.
 - Public Ghost post publishing still lives under `ghst post`; `ghst socialweb` is for notes, interactions, profile, feed, and moderation flows.
 
