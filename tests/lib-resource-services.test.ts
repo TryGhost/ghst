@@ -1533,6 +1533,23 @@ describe('resource service helpers', () => {
     await expect(getSocialWebProfile({}, 'me')).rejects.toMatchObject({
       code: 'AUTH_ERROR',
       exitCode: ExitCode.AUTH_ERROR,
+      message: 'Ghost refused to issue an identity token.',
+    });
+
+    resetSocialWebIdentityCacheForTests();
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method }) => {
+        if (pathname.endsWith('/.ghost/activitypub/v1/account/me') && method === 'GET') {
+          return jsonResponse({ error: 'Forbidden', code: 'ROLE_MISSING' }, 403);
+        }
+        return undefined;
+      },
+    });
+
+    await expect(getSocialWebProfile({}, 'me')).rejects.toMatchObject({
+      code: 'AUTH_ERROR',
+      exitCode: ExitCode.AUTH_ERROR,
+      message: 'Social web requires an Owner or Administrator staff token.',
     });
 
     resetSocialWebIdentityCacheForTests();

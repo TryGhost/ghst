@@ -137,15 +137,12 @@ export class SocialWebClient {
           } catch (error) {
             const normalized = error as { status?: number; payload?: unknown; message?: string };
             if (normalized.status === 403) {
-              throw new GhstError(
-                'Social web requires an Owner or Administrator staff token to bootstrap identity auth.',
-                {
-                  code: 'AUTH_ERROR',
-                  exitCode: ExitCode.AUTH_ERROR,
-                  status: 403,
-                  details: normalized.payload,
-                },
-              );
+              throw new GhstError('Ghost refused to issue an identity token.', {
+                code: 'AUTH_ERROR',
+                exitCode: ExitCode.AUTH_ERROR,
+                status: 403,
+                details: normalized.payload,
+              });
             }
 
             throw error;
@@ -248,6 +245,8 @@ export class SocialWebClient {
 
           if (detailObject?.code === 'SITE_MISSING') {
             message = 'Social web is not enabled on this site.';
+          } else if (detailObject?.code === 'ROLE_MISSING') {
+            message = 'Social web requires an Owner or Administrator staff token.';
           }
         } else {
           const text = await response.text();
