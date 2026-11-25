@@ -171,6 +171,8 @@ ghst post create --title "Launch" --slug launch --markdown-file ./launch.md
 ghst post publish <post-id> --newsletter weekly --email-segment all
 ```
 
+A leading YAML front-matter block (`---` ... `---`) in Markdown input is dropped rather than rendered into the post body. Its keys are not read, so set the title, tags, slug, and excerpt with flags or `--from-json`.
+
 The email delivery flags (`--newsletter`, `--email-only`, `--email-segment`) belong on `post publish` (or `post schedule` / `post update`) — Ghost's email send pipeline fires on the publish transition, not on create.
 
 Pages share the same content flags as posts, including `--slug`, `--tags`, `--from-json`, and `--markdown-file`:
