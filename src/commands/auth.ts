@@ -347,6 +347,26 @@ async function resolveGhostAdminOrigin(inputUrl: string): Promise<ResolvedGhostA
   });
 }
 
+// A cross-origin discovery redirect is only followed when the new origin
+// answers Ghost's public Admin API site endpoint. Authenticating proxies such
+// as Cloudflare Access redirect to their own login host, which never does.
+async function servesGhostAdminApi(origin: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${origin}/ghost/api/admin/site/`, {
+      method: 'GET',
+      redirect: 'manual',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) {
+      return false;
+    }
+    const body = (await response.json()) as { site?: unknown } | null;
+    return typeof body?.site === 'object' && body.site !== null;
+  } catch {
+    return false;
+  }
+}
+
 async function persistSiteCredential(
   alias: string,
   staffTokenInput: string,
@@ -434,6 +454,16 @@ export function registerAuthCommands(program: Command): void {
       urlInput = resolvedOrigin.resolvedOrigin;
 
       if (hasOriginChanged(resolvedOrigin.inputOrigin, resolvedOrigin.resolvedOrigin)) {
+        if (!(await servesGhostAdminApi(resolvedOrigin.resolvedOrigin))) {
+          throw new GhstError(
+            `Ghost Admin discovery for '${resolvedOrigin.inputOrigin}' was redirected to '${resolvedOrigin.resolvedOrigin}', which does not serve the Ghost Admin API. An authenticating proxy (such as Cloudflare Access or an SSO gateway) may be in front of the site. Re-run with --url set to an address that reaches Ghost without the proxy, or set GHOST_URL to that address with GHOST_STAFF_ACCESS_TOKEN instead of logging in.`,
+            {
+              exitCode: ExitCode.USAGE_ERROR,
+              code: 'USAGE_ERROR',
+            },
+          );
+        }
+
         if (nonInteractive) {
           throw new GhstError(
             `Ghost Admin discovery resolved to '${resolvedOrigin.resolvedOrigin}' instead of '${resolvedOrigin.inputOrigin}'. Re-run with --url ${resolvedOrigin.resolvedOrigin}.`,
