@@ -133,7 +133,12 @@ export class SocialWebClient {
         const promise = this.getGhostClient().then(async (ghostClient) => {
           let payload: Record<string, unknown>;
           try {
-            payload = await ghostClient.rawRequest<Record<string, unknown>>('/identities/');
+            payload = await ghostClient.rawRequest<Record<string, unknown>>(
+              '/identities/',
+              'GET',
+              undefined,
+              { audience: 'activitypub' },
+            );
           } catch (error) {
             const normalized = error as { status?: number; payload?: unknown; message?: string };
             if (normalized.status === 403) {
