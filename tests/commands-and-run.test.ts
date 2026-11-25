@@ -926,6 +926,46 @@ describe('run + commands', () => {
     await expect(fs.access(path.join(configDir, 'config.json'))).rejects.toThrow();
   });
 
+  test('reports a failing redirected admin origin as a network error, not a proxy', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        onRequest: async ({ url, pathname }) => {
+          if (url.hostname === 'john.onolan.org' && pathname === '/ghost') {
+            return new Response(null, {
+              status: 302,
+              headers: { location: 'https://john.ghost.io/ghost/' },
+            });
+          }
+          if (url.hostname === 'john.ghost.io' && pathname === '/ghost/api/admin/site/') {
+            return new Response('Service Unavailable', { status: 503 });
+          }
+          return undefined;
+        },
+      }),
+    );
+    const errorSpy = vi.spyOn(console, 'error');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://john.onolan.org',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
+
+    const errorOutput = errorSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(errorOutput).toContain('HTTP 503');
+    expect(errorOutput).not.toContain('authenticating proxy');
+  });
+
   test('keeps auth and config smoke paths focused on observable state', async () => {
     const logSpy = vi.mocked(console.log);
 

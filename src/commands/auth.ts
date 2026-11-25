@@ -351,20 +351,42 @@ async function resolveGhostAdminOrigin(inputUrl: string): Promise<ResolvedGhostA
 // answers Ghost's public Admin API site endpoint. Authenticating proxies such
 // as Cloudflare Access redirect to their own login host, which never does.
 async function servesGhostAdminApi(origin: string): Promise<boolean> {
+  const probeUrl = `${origin}/ghost/api/admin/site/`;
+  let response: Response;
   try {
-    const response = await fetch(`${origin}/ghost/api/admin/site/`, {
+    response = await fetch(probeUrl, {
       method: 'GET',
       redirect: 'manual',
       headers: { Accept: 'application/json' },
     });
-    if (!response.ok) {
-      return false;
-    }
-    const body = (await response.json()) as { site?: unknown } | null;
-    return typeof body?.site === 'object' && body.site !== null;
-  } catch {
+  } catch (error) {
+    throw new GhstError(
+      `Unable to reach Ghost Admin URL '${probeUrl}': ${(error as Error).message}`,
+      {
+        exitCode: ExitCode.GENERAL_ERROR,
+        code: 'NETWORK_ERROR',
+      },
+    );
+  }
+
+  // A rate limit or server error says nothing about whether Ghost lives here.
+  if (response.status === 429 || response.status >= 500) {
+    throw new GhstError(
+      `Ghost Admin URL '${probeUrl}' responded with HTTP ${response.status}. Try again later.`,
+      {
+        exitCode: ExitCode.GENERAL_ERROR,
+        code: 'NETWORK_ERROR',
+        status: response.status,
+      },
+    );
+  }
+
+  if (!response.ok) {
     return false;
   }
+
+  const body = (await response.json().catch(() => null)) as { site?: unknown } | null;
+  return typeof body?.site === 'object' && body.site !== null;
 }
 
 async function persistSiteCredential(
@@ -456,7 +478,7 @@ export function registerAuthCommands(program: Command): void {
       if (hasOriginChanged(resolvedOrigin.inputOrigin, resolvedOrigin.resolvedOrigin)) {
         if (!(await servesGhostAdminApi(resolvedOrigin.resolvedOrigin))) {
           throw new GhstError(
-            `Ghost Admin discovery for '${resolvedOrigin.inputOrigin}' was redirected to '${resolvedOrigin.resolvedOrigin}', which does not serve the Ghost Admin API. An authenticating proxy (such as Cloudflare Access or an SSO gateway) may be in front of the site. Re-run with --url set to an address that reaches Ghost without the proxy, or set GHOST_URL to that address with GHOST_STAFF_ACCESS_TOKEN instead of logging in.`,
+            `Ghost Admin discovery for '${resolvedOrigin.inputOrigin}' was redirected to '${resolvedOrigin.resolvedOrigin}', which does not serve the Ghost Admin API. An authenticating proxy (such as Cloudflare Access or an SSO gateway) may be in front of the site, or Ghost is not served at that address. Re-run with --url set to an address that reaches Ghost without the proxy, or set GHOST_URL to that address with GHOST_STAFF_ACCESS_TOKEN instead of logging in.`,
             {
               exitCode: ExitCode.USAGE_ERROR,
               code: 'USAGE_ERROR',
