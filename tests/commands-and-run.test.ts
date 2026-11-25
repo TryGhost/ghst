@@ -2005,6 +2005,43 @@ describe('run + commands', () => {
     );
   });
 
+  test('post create sends --slug in the payload', async () => {
+    const postRequests: Array<Record<string, unknown>> = [];
+
+    installGhostFixtureFetchMock({
+      onRequest: ({ pathname, method, init }) => {
+        if (method === 'POST' && pathname.endsWith('/ghost/api/admin/posts/')) {
+          postRequests.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>);
+        }
+
+        return undefined;
+      },
+    });
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        '--url',
+        'https://myblog.ghost.io',
+        '--staff-token',
+        KEY,
+        'post',
+        'create',
+        '--title',
+        'Example post',
+        '--slug',
+        'example-slug',
+        '--json',
+      ]),
+    ).resolves.toBe(ExitCode.SUCCESS);
+
+    expect(postRequests).toHaveLength(1);
+    expect(postRequests[0]).toMatchObject({
+      posts: [{ title: 'Example post', slug: 'example-slug' }],
+    });
+  });
+
   test('post schedule forwards email delivery flags as query params', async () => {
     const putRequests: Array<{ url: URL; body: Record<string, unknown> }> = [];
 

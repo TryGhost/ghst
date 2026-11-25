@@ -49,6 +49,7 @@ export const PostCreateInputSchema = withSingleContentSource(
   z
     .object({
       title: z.string().min(1).optional(),
+      slug: z.string().min(1).optional(),
       status: StatusSchema.optional(),
       publishAt: z.string().datetime({ offset: true }).optional(),
       html: z.string().optional(),

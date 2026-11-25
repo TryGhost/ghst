@@ -167,7 +167,7 @@ Interactive destructive confirmations also emit `GHST_AGENT_NOTICE:` lines on st
 Create and publish:
 
 ```bash
-ghst post create --title "Launch" --markdown-file ./launch.md
+ghst post create --title "Launch" --slug launch --markdown-file ./launch.md
 ghst post publish <post-id> --newsletter weekly --email-segment all
 ```
 
