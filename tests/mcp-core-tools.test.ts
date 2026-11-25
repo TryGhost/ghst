@@ -887,14 +887,16 @@ describe('mcp core tool registration', () => {
       feature_image_caption: 'Zurich in late September',
     };
 
-    await tools.get('ghost_post_create')?.handler({ title: 'Tool Post', ...featureImage });
+    await tools
+      .get('ghost_post_create')
+      ?.handler({ title: 'Tool Post', slug: 'tool-post', ...featureImage });
     await tools.get('ghost_post_update')?.handler({ id: fixtureIds.postId, ...featureImage });
     await tools
       .get('ghost_post_update')
       ?.handler({ id: fixtureIds.postId, title: 'No image change' });
 
     expect(writes.map((write) => write.method)).toEqual(['POST', 'PUT', 'PUT']);
-    expect(writes[0]?.body).toMatchObject({ posts: [featureImage] });
+    expect(writes[0]?.body).toMatchObject({ posts: [{ slug: 'tool-post', ...featureImage }] });
     expect(writes[1]?.body).toMatchObject({ posts: [featureImage] });
     // Omitted fields are not sent, so an update never clears an existing feature image.
     expect(JSON.stringify(writes[2]?.body ?? {})).not.toContain('feature_image');

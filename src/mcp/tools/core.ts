@@ -598,6 +598,7 @@ export function registerCoreTools(
         description: 'Create a Ghost post.',
         inputSchema: z.object({
           title: z.string(),
+          slug: z.string().optional(),
           html: z.string().optional(),
           status: z.enum(['draft', 'published', 'scheduled']).optional(),
           publish_at: z.string().datetime().optional(),
@@ -619,6 +620,7 @@ export function registerCoreTools(
           global,
           {
             title: args.title,
+            slug: args.slug,
             html: args.html,
             status: args.status,
             published_at: args.publish_at,

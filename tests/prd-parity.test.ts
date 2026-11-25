@@ -207,6 +207,7 @@ describe('PRD parity guardrails', () => {
     const postBulkFlags = getSubcommandOptionNames(program, 'post', 'bulk');
 
     for (const flag of [
+      '--slug',
       '--markdown-file',
       '--markdown-stdin',
       '--html-raw-file',

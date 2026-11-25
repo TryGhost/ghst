@@ -161,6 +161,7 @@ export function registerPostCommands(program: Command): void {
     .command('create')
     .description('Create a post')
     .option('--title <title>', 'Post title')
+    .option('--slug <slug>', 'Post slug')
     .option('--status <status>', 'Post status')
     .option('--publish-at <datetime>', 'Publish date-time for scheduled posts')
     .option('--html <html>', 'Post HTML content')
@@ -186,6 +187,7 @@ export function registerPostCommands(program: Command): void {
       const global = getGlobalOptions(command);
       const parsed = PostCreateInputSchema.safeParse({
         title: options.title,
+        slug: options.slug,
         status: options.status,
         publishAt: options.publishAt,
         html: options.html,
@@ -239,6 +241,7 @@ export function registerPostCommands(program: Command): void {
         { ...fromJson },
         {
           title: parsed.data.title,
+          slug: parsed.data.slug,
           status:
             parsed.data.status ??
             (typeof fromJson.status === 'string' ? fromJson.status : undefined) ??
