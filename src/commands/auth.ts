@@ -18,6 +18,7 @@ import { credentialRefForAlias, getCredentialStore } from '../lib/credentials.js
 import { assertDestructiveActionsEnabled } from '../lib/destructive-actions.js';
 import { ExitCode, GhstError } from '../lib/errors.js';
 import { confirmDestructiveAction } from '../lib/prompts.js';
+import { servesGhostAdminApi } from '../lib/site.js';
 import { isNonInteractive } from '../lib/tty.js';
 
 type PromptFn = (question: string) => Promise<string>;
@@ -345,48 +346,6 @@ async function resolveGhostAdminOrigin(inputUrl: string): Promise<ResolvedGhostA
     exitCode: ExitCode.GENERAL_ERROR,
     code: 'NETWORK_ERROR',
   });
-}
-
-// A cross-origin discovery redirect is only followed when the new origin
-// answers Ghost's public Admin API site endpoint. Authenticating proxies such
-// as Cloudflare Access redirect to their own login host, which never does.
-async function servesGhostAdminApi(origin: string): Promise<boolean> {
-  const probeUrl = `${origin}/ghost/api/admin/site/`;
-  let response: Response;
-  try {
-    response = await fetch(probeUrl, {
-      method: 'GET',
-      redirect: 'manual',
-      headers: { Accept: 'application/json' },
-    });
-  } catch (error) {
-    throw new GhstError(
-      `Unable to reach Ghost Admin URL '${probeUrl}': ${(error as Error).message}`,
-      {
-        exitCode: ExitCode.GENERAL_ERROR,
-        code: 'NETWORK_ERROR',
-      },
-    );
-  }
-
-  // A rate limit or server error says nothing about whether Ghost lives here.
-  if (response.status === 429 || response.status >= 500) {
-    throw new GhstError(
-      `Ghost Admin URL '${probeUrl}' responded with HTTP ${response.status}. Try again later.`,
-      {
-        exitCode: ExitCode.GENERAL_ERROR,
-        code: 'NETWORK_ERROR',
-        status: response.status,
-      },
-    );
-  }
-
-  if (!response.ok) {
-    return false;
-  }
-
-  const body = (await response.json().catch(() => null)) as { site?: unknown } | null;
-  return typeof body?.site === 'object' && body.site !== null;
 }
 
 async function persistSiteCredential(
