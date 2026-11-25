@@ -17,6 +17,7 @@ import { createMemoryCredentialStore } from './helpers/mock-credentials.js';
 import {
   createGhostFixtureFetchHandler,
   installGhostFixtureFetchMock,
+  type MockGhostRequest,
 } from './helpers/mock-ghost.js';
 
 const KEY = 'abc123:00112233445566778899aabbccddeeff';
@@ -861,6 +862,108 @@ describe('run + commands', () => {
       .join('\n');
     expect(errorOutput).toContain("resolved to 'https://john.ghost.io'");
     expect(errorOutput).toContain('Re-run with --url https://john.ghost.io.');
+  });
+
+  test('rejects admin discovery redirected to an authenticating proxy login host', async () => {
+    const proxyLoginRedirect = async ({ url, pathname, method }: MockGhostRequest) => {
+      if (url.hostname === 'blog.example.com' && pathname === '/ghost' && method === 'GET') {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: 'https://example.cloudflareaccess.com/cdn-cgi/access/login/blog.example.com',
+          },
+        });
+      }
+      if (url.hostname === 'example.cloudflareaccess.com') {
+        return pathname.startsWith('/cdn-cgi/access/login/')
+          ? new Response('<html>Sign in</html>', {
+              status: 200,
+              headers: { 'content-type': 'text/html' },
+            })
+          : new Response('Not Found', { status: 404 });
+      }
+      return undefined;
+    };
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({ onRequest: proxyLoginRedirect }),
+    );
+    const errorSpy = vi.spyOn(console, 'error');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://blog.example.com',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.USAGE_ERROR);
+
+    const errorOutput = errorSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(errorOutput).toContain('authenticating proxy');
+    expect(errorOutput).not.toContain('--url https://example.cloudflareaccess.com');
+
+    // Interactive login must not offer to continue with the proxy's login host.
+    const prompts: string[] = [];
+    const openedUrls: string[] = [];
+    setOpenUrlForTests(async (url) => {
+      openedUrls.push(url);
+    });
+    setPromptForTests(async (question) => {
+      prompts.push(question);
+      return 'https://blog.example.com';
+    });
+
+    await expect(run(['node', 'ghst', 'auth', 'login'])).resolves.toBe(ExitCode.USAGE_ERROR);
+    expect(prompts).toHaveLength(1);
+    expect(openedUrls).toEqual([]);
+    await expect(fs.access(path.join(configDir, 'config.json'))).rejects.toThrow();
+  });
+
+  test('reports a failing redirected admin origin as a network error, not a proxy', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(
+      createGhostFixtureFetchHandler({
+        onRequest: async ({ url, pathname }) => {
+          if (url.hostname === 'john.onolan.org' && pathname === '/ghost') {
+            return new Response(null, {
+              status: 302,
+              headers: { location: 'https://john.ghost.io/ghost/' },
+            });
+          }
+          if (url.hostname === 'john.ghost.io' && pathname === '/ghost/api/admin/site/') {
+            return new Response('Service Unavailable', { status: 503 });
+          }
+          return undefined;
+        },
+      }),
+    );
+    const errorSpy = vi.spyOn(console, 'error');
+
+    await expect(
+      run([
+        'node',
+        'ghst',
+        'auth',
+        'login',
+        '--non-interactive',
+        '--url',
+        'https://john.onolan.org',
+        '--staff-token',
+        KEY,
+      ]),
+    ).resolves.toBe(ExitCode.GENERAL_ERROR);
+
+    const errorOutput = errorSpy.mock.calls
+      .map((call) => call.map((entry) => String(entry)).join(' '))
+      .join('\n');
+    expect(errorOutput).toContain('HTTP 503');
+    expect(errorOutput).not.toContain('authenticating proxy');
   });
 
   test('keeps auth and config smoke paths focused on observable state', async () => {

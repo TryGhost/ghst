@@ -1,7 +1,8 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { collectAllPages } from '../src/lib/pagination.js';
 import { parseBooleanFlag, parseCsv, parseInteger, parseQueryPairs } from '../src/lib/parse.js';
 import { ask, confirm, setPromptHandlerForTests } from '../src/lib/prompts.js';
+import { servesGhostAdminApi } from '../src/lib/site.js';
 import { isForcedTty, isNonInteractive, isStdinTty, isStdoutTty } from '../src/lib/tty.js';
 
 describe('parse helpers', () => {
@@ -69,6 +70,50 @@ describe('pagination helpers', () => {
       pages: 1,
       total: 2,
       next: null,
+    });
+  });
+});
+
+describe('Ghost Admin API probe', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const respondWith = (response: Response) => {
+    const fetchMock = vi.fn(async () => response);
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  };
+
+  test('accepts only a JSON site payload from the site endpoint', async () => {
+    const fetchMock = respondWith(Response.json({ site: { title: 'Blog' } }));
+    await expect(servesGhostAdminApi('https://john.ghost.io')).resolves.toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://john.ghost.io/ghost/api/admin/site/',
+      expect.objectContaining({ redirect: 'manual' }),
+    );
+
+    respondWith(Response.json({ title: 'Not Ghost' }));
+    await expect(servesGhostAdminApi('https://example.com')).resolves.toBe(false);
+
+    respondWith(new Response('<html>Sign in</html>', { status: 200 }));
+    await expect(servesGhostAdminApi('https://example.cloudflareaccess.com')).resolves.toBe(false);
+
+    respondWith(new Response(null, { status: 302, headers: { location: '/login' } }));
+    await expect(servesGhostAdminApi('https://example.cloudflareaccess.com')).resolves.toBe(false);
+  });
+
+  test('reports a body read failure as a network error, not a non-Ghost origin', async () => {
+    const failingBody = new ReadableStream({
+      start(controller) {
+        controller.error(new Error('socket hang up'));
+      },
+    });
+    respondWith(new Response(failingBody, { status: 200 }));
+
+    await expect(servesGhostAdminApi('https://john.ghost.io')).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
+      message: expect.stringContaining('socket hang up'),
     });
   });
 });

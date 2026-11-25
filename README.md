@@ -414,6 +414,12 @@ the CLI.
 
 - Re-run auth with `--non-interactive` and explicit credentials.
 
+`Ghost Admin discovery ... was redirected to ..., which does not serve the Ghost Admin API`:
+
+- Something in front of Ghost, such as Cloudflare Access or an SSO gateway, redirected `ghst auth login` to its own login page.
+- Re-run with `--url` set to an address that reaches Ghost without the proxy, or
+- Set `GHOST_URL` to that address and `GHOST_STAFF_ACCESS_TOKEN` instead of logging in.
+
 Commands and flags drift:
 
 - Re-check current command docs with `ghst <resource> --help`.
