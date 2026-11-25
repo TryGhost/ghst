@@ -36,6 +36,10 @@ describe('markdown rendering', () => {
       '<h1>Hi</h1>\n',
     );
     expect(renderMarkdown('---\n---\nBody')).toBe('<p>Body</p>\n');
+    // Empty front matter closes at the first delimiter, not at a later body rule.
+    expect(renderMarkdown('---\n---\nKeep this.\n\n---\nAfter.\n')).toBe(
+      '<p>Keep this.</p>\n<hr>\n<p>After.</p>\n',
+    );
     // Only a block at the very start is front matter; later rules render as usual.
     expect(renderMarkdown('Intro\n\n---\n\nkey: value\n---\n')).toBe(
       '<p>Intro</p>\n<hr>\n<h2>key: value</h2>\n',

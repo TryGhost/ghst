@@ -8,7 +8,7 @@ const markdownRenderer = new MarkdownIt({ html: true, linkify: true, breaks: tru
 // editors such as Obsidian. Markdown has no front matter, so markdown-it would otherwise
 // render it as a horizontal rule followed by a setext heading (issue #387).
 const frontMatterPattern =
-  /^\uFEFF?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)?(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/;
+  /^\uFEFF?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)??(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/;
 
 export function renderMarkdown(markdown: string): string {
   return markdownRenderer.render(markdown.replace(frontMatterPattern, ''));
