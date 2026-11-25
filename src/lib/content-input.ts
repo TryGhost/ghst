@@ -4,8 +4,14 @@ import { ExitCode, GhstError } from './errors.js';
 
 const markdownRenderer = new MarkdownIt({ html: true, linkify: true, breaks: true });
 
+// A leading `---` ... `---` (or `...`) block, as written by static-site generators and
+// editors such as Obsidian. Markdown has no front matter, so markdown-it would otherwise
+// render it as a horizontal rule followed by a setext heading (issue #387).
+const frontMatterPattern =
+  /^\uFEFF?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)??(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/;
+
 export function renderMarkdown(markdown: string): string {
-  return markdownRenderer.render(markdown);
+  return markdownRenderer.render(markdown.replace(frontMatterPattern, ''));
 }
 
 export async function readOptionalFile(filePath: string | undefined): Promise<string | undefined> {

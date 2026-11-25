@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { renderMarkdown } from '../src/lib/content-input.js';
 import { collectAllPages } from '../src/lib/pagination.js';
 import { parseBooleanFlag, parseCsv, parseInteger, parseQueryPairs } from '../src/lib/parse.js';
 import { ask, confirm, setPromptHandlerForTests } from '../src/lib/prompts.js';
@@ -23,6 +24,28 @@ describe('parse helpers', () => {
     expect(parseInteger('10', 'limit')).toBe(10);
     expect(parseInteger(undefined, 'limit')).toBeUndefined();
     expect(() => parseInteger('x', 'limit')).toThrowError('limit must be an integer');
+  });
+});
+
+describe('markdown rendering', () => {
+  test('drops leading YAML front matter but keeps body rules and headings', () => {
+    expect(
+      renderMarkdown('---\ntitle: "Example post"\ntags: ["example"]\n---\nFirst paragraph.\n'),
+    ).toBe('<p>First paragraph.</p>\n');
+    expect(renderMarkdown('\uFEFF---\r\ntitle: x\r\n\r\nslug: y\r\n...\r\n# Hi\r\n')).toBe(
+      '<h1>Hi</h1>\n',
+    );
+    expect(renderMarkdown('---\n---\nBody')).toBe('<p>Body</p>\n');
+    // Empty front matter closes at the first delimiter, not at a later body rule.
+    expect(renderMarkdown('---\n---\nKeep this.\n\n---\nAfter.\n')).toBe(
+      '<p>Keep this.</p>\n<hr>\n<p>After.</p>\n',
+    );
+    // Only a block at the very start is front matter; later rules render as usual.
+    expect(renderMarkdown('Intro\n\n---\n\nkey: value\n---\n')).toBe(
+      '<p>Intro</p>\n<hr>\n<h2>key: value</h2>\n',
+    );
+    // An unclosed opening rule is not front matter.
+    expect(renderMarkdown('---\n\nBody')).toBe('<hr>\n<p>Body</p>\n');
   });
 });
 
