@@ -1461,9 +1461,11 @@ describe('resource service helpers', () => {
     const profile = await getSocialWebProfile({}, 'me');
     expect(profile.handle).toBe('@index@myblog.ghost.io');
 
-    expect(requests.filter((entry) => entry.endsWith('/ghost/api/admin/identities/'))).toHaveLength(
-      1,
-    );
+    expect(
+      requests.filter((entry) =>
+        entry.endsWith('/ghost/api/admin/identities/?audience=activitypub'),
+      ),
+    ).toHaveLength(1);
   });
 
   test('covers social web reads, hydration fallback, and mutations', async () => {
